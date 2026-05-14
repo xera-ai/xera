@@ -34,14 +34,17 @@ export function createRestBackend(baseUrl: string, creds: RestCreds): JiraClient
       const attachments = Array.isArray(f.attachment)
         ? (f.attachment as Array<{ filename: string; content: string }>).map(a => ({ filename: a.filename, url: a.content }))
         : [];
-      return {
+      const ticket: JiraTicket = {
         key: json.key,
         summary: String(f.summary ?? ''),
         story: String(f[fields.story] ?? ''),
-        acceptanceCriteria: fields.acceptanceCriteria ? String(f[fields.acceptanceCriteria] ?? '') : undefined,
         attachments,
         raw: f,
       };
+      if (fields.acceptanceCriteria) {
+        ticket.acceptanceCriteria = String(f[fields.acceptanceCriteria] ?? '');
+      }
+      return ticket;
     },
     async postComment(key, body) {
       const r = await req(`/rest/api/3/issue/${encodeURIComponent(key)}/comment`, {
