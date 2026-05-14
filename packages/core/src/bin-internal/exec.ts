@@ -88,12 +88,21 @@ export async function execCmd(argv: string[]): Promise<number> {
     const envName = process.env.XERA_ENV ?? config.web.defaultEnv;
     const baseURL = config.web.baseUrl[envName] ?? config.web.baseUrl[config.web.defaultEnv]!;
 
+    const reportJsonPath = join(runDir, 'report.json');
+
     log.log({ step: 'exec.start', runId, env: envName, baseURL });
     const r = await runPlaywright({
       specPath: paths.specPath,
       configPath: cfgPath,
       outputDir: runDir,
-      env: { XERA_BASE_URL: baseURL, XERA_ENV: envName },
+      env: {
+        XERA_BASE_URL: baseURL,
+        XERA_ENV: envName,
+        // Playwright's JSON reporter prints to stdout by default. Redirect it
+        // to a file inside the run dir so xera:normalize has a deterministic
+        // path to read.
+        PLAYWRIGHT_JSON_OUTPUT_NAME: reportJsonPath,
+      },
     });
     log.log({ step: 'exec.done', runId, exit: r.exitCode, ms: Date.now() - t0 });
 
