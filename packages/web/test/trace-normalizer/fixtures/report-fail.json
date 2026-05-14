@@ -1,0 +1,18 @@
+{
+  "config": {},
+  "stats": { "expected": 1, "unexpected": 1, "flaky": 0, "skipped": 0, "duration": 1234 },
+  "suites": [{
+    "title": "JIRA-1: login",
+    "specs": [
+      { "title": "Successful login", "ok": true, "tests": [{ "results": [{ "status": "passed", "duration": 500 }] }] },
+      { "title": "Login fails with invalid password", "ok": false, "tests": [{ "results": [{
+          "status": "failed",
+          "duration": 800,
+          "error": { "message": "expect(getByText('Invalid')).toBeVisible() failed", "stack": "at spec.ts:14" },
+          "attachments": [
+            { "name": "screenshot", "path": "screenshots/scenario-2-failure.png", "contentType": "image/png" }
+          ]
+      }] }] }
+    ]
+  }]
+}
