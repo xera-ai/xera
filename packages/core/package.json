@@ -1,6 +1,6 @@
 {
   "name": "@xera-ai/core",
-  "version": "0.1.0",
+  "version": "0.1.4",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "zod": "3.23.8",
-    "@xera-ai/web": "workspace:*",
+    "@xera-ai/web": "^0.1.4",
     "@playwright/test": "1.48.0"
   }
 }

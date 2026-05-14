@@ -6,16 +6,8 @@ const TEMPLATE_ROOT = join(fileURLToPath(import.meta.url), '..', '..', 'template
 
 function render(tmpl: string, vars: Record<string, string | string[] | boolean>): string {
   let out = tmpl;
-  // {{var}}
-  out = out.replace(/\{\{(\w+)\}\}/g, (_, k) => {
-    const v = vars[k];
-    return v === undefined ? '' : Array.isArray(v) ? v.map((s) => `'${s}'`).join(', ') : String(v);
-  });
-  // {{#if foo}}...{{/if}}
-  out = out.replace(/\{\{#if (\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g, (_, k, block) =>
-    vars[k] ? String(block) : '',
-  );
-  // {{#each list}}...{{/each}} with {{this}} and {{upper this}}
+  // {{#each list}}...{{/each}} with {{this}} and {{upper this}} — run FIRST so
+  // {{this}} doesn't get eaten by the {{var}} pass below.
   out = out.replace(/\{\{#each (\w+)\}\}([\s\S]*?)\{\{\/each\}\}/g, (_, k, block) => {
     const list = vars[k];
     if (!Array.isArray(list)) return '';
@@ -26,6 +18,15 @@ function render(tmpl: string, vars: Record<string, string | string[] | boolean>)
           .replace(/\{\{this\}\}/g, item),
       )
       .join('');
+  });
+  // {{#if foo}}...{{/if}}
+  out = out.replace(/\{\{#if (\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g, (_, k, block) =>
+    vars[k] ? String(block) : '',
+  );
+  // {{var}} — last so it doesn't clobber {{this}} inside each blocks.
+  out = out.replace(/\{\{(\w+)\}\}/g, (_, k) => {
+    const v = vars[k];
+    return v === undefined ? '' : Array.isArray(v) ? v.map((s) => `'${s}'`).join(', ') : String(v);
   });
   return out;
 }

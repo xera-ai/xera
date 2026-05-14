@@ -1,6 +1,6 @@
 {
   "name": "@xera-ai/web",
-  "version": "0.1.0",
+  "version": "0.1.4",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -20,7 +20,7 @@
     "@cucumber/gherkin": "30.0.4",
     "@cucumber/messages": "27.0.2",
     "@playwright/test": "1.48.0",
-    "@xera-ai/core": "workspace:*",
+    "@xera-ai/core": "^0.1.4",
     "fflate": "0.8.2"
   }
 }

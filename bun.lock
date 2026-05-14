@@ -31,26 +31,27 @@
     },
     "packages/cli": {
       "name": "@xera-ai/cli",
-      "version": "0.1.0",
+      "version": "0.1.5",
       "bin": {
         "xera": "./bin/xera",
       },
       "dependencies": {
         "@clack/prompts": "0.7.0",
-        "@xera-ai/core": "workspace:*",
+        "@xera-ai/core": "^0.1.4",
+        "@xera-ai/skills": "^0.1.0",
         "cac": "6.7.14",
         "picocolors": "1.1.0",
       },
     },
     "packages/core": {
       "name": "@xera-ai/core",
-      "version": "0.1.0",
+      "version": "0.1.4",
       "bin": {
         "xera-internal": "./dist/bin/internal.js",
       },
       "dependencies": {
         "@playwright/test": "1.48.0",
-        "@xera-ai/web": "workspace:*",
+        "@xera-ai/web": "^0.1.4",
         "zod": "3.23.8",
       },
     },
@@ -64,12 +65,12 @@
     },
     "packages/web": {
       "name": "@xera-ai/web",
-      "version": "0.1.0",
+      "version": "0.1.4",
       "dependencies": {
         "@cucumber/gherkin": "30.0.4",
         "@cucumber/messages": "27.0.2",
         "@playwright/test": "1.48.0",
-        "@xera-ai/core": "workspace:*",
+        "@xera-ai/core": "^0.1.4",
         "fflate": "0.8.2",
       },
     },
@@ -264,9 +265,5 @@
     "@clack/prompts/is-unicode-supported": ["is-unicode-supported@2.1.0", "", { "bundled": true }, "sha512-mE00Gnza5EEB3Ds0HfMyllZzbBrmLOX3vfWoj9A9PEnTfratQ/BcaJOuMhnkhjXvb2+FkY3VuHqtAGpTPmglFQ=="],
 
     "@cucumber/gherkin/@cucumber/messages": ["@cucumber/messages@26.0.1", "", { "dependencies": { "@types/uuid": "10.0.0", "class-transformer": "0.5.1", "reflect-metadata": "0.2.2", "uuid": "10.0.0" } }, "sha512-DIxSg+ZGariumO+Lq6bn4kOUIUET83A4umrnWmidjGFl8XxkBieUZtsmNbLYgH/gnsmP07EfxxdTr0hOchV1Sg=="],
-
-    "bun-types/@types/node": ["@types/node@25.7.0", "", { "dependencies": { "undici-types": "~7.21.0" } }, "sha512-z+pdZyxE+RTQE9AcboAZCb4otwcrvgHD+GlBpPgn0emDVt0ohrTMhAwlr2Wd9nZ+nihhYFxO2pThz3C5qSu2Eg=="],
-
-    "bun-types/@types/node/undici-types": ["undici-types@7.21.0", "", {}, "sha512-w9IMgQrz4O0YN1LtB7K5P63vhlIOvC7opSmouCJ+ZywlPAlO9gIkJ+otk6LvGpAs2wg4econaCz3TvQ9xPoyuQ=="],
   }
 }
