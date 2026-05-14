@@ -1,0 +1,8 @@
+{
+  "key": "SAMPLE-001",
+  "fields": {
+    "summary": "User can log in with valid credentials",
+    "description": "As a user I want to sign in with email + password so that I can access my dashboard.\n\nAcceptance Criteria:\n- Login form has email + password fields\n- Successful login redirects to /dashboard\n- Invalid credentials show an error",
+    "attachment": []
+  }
+}

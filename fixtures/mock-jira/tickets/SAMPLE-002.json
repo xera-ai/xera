@@ -1,0 +1,8 @@
+{
+  "key": "SAMPLE-002",
+  "fields": {
+    "summary": "Dashboard shows welcome message after login",
+    "description": "After a successful login, /dashboard displays 'Welcome, <username>' where username is the local part of the email.",
+    "attachment": []
+  }
+}
