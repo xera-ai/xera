@@ -19,7 +19,13 @@ describe('withRetry', () => {
   test('throws original error after maxAttempts', async () => {
     let calls = 0;
     await expect(
-      withRetry(async () => { calls++; throw new Error('nope'); }, { maxAttempts: 3, baseMs: 1, factor: 2 }),
+      withRetry(
+        async () => {
+          calls++;
+          throw new Error('nope');
+        },
+        { maxAttempts: 3, baseMs: 1, factor: 2 },
+      ),
     ).rejects.toThrow('nope');
     expect(calls).toBe(3);
   });
@@ -28,8 +34,11 @@ describe('withRetry', () => {
     let calls = 0;
     await expect(
       withRetry(
-        async () => { calls++; throw new Error('401'); },
-        { maxAttempts: 5, baseMs: 1, factor: 2, shouldRetry: e => !/401/.test(String(e)) },
+        async () => {
+          calls++;
+          throw new Error('401');
+        },
+        { maxAttempts: 5, baseMs: 1, factor: 2, shouldRetry: (e) => !/401/.test(String(e)) },
       ),
     ).rejects.toThrow('401');
     expect(calls).toBe(1);

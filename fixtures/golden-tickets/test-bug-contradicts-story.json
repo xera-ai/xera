@@ -2,8 +2,13 @@
   "ticket": "GOLD-005",
   "description": "Spec asserts text the story never mentions",
   "scenarios": [
-    { "name": "See dashboard greeting", "outcome": "FAIL", "class": "TEST_BUG", "confidence": "high",
-      "rationale": "Spec asserts 'Welcome, Admin' but story only specifies 'Welcome'; the actual UI says 'Welcome'." }
+    {
+      "name": "See dashboard greeting",
+      "outcome": "FAIL",
+      "class": "TEST_BUG",
+      "confidence": "high",
+      "rationale": "Spec asserts 'Welcome, Admin' but story only specifies 'Welcome'; the actual UI says 'Welcome'."
+    }
   ],
   "scenarioCounts": { "total": 1, "passed": 0, "failed": 1, "skipped": 0 },
   "expected": { "overall": "TEST_BUG", "overallConfidence": "high" }

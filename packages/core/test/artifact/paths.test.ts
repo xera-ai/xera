@@ -22,7 +22,9 @@ describe('resolveArtifactPaths', () => {
     expect(run.runDir).toBe('/repo/.xera/JIRA-123/runs/2026-05-14T10-30-00');
     expect(run.reportJsonPath).toBe('/repo/.xera/JIRA-123/runs/2026-05-14T10-30-00/report.json');
     expect(run.tracePath).toBe('/repo/.xera/JIRA-123/runs/2026-05-14T10-30-00/trace.zip');
-    expect(run.normalizedPath).toBe('/repo/.xera/JIRA-123/runs/2026-05-14T10-30-00/normalized.json');
+    expect(run.normalizedPath).toBe(
+      '/repo/.xera/JIRA-123/runs/2026-05-14T10-30-00/normalized.json',
+    );
     expect(run.screenshotsDir).toBe('/repo/.xera/JIRA-123/runs/2026-05-14T10-30-00/screenshots');
   });
 

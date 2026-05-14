@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { NdjsonLogger } from '../../src/logging/ndjson-logger';
@@ -26,7 +26,7 @@ describe('NdjsonLogger', () => {
     const log = new NdjsonLogger(path);
     log.log({ step: 'a' });
     log.log({ step: 'b' });
-    expect(NdjsonLogger.readAll(path).map(e => e.step)).toEqual(['a', 'b']);
+    expect(NdjsonLogger.readAll(path).map((e) => e.step)).toEqual(['a', 'b']);
     rmSync(dir, { recursive: true });
   });
 

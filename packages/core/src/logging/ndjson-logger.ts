@@ -1,4 +1,4 @@
-import { appendFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 
 export interface LogEntry {
@@ -20,6 +20,6 @@ export class NdjsonLogger {
     if (!existsSync(path)) return [];
     const txt = readFileSync(path, 'utf8').trim();
     if (!txt) return [];
-    return txt.split('\n').map(line => JSON.parse(line) as LogEntry);
+    return txt.split('\n').map((line) => JSON.parse(line) as LogEntry);
   }
 }

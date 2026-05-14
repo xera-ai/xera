@@ -8,8 +8,10 @@ export interface JiraFieldInfo {
 
 export function rankStoryCandidates(fields: JiraFieldInfo[]): JiraFieldInfo[] {
   return fields
-    .filter(f => f.hasContent)
-    .filter(f => !['attachment', 'comment', 'created', 'updated', 'reporter', 'creator'].includes(f.id))
+    .filter((f) => f.hasContent)
+    .filter(
+      (f) => !['attachment', 'comment', 'created', 'updated', 'reporter', 'creator'].includes(f.id),
+    )
     .sort((a, b) => {
       const ai = PREFERRED_STORY_IDS.indexOf(a.id);
       const bi = PREFERRED_STORY_IDS.indexOf(b.id);

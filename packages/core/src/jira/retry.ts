@@ -16,8 +16,8 @@ export async function withRetry<T>(fn: () => Promise<T>, opts: RetryOptions): Pr
       if (opts.shouldRetry && !opts.shouldRetry(err)) throw err;
       attempt++;
       if (attempt >= opts.maxAttempts) break;
-      const delay = opts.baseMs * Math.pow(opts.factor, attempt - 1);
-      await new Promise(r => setTimeout(r, delay));
+      const delay = opts.baseMs * opts.factor ** (attempt - 1);
+      await new Promise((r) => setTimeout(r, delay));
     }
   }
   throw lastErr;

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { parseDuration, needsRefresh, type AuthStateEntry } from '../../src/auth/refresh';
+import { type AuthStateEntry, needsRefresh, parseDuration } from '../../src/auth/refresh';
 
 describe('parseDuration', () => {
   test('parses h/m/s', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { encrypt, decrypt, generateKey } from '../../src/auth/encrypt';
+import { decrypt, encrypt, generateKey } from '../../src/auth/encrypt';
 
 describe('AES-256-GCM helpers', () => {
   test('round-trips plaintext', () => {

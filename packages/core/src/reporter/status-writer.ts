@@ -1,6 +1,6 @@
-import type { ClassifyOutput } from '../classifier/types';
 import { existsSync } from 'node:fs';
-import { readStatus, writeStatus, appendHistory, type StatusJson } from '../artifact/status';
+import { type StatusJson, appendHistory, readStatus, writeStatus } from '../artifact/status';
+import type { ClassifyOutput } from '../classifier/types';
 
 export interface StatusWriterInput {
   ticket: string;

@@ -1,26 +1,35 @@
 import { describe, expect, test } from 'bun:test';
-import { scrub, type NormalizedNetworkEntry, type NormalizedRun } from '../../src/trace-normalizer/scrub';
+import {
+  type NormalizedNetworkEntry,
+  type NormalizedRun,
+  scrub,
+} from '../../src/trace-normalizer/scrub';
 
 describe('scrub(normalizedRun)', () => {
   test('counts scrubbed fields', () => {
     const run: NormalizedRun = {
       runId: 'r',
       outcome: 'FAIL',
-      scenarios: [{
-        name: 's',
-        outcome: 'FAIL',
-        failure: {
-          errorMessage: 'token eyJhbGciOi.eyJzdWIiOi.SflKxw bad',
-          networkAtFailure: [
-            { method: 'POST', url: '/api/login?token=eyJhbGciOi.eyJzdWIiOi.SflKxw', status: 500,
-              requestHeaders: { Authorization: 'Bearer x', 'content-type': 'application/json' },
-              requestBody: { email: 'a@b.com', password: 'p' },
-              responseHeaders: { 'set-cookie': 's=1' },
-            } as NormalizedNetworkEntry,
-          ],
-          consoleAtFailure: ['user 4111 1111 1111 1111'],
+      scenarios: [
+        {
+          name: 's',
+          outcome: 'FAIL',
+          failure: {
+            errorMessage: 'token eyJhbGciOi.eyJzdWIiOi.SflKxw bad',
+            networkAtFailure: [
+              {
+                method: 'POST',
+                url: '/api/login?token=eyJhbGciOi.eyJzdWIiOi.SflKxw',
+                status: 500,
+                requestHeaders: { Authorization: 'Bearer x', 'content-type': 'application/json' },
+                requestBody: { email: 'a@b.com', password: 'p' },
+                responseHeaders: { 'set-cookie': 's=1' },
+              } as NormalizedNetworkEntry,
+            ],
+            consoleAtFailure: ['user 4111 1111 1111 1111'],
+          },
         },
-      }],
+      ],
       scrubbed_fields_count: 0,
     };
     const scrubbed = scrub(run);

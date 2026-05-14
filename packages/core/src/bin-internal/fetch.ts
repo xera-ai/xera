@@ -1,13 +1,15 @@
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { loadConfig } from '../config/load';
-import { resolveArtifactPaths } from '../artifact/paths';
 import { hashString } from '../artifact/hash';
-import { writeMeta, readMeta } from '../artifact/meta';
+import { readMeta, writeMeta } from '../artifact/meta';
+import { resolveArtifactPaths } from '../artifact/paths';
+import { loadConfig } from '../config/load';
 import { createJiraClient } from '../jira/client';
 import type { JiraTicket } from '../jira/types';
 
-export interface FetchCmdOpts { cwd?: string; }
+export interface FetchCmdOpts {
+  cwd?: string;
+}
 
 export async function fetchCmd(argv: string[], opts: FetchCmdOpts = {}): Promise<number> {
   const cwd = opts.cwd ?? process.cwd();
@@ -31,9 +33,13 @@ export async function fetchCmd(argv: string[], opts: FetchCmdOpts = {}): Promise
         ? { rest: { email: process.env.JIRA_EMAIL, apiToken: process.env.JIRA_API_TOKEN } }
         : {}),
     });
-    const fieldMap = config.jira.fields.acceptanceCriteria !== undefined
-      ? { story: config.jira.fields.story, acceptanceCriteria: config.jira.fields.acceptanceCriteria }
-      : { story: config.jira.fields.story };
+    const fieldMap =
+      config.jira.fields.acceptanceCriteria !== undefined
+        ? {
+            story: config.jira.fields.story,
+            acceptanceCriteria: config.jira.fields.acceptanceCriteria,
+          }
+        : { story: config.jira.fields.story };
     t = await client.fetchTicket(ticket, fieldMap);
   }
 
@@ -69,7 +75,7 @@ function renderStory(t: JiraTicket): string {
     lines.push('## Story', '', story, '');
   }
 
-  if (t.acceptanceCriteria && t.acceptanceCriteria.trim()) {
+  if (t.acceptanceCriteria?.trim()) {
     const ac = t.acceptanceCriteria.trim();
     if (/^##\s+acceptance\s+criteria\b/i.test(ac)) {
       lines.push(ac, '');
@@ -78,7 +84,12 @@ function renderStory(t: JiraTicket): string {
     }
   }
   if (t.attachments.length > 0) {
-    lines.push('## Attachments', '', ...t.attachments.map((a) => `- [${a.filename}](${a.url})`), '');
+    lines.push(
+      '## Attachments',
+      '',
+      ...t.attachments.map((a) => `- [${a.filename}](${a.url})`),
+      '',
+    );
   }
   return lines.join('\n');
 }

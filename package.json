@@ -6,13 +6,11 @@
   "engines": {
     "bun": ">=1.1.0"
   },
-  "workspaces": [
-    "packages/*",
-    "fixtures/*"
-  ],
+  "workspaces": ["packages/*", "fixtures/*"],
   "scripts": {
     "build": "bun run --filter '*' build",
-    "test": "bun test",
+    "test": "bun test packages/core packages/web",
+    "test:integration": "bun test packages/cli/test/integration",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "typecheck": "bun run --filter '*' typecheck"

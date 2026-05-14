@@ -1,5 +1,5 @@
-import { readFileSync, existsSync, readdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -24,22 +24,31 @@ Bun.serve({
     if (req.method === 'GET' && issueMatch) {
       const ticket = loadTicket(decodeURIComponent(issueMatch[1]!));
       return ticket
-        ? new Response(JSON.stringify(ticket), { status: 200, headers: { 'content-type': 'application/json' } })
+        ? new Response(JSON.stringify(ticket), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          })
         : new Response('not found', { status: 404 });
     }
 
     // POST /rest/api/3/issue/<KEY>/comment
     const commentMatch = url.pathname.match(/^\/rest\/api\/3\/issue\/([^/]+)\/comment$/);
     if (req.method === 'POST' && commentMatch) {
-      return req.json().then(body => {
+      return req.json().then((body) => {
         comments.push({ key: commentMatch[1]!, body });
-        return new Response(JSON.stringify({ id: String(comments.length) }), { status: 201, headers: { 'content-type': 'application/json' } });
+        return new Response(JSON.stringify({ id: String(comments.length) }), {
+          status: 201,
+          headers: { 'content-type': 'application/json' },
+        });
       });
     }
 
     // GET /__comments__ for assertions
     if (req.method === 'GET' && url.pathname === '/__comments__') {
-      return new Response(JSON.stringify(comments), { status: 200, headers: { 'content-type': 'application/json' } });
+      return new Response(JSON.stringify(comments), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
     }
 
     return new Response('not found', { status: 404 });

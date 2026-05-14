@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('SAMPLE-001: Playwright docs site smoke test', () => {
   test('Home page loads with expected title', async ({ page }) => {

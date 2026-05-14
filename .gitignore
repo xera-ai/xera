@@ -6,3 +6,5 @@ node_modules/
 dist/
 build/
 .bun/
+.next/
+next-env.d.ts

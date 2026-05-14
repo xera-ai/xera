@@ -1,5 +1,5 @@
-import { NdjsonLogger, resolveArtifactPaths } from '@xera-ai/core';
 import { existsSync } from 'node:fs';
+import { NdjsonLogger, resolveArtifactPaths } from '@xera-ai/core';
 import pc from 'picocolors';
 import { runChecks } from '../checks';
 

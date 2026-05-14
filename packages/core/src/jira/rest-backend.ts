@@ -1,6 +1,9 @@
 import type { JiraClient, JiraFieldMap, JiraTicket } from './types';
 
-interface RestCreds { email: string; apiToken: string; }
+interface RestCreds {
+  email: string;
+  apiToken: string;
+}
 
 export function createRestBackend(baseUrl: string, creds: RestCreds): JiraClient {
   const authHeader = `Basic ${Buffer.from(`${creds.email}:${creds.apiToken}`).toString('base64')}`;
@@ -17,7 +20,9 @@ export function createRestBackend(baseUrl: string, creds: RestCreds): JiraClient
       },
     });
     if (!r.ok && r.status !== 201) {
-      throw new Error(`Jira REST ${init?.method ?? 'GET'} ${path} failed: ${r.status} ${await r.text()}`);
+      throw new Error(
+        `Jira REST ${init?.method ?? 'GET'} ${path} failed: ${r.status} ${await r.text()}`,
+      );
     }
     return r;
   }
@@ -32,7 +37,10 @@ export function createRestBackend(baseUrl: string, creds: RestCreds): JiraClient
       const json = (await r.json()) as { key: string; fields: Record<string, unknown> };
       const f = json.fields;
       const attachments = Array.isArray(f.attachment)
-        ? (f.attachment as Array<{ filename: string; content: string }>).map(a => ({ filename: a.filename, url: a.content }))
+        ? (f.attachment as Array<{ filename: string; content: string }>).map((a) => ({
+            filename: a.filename,
+            url: a.content,
+          }))
         : [];
       const ticket: JiraTicket = {
         key: json.key,
@@ -50,7 +58,11 @@ export function createRestBackend(baseUrl: string, creds: RestCreds): JiraClient
       const r = await req(`/rest/api/3/issue/${encodeURIComponent(key)}/comment`, {
         method: 'POST',
         body: JSON.stringify({
-          body: { type: 'doc', version: 1, content: [{ type: 'paragraph', content: [{ type: 'text', text: body }] }] },
+          body: {
+            type: 'doc',
+            version: 1,
+            content: [{ type: 'paragraph', content: [{ type: 'text', text: body }] }],
+          },
         }),
       });
       const json = (await r.json()) as { id: string };
@@ -59,7 +71,7 @@ export function createRestBackend(baseUrl: string, creds: RestCreds): JiraClient
     async transitionStatus(key, statusName) {
       const tr = await req(`/rest/api/3/issue/${encodeURIComponent(key)}/transitions`);
       const json = (await tr.json()) as { transitions: Array<{ id: string; name: string }> };
-      const t = json.transitions.find(x => x.name === statusName);
+      const t = json.transitions.find((x) => x.name === statusName);
       if (!t) throw new Error(`No transition named "${statusName}" available for ${key}`);
       await req(`/rest/api/3/issue/${encodeURIComponent(key)}/transitions`, {
         method: 'POST',

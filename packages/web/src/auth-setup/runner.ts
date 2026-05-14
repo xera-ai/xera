@@ -1,5 +1,5 @@
-import type { Browser } from '@playwright/test';
 import { pathToFileURL } from 'node:url';
+import type { Browser } from '@playwright/test';
 import { writeAuthState } from '@xera-ai/core';
 import type { AuthRoleCreds } from './define';
 

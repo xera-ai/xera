@@ -1,10 +1,10 @@
-import * as p from '@clack/prompts';
-import pc from 'picocolors';
-import { existsSync, writeFileSync, readFileSync, appendFileSync, unlinkSync } from 'node:fs';
+import { appendFileSync, existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
+import * as p from '@clack/prompts';
 import { generateKey } from '@xera-ai/core';
-import { scaffoldFile, copyDir, TEMPLATE_DIR } from '../scaffold';
+import pc from 'picocolors';
+import { TEMPLATE_DIR, copyDir, scaffoldFile } from '../scaffold';
 
 const require = createRequire(import.meta.url);
 

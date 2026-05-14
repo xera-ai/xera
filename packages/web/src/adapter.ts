@@ -1,7 +1,14 @@
+import { join } from 'node:path';
+import type {
+  DoctorReport,
+  ExecuteInput,
+  GenerateInput,
+  GenerateResult,
+  RunResult,
+  TestAdapter,
+} from '@xera-ai/core/adapter';
 import { runPlaywright } from './executor';
 import { normalizeRun } from './trace-normalizer/normalize';
-import type { TestAdapter, GenerateInput, GenerateResult, ExecuteInput, RunResult, DoctorReport } from '@xera-ai/core/adapter';
-import { join } from 'node:path';
 
 export const WebAdapter: TestAdapter = {
   id: 'web',
@@ -22,7 +29,7 @@ export const WebAdapter: TestAdapter = {
     return {
       runId: input.runId,
       outcome: normalized.outcome,
-      scenarios: normalized.scenarios.map(s => {
+      scenarios: normalized.scenarios.map((s) => {
         const out: RunResult['scenarios'][number] = { name: s.name, outcome: s.outcome };
         if (s.failure !== undefined) out.failure = s.failure;
         return out;
@@ -39,8 +46,12 @@ export const WebAdapter: TestAdapter = {
       await import('@playwright/test');
       checks.push({ name: '@playwright/test installed', ok: true });
     } catch {
-      checks.push({ name: '@playwright/test installed', ok: false, message: 'Run `bun add -D @playwright/test`.' });
+      checks.push({
+        name: '@playwright/test installed',
+        ok: false,
+        message: 'Run `bun add -D @playwright/test`.',
+      });
     }
-    return { ok: checks.every(c => c.ok), checks };
+    return { ok: checks.every((c) => c.ok), checks };
   },
 };

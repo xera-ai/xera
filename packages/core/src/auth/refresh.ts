@@ -13,7 +13,10 @@ export function parseDuration(d: string): number {
   return n * 1000;
 }
 
-export interface RefreshPolicy { ttl: string; refreshBuffer: string; }
+export interface RefreshPolicy {
+  ttl: string;
+  refreshBuffer: string;
+}
 
 export function needsRefresh(
   entry: AuthStateEntry | null,

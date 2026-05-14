@@ -1,5 +1,5 @@
-import type { XeraConfig } from '../config/schema';
 import type { Classification } from '../artifact/status';
+import type { XeraConfig } from '../config/schema';
 
 export interface GenerateInput {
   ticketDir: string;
@@ -57,6 +57,9 @@ export interface TestAdapter {
   readonly id: string;
   generate(input: GenerateInput): Promise<GenerateResult>;
   execute(input: ExecuteInput): Promise<RunResult>;
-  classify?(run: RunResult, ctx: ClassifyContext): Partial<{ class: Classification; rationale: string }>;
+  classify?(
+    run: RunResult,
+    ctx: ClassifyContext,
+  ): Partial<{ class: Classification; rationale: string }>;
   doctor(): Promise<DoctorReport>;
 }

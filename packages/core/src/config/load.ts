@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { XeraConfigSchema, type XeraConfig } from './schema';
+import { type XeraConfig, XeraConfigSchema } from './schema';
 
 export async function loadConfig(cwd: string): Promise<XeraConfig> {
   const path = join(cwd, 'xera.config.ts');

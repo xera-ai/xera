@@ -33,7 +33,10 @@ export async function runPlaywright(input: RunPlaywrightInput): Promise<RunPlayw
     outputDir: input.outputDir,
   });
   const spawn = input.spawn ?? defaultSpawn;
-  const { exitCode } = await spawn('npx', ['playwright', ...args], { ...process.env, ...input.env });
+  const { exitCode } = await spawn('npx', ['playwright', ...args], {
+    ...process.env,
+    ...input.env,
+  });
   return {
     outcome: exitCode === 0 ? 'PASS' : 'FAIL',
     rawReportPath: join(input.outputDir, 'report.json'),

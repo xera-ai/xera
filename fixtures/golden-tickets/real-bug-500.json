@@ -2,9 +2,20 @@
   "ticket": "GOLD-003",
   "description": "Backend returned 500 instead of 401",
   "scenarios": [
-    { "name": "Login OK", "outcome": "PASS", "class": "PASS", "confidence": "high", "rationale": "" },
-    { "name": "Login fail bad pwd", "outcome": "FAIL", "class": "REAL_BUG", "confidence": "high",
-      "rationale": "POST /api/login returned 500 instead of 401 with error message." }
+    {
+      "name": "Login OK",
+      "outcome": "PASS",
+      "class": "PASS",
+      "confidence": "high",
+      "rationale": ""
+    },
+    {
+      "name": "Login fail bad pwd",
+      "outcome": "FAIL",
+      "class": "REAL_BUG",
+      "confidence": "high",
+      "rationale": "POST /api/login returned 500 instead of 401 with error message."
+    }
   ],
   "scenarioCounts": { "total": 2, "passed": 1, "failed": 1, "skipped": 0 },
   "expected": { "overall": "REAL_BUG", "overallConfidence": "high" }

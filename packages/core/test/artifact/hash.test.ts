@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { hashString, hashFile, hashFileIfExists } from '../../src/artifact/hash';
+import { hashFile, hashFileIfExists, hashString } from '../../src/artifact/hash';
 
 describe('hash utilities', () => {
   test('hashString produces stable sha256 hex prefixed with sha256:', () => {

@@ -2,7 +2,13 @@
   "ticket": "GOLD-001",
   "description": "All scenarios pass",
   "scenarios": [
-    { "name": "Login OK", "outcome": "PASS", "class": "PASS", "confidence": "high", "rationale": "all assertions met" }
+    {
+      "name": "Login OK",
+      "outcome": "PASS",
+      "class": "PASS",
+      "confidence": "high",
+      "rationale": "all assertions met"
+    }
   ],
   "scenarioCounts": { "total": 1, "passed": 1, "failed": 0, "skipped": 0 },
   "expected": { "overall": "PASS", "overallConfidence": "high" }

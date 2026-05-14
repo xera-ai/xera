@@ -43,7 +43,7 @@ export function scrubBodyJson(body: unknown): unknown {
   if (body && typeof body === 'object') {
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(body)) {
-      if (SENSITIVE_BODY_KEYS.some(re => re.test(k))) {
+      if (SENSITIVE_BODY_KEYS.some((re) => re.test(k))) {
         out[k] = REDACTED;
       } else {
         out[k] = scrubBodyJson(v);

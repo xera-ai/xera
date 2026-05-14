@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 import {
-  SENSITIVE_HEADERS,
-  SENSITIVE_BODY_KEYS,
-  JWT_RE,
   CREDIT_CARD_RE,
-  scrubHeaders,
+  JWT_RE,
+  SENSITIVE_BODY_KEYS,
+  SENSITIVE_HEADERS,
   scrubBodyJson,
   scrubFreeText,
+  scrubHeaders,
 } from '../../src/trace-normalizer/scrub-rules';
 
 describe('SENSITIVE_HEADERS', () => {
@@ -41,7 +41,10 @@ describe('scrubBodyJson', () => {
     expect(r.other).toBe('ok');
   });
   test('case-insensitive nested fields', () => {
-    const r = scrubBodyJson({ outer: { ApiKey: 'k', NESTED: { secret: 's' } } }) as Record<string, any>;
+    const r = scrubBodyJson({ outer: { ApiKey: 'k', NESTED: { secret: 's' } } }) as Record<
+      string,
+      any
+    >;
     expect(r.outer.ApiKey).toBe('[REDACTED]');
     expect(r.outer.NESTED.secret).toBe('[REDACTED]');
   });

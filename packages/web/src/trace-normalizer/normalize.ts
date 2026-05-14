@@ -1,7 +1,7 @@
-import { readFileSync, existsSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parsePlaywrightReport } from './parse';
-import { scrub, type NormalizedNetworkEntry, type NormalizedRun } from './scrub';
+import { type NormalizedNetworkEntry, type NormalizedRun, scrub } from './scrub';
 import { unzipTrace } from './unzip';
 
 export interface NormalizeRunInput {
@@ -20,7 +20,10 @@ interface TraceNetworkEntry {
   responseBody?: unknown;
 }
 
-interface TraceConsoleEntry { type: 'console'; text: string; }
+interface TraceConsoleEntry {
+  type: 'console';
+  text: string;
+}
 
 export async function normalizeRun(input: NormalizeRunInput): Promise<NormalizedRun> {
   const reportPath = join(input.runDir, 'report.json');
@@ -34,17 +37,27 @@ export async function normalizeRun(input: NormalizeRunInput): Promise<Normalized
     const networkFile = Object.entries(files).find(([k]) => k.endsWith('.network'))?.[1];
     const traceFile = Object.entries(files).find(([k]) => k.endsWith('.trace'))?.[1];
     const network: TraceNetworkEntry[] = networkFile
-      ? networkFile.trim().split('\n').filter(Boolean).map(l => JSON.parse(l)).filter((e: any) => e.type === 'request')
+      ? networkFile
+          .trim()
+          .split('\n')
+          .filter(Boolean)
+          .map((l) => JSON.parse(l))
+          .filter((e: any) => e.type === 'request')
       : [];
     const consoleEvents: TraceConsoleEntry[] = traceFile
-      ? traceFile.trim().split('\n').filter(Boolean).map(l => JSON.parse(l)).filter((e: any) => e.type === 'console')
+      ? traceFile
+          .trim()
+          .split('\n')
+          .filter(Boolean)
+          .map((l) => JSON.parse(l))
+          .filter((e: any) => e.type === 'console')
       : [];
 
     // Attach to each failing scenario (all entries — v0.1 doesn't yet correlate by step time)
     for (const sc of normalized.scenarios) {
       if (sc.outcome !== 'FAIL') continue;
       sc.failure = sc.failure ?? {};
-      sc.failure.networkAtFailure = network.map(n => {
+      sc.failure.networkAtFailure = network.map((n) => {
         const entry: NormalizedNetworkEntry = { method: n.method, url: n.url, status: n.status };
         if (n.requestHeaders !== undefined) entry.requestHeaders = n.requestHeaders;
         if (n.responseHeaders !== undefined) entry.responseHeaders = n.responseHeaders;
@@ -52,7 +65,7 @@ export async function normalizeRun(input: NormalizeRunInput): Promise<Normalized
         if (n.responseBody !== undefined) entry.responseBody = n.responseBody;
         return entry;
       });
-      sc.failure.consoleAtFailure = consoleEvents.map(c => c.text);
+      sc.failure.consoleAtFailure = consoleEvents.map((c) => c.text);
     }
   }
 

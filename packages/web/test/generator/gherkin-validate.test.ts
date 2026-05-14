@@ -3,7 +3,9 @@ import { validateGherkin } from '../../src/generator/gherkin-validate';
 
 describe('validateGherkin', () => {
   test('accepts well-formed feature', () => {
-    const r = validateGherkin(`Feature: Login\n  Scenario: ok\n    Given I am on /\n    Then I see "x"\n`);
+    const r = validateGherkin(
+      `Feature: Login\n  Scenario: ok\n    Given I am on /\n    Then I see "x"\n`,
+    );
     expect(r.ok).toBe(true);
   });
   test('rejects empty input', () => {

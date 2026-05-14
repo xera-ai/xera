@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync, renameSync } from 'node:fs';
+import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 export interface PromoteInput {
@@ -18,7 +18,9 @@ export async function promotePom(input: PromoteInput): Promise<void> {
     throw new Error(`POM ${file} not found at ${fromPath}`);
   }
   if (existsSync(toPath)) {
-    throw new Error(`POM ${file} already exists at ${toPath}. Reconcile manually before promoting.`);
+    throw new Error(
+      `POM ${file} already exists at ${toPath}. Reconcile manually before promoting.`,
+    );
   }
 
   renameSync(fromPath, toPath);

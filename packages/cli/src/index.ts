@@ -1,8 +1,8 @@
 import { cac } from 'cac';
 import pc from 'picocolors';
+import { doctorCommand } from './commands/doctor';
 import { initCommand } from './commands/init';
 import { initUpdateCommand } from './commands/init-update';
-import { doctorCommand } from './commands/doctor';
 
 const VERSION = '0.1.0';
 
