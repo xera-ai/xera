@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promotePom } from '../../src/generator/promote';
@@ -11,8 +11,10 @@ describe('promotePom', () => {
     mkdirSync(join(ticketDir, 'page-objects'), { recursive: true });
     mkdirSync(join(root, 'shared/page-objects'), { recursive: true });
     writeFileSync(join(ticketDir, 'page-objects/LoginPage.ts'), `export class LoginPage {}\n`);
-    writeFileSync(join(ticketDir, 'spec.ts'),
-      `import { LoginPage } from './page-objects/LoginPage';\nnew LoginPage();\n`);
+    writeFileSync(
+      join(ticketDir, 'spec.ts'),
+      `import { LoginPage } from './page-objects/LoginPage';\nnew LoginPage();\n`,
+    );
 
     await promotePom({ repoRoot: root, ticket: 'JIRA-1', className: 'LoginPage' });
 
@@ -29,10 +31,18 @@ describe('promotePom', () => {
     const ticketDir = join(root, '.xera/JIRA-1');
     mkdirSync(join(ticketDir, 'page-objects'), { recursive: true });
     mkdirSync(join(root, 'shared/page-objects'), { recursive: true });
-    writeFileSync(join(root, 'shared/page-objects/LoginPage.ts'), `export class LoginPage { old() {} }\n`);
-    writeFileSync(join(ticketDir, 'page-objects/LoginPage.ts'), `export class LoginPage { newm() {} }\n`);
+    writeFileSync(
+      join(root, 'shared/page-objects/LoginPage.ts'),
+      `export class LoginPage { old() {} }\n`,
+    );
+    writeFileSync(
+      join(ticketDir, 'page-objects/LoginPage.ts'),
+      `export class LoginPage { newm() {} }\n`,
+    );
 
-    await expect(promotePom({ repoRoot: root, ticket: 'JIRA-1', className: 'LoginPage' })).rejects.toThrow(/already exists/);
+    await expect(
+      promotePom({ repoRoot: root, ticket: 'JIRA-1', className: 'LoginPage' }),
+    ).rejects.toThrow(/already exists/);
 
     rmSync(root, { recursive: true });
   });

@@ -1,8 +1,8 @@
-import { randomBytes, createCipheriv, createDecipheriv } from 'node:crypto';
+import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 
 const ALGO = 'aes-256-gcm';
 const KEY_LEN = 32; // bytes (256 bits)
-const IV_LEN = 12;  // recommended for GCM
+const IV_LEN = 12; // recommended for GCM
 const TAG_LEN = 16;
 const VERSION = 'v1';
 

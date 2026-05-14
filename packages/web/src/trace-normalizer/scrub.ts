@@ -1,4 +1,4 @@
-import { scrubHeaders, scrubBodyJson, scrubFreeText } from './scrub-rules';
+import { scrubBodyJson, scrubFreeText, scrubHeaders } from './scrub-rules';
 
 export interface NormalizedNetworkEntry {
   method: string;
@@ -38,7 +38,10 @@ function countScrubbed(before: unknown, after: unknown): number {
   if (before && after && typeof before === 'object' && typeof after === 'object') {
     let n = 0;
     for (const k of Object.keys(before as Record<string, unknown>)) {
-      n += countScrubbed((before as Record<string, unknown>)[k], (after as Record<string, unknown>)[k]);
+      n += countScrubbed(
+        (before as Record<string, unknown>)[k],
+        (after as Record<string, unknown>)[k],
+      );
     }
     return n;
   }
@@ -65,7 +68,7 @@ export function scrub(run: NormalizedRun): NormalizedRun {
         );
       }
       if (f.networkAtFailure) {
-        newF.networkAtFailure = f.networkAtFailure.map(n => {
+        newF.networkAtFailure = f.networkAtFailure.map((n) => {
           const reqHeaders = n.requestHeaders ? scrubHeaders(n.requestHeaders) : undefined;
           const resHeaders = n.responseHeaders ? scrubHeaders(n.responseHeaders) : undefined;
           const reqBody = n.requestBody !== undefined ? scrubBodyJson(n.requestBody) : undefined;

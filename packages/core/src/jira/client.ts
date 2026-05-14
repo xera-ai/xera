@@ -1,6 +1,6 @@
-import type { JiraClient } from './types';
 import { createMcpBackend } from './mcp-backend';
 import { createRestBackend } from './rest-backend';
+import type { JiraClient } from './types';
 
 export interface CreateJiraClientOptions {
   baseUrl: string;
@@ -14,7 +14,9 @@ export async function createJiraClient(opts: CreateJiraClientOptions): Promise<J
     if (mcp) return mcp;
   }
   if (!opts.rest) {
-    throw new Error('Atlassian MCP not connected and no REST credentials provided (JIRA_EMAIL + JIRA_API_TOKEN).');
+    throw new Error(
+      'Atlassian MCP not connected and no REST credentials provided (JIRA_EMAIL + JIRA_API_TOKEN).',
+    );
   }
   return createRestBackend(opts.baseUrl, opts.rest);
 }

@@ -25,8 +25,13 @@ describe('buildJiraComment', () => {
       overallConfidence: 'high',
       scenarios: [
         { name: 'Login OK', outcome: 'PASS', class: 'PASS', confidence: 'high', rationale: '' },
-        { name: 'Login fail bad password', outcome: 'FAIL', class: 'REAL_BUG', confidence: 'high',
-          rationale: 'POST /api/login returned 500 instead of 401 with error message.' },
+        {
+          name: 'Login fail bad password',
+          outcome: 'FAIL',
+          class: 'REAL_BUG',
+          confidence: 'high',
+          rationale: 'POST /api/login returned 500 instead of 401 with error message.',
+        },
       ],
       xeraVersion: '0.1.0',
       promptsVersion: '1.0.0',

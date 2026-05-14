@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'bun:test';
-import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { generateKey } from '../../src/auth/encrypt';
-import { writeAuthState, readAuthState, type AuthStateEntry } from '../../src/auth/state';
 import { AUTH_KEY_ENV } from '../../src/auth/key';
+import { type AuthStateEntry, readAuthState, writeAuthState } from '../../src/auth/state';
 
 describe('auth state IO', () => {
   test('round-trips encrypted', () => {

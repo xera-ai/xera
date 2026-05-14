@@ -12,7 +12,12 @@ export function unzipTrace(tracePath: string): TraceEntries {
   const files: Record<string, string> = {};
   for (const [name, data] of Object.entries(entries)) {
     if (name.endsWith('/')) continue;
-    if (name.endsWith('.network') || name.endsWith('.trace') || name.endsWith('.txt') || name.endsWith('.json')) {
+    if (
+      name.endsWith('.network') ||
+      name.endsWith('.trace') ||
+      name.endsWith('.txt') ||
+      name.endsWith('.json')
+    ) {
       files[name] = new TextDecoder().decode(data);
     }
   }

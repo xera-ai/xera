@@ -1,14 +1,14 @@
-import { fetchCmd } from './fetch';
-import { validateFeatureCmd } from './validate-feature';
-import { typecheckCmd } from './typecheck';
-import { lintCmd } from './lint';
 import { execCmd } from './exec';
+import { fetchCmd } from './fetch';
+import { lintCmd } from './lint';
 import { normalizeCmd } from './normalize';
-import { reportCmd } from './report';
 import { postCmd } from './post';
-import { statusCmd } from './status-cmd';
-import { unlockCmd } from './unlock';
 import { promoteCmd } from './promote';
+import { reportCmd } from './report';
+import { statusCmd } from './status-cmd';
+import { typecheckCmd } from './typecheck';
+import { unlockCmd } from './unlock';
+import { validateFeatureCmd } from './validate-feature';
 
 const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
   fetch: fetchCmd,
@@ -27,7 +27,9 @@ const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
 export async function run(argv: string[]): Promise<number> {
   const [cmd, ...rest] = argv;
   if (!cmd || !COMMANDS[cmd]) {
-    console.error(`Usage: xera-internal <command> [args...]\nCommands: ${Object.keys(COMMANDS).join(', ')}`);
+    console.error(
+      `Usage: xera-internal <command> [args...]\nCommands: ${Object.keys(COMMANDS).join(', ')}`,
+    );
     return 1;
   }
   try {

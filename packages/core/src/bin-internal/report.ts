@@ -2,9 +2,9 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { resolveArtifactPaths } from '../artifact/paths';
 import { aggregateScenarios } from '../classifier/aggregate';
-import { writeStatusFromClassification } from '../reporter/status-writer';
-import { buildJiraComment } from '../reporter/jira-comment';
 import type { ScenarioClassification } from '../classifier/types';
+import { buildJiraComment } from '../reporter/jira-comment';
+import { writeStatusFromClassification } from '../reporter/status-writer';
 
 interface ReportInput {
   scenarios: ScenarioClassification[];
@@ -14,7 +14,7 @@ interface ReportInput {
 
 export async function reportCmd(argv: string[]): Promise<number> {
   const ticket = argv[0];
-  const inputArg = argv.find(a => a.startsWith('--input='));
+  const inputArg = argv.find((a) => a.startsWith('--input='));
   if (!ticket || !inputArg) {
     console.error('[xera:report] usage: report <TICKET> --input=<classifier-output.json>');
     return 1;

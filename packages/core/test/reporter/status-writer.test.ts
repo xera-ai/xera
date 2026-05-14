@@ -2,8 +2,8 @@ import { describe, expect, test } from 'bun:test';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { writeStatusFromClassification } from '../../src/reporter/status-writer';
 import { readStatus } from '../../src/artifact/status';
+import { writeStatusFromClassification } from '../../src/reporter/status-writer';
 
 describe('writeStatusFromClassification', () => {
   test('writes initial status + appends history on second call', () => {
@@ -13,8 +13,11 @@ describe('writeStatusFromClassification', () => {
       ticket: 'JIRA-1',
       runTs: '2026-05-14T10:30:00.000Z',
       classification: {
-        overall: 'PASS', overallConfidence: 'high',
-        scenarios: [{ name: 'a', outcome: 'PASS', class: 'PASS', confidence: 'high', rationale: '' }],
+        overall: 'PASS',
+        overallConfidence: 'high',
+        scenarios: [
+          { name: 'a', outcome: 'PASS', class: 'PASS', confidence: 'high', rationale: '' },
+        ],
       },
       scenarioCounts: { total: 1, passed: 1, failed: 0, skipped: 0 },
     });
@@ -25,8 +28,11 @@ describe('writeStatusFromClassification', () => {
       ticket: 'JIRA-1',
       runTs: '2026-05-14T11:30:00.000Z',
       classification: {
-        overall: 'REAL_BUG', overallConfidence: 'high',
-        scenarios: [{ name: 'a', outcome: 'FAIL', class: 'REAL_BUG', confidence: 'high', rationale: 'x' }],
+        overall: 'REAL_BUG',
+        overallConfidence: 'high',
+        scenarios: [
+          { name: 'a', outcome: 'FAIL', class: 'REAL_BUG', confidence: 'high', rationale: 'x' },
+        ],
       },
       scenarioCounts: { total: 1, passed: 0, failed: 1, skipped: 0 },
     });

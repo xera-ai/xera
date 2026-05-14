@@ -1,11 +1,21 @@
 {
   "config": {},
   "stats": { "expected": 2, "unexpected": 0, "flaky": 0, "skipped": 0, "duration": 1234 },
-  "suites": [{
-    "title": "JIRA-1: login",
-    "specs": [
-      { "title": "Successful login", "ok": true, "tests": [{ "results": [{ "status": "passed", "duration": 500 }] }] },
-      { "title": "Login fails", "ok": true, "tests": [{ "results": [{ "status": "passed", "duration": 500 }] }] }
-    ]
-  }]
+  "suites": [
+    {
+      "title": "JIRA-1: login",
+      "specs": [
+        {
+          "title": "Successful login",
+          "ok": true,
+          "tests": [{ "results": [{ "status": "passed", "duration": 500 }] }]
+        },
+        {
+          "title": "Login fails",
+          "ok": true,
+          "tests": [{ "results": [{ "status": "passed", "duration": 500 }] }]
+        }
+      ]
+    }
+  ]
 }

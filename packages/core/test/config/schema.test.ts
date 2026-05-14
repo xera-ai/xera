@@ -21,7 +21,11 @@ describe('XeraConfigSchema', () => {
 
   test('rejects empty projectKeys', () => {
     const result = XeraConfigSchema.safeParse({
-      jira: { baseUrl: 'https://x.atlassian.net', projectKeys: [], fields: { story: 'description' } },
+      jira: {
+        baseUrl: 'https://x.atlassian.net',
+        projectKeys: [],
+        fields: { story: 'description' },
+      },
       web: { baseUrl: { staging: 'https://x.com' }, defaultEnv: 'staging' },
       adapters: ['web'],
     });
@@ -30,7 +34,11 @@ describe('XeraConfigSchema', () => {
 
   test('rejects defaultEnv not present in baseUrl map', () => {
     const result = XeraConfigSchema.safeParse({
-      jira: { baseUrl: 'https://x.atlassian.net', projectKeys: ['X'], fields: { story: 'description' } },
+      jira: {
+        baseUrl: 'https://x.atlassian.net',
+        projectKeys: ['X'],
+        fields: { story: 'description' },
+      },
       web: { baseUrl: { staging: 'https://x.com' }, defaultEnv: 'prod' },
       adapters: ['web'],
     });
@@ -39,7 +47,11 @@ describe('XeraConfigSchema', () => {
 
   test('auth strategy default is "none"', () => {
     const parsed = XeraConfigSchema.parse({
-      jira: { baseUrl: 'https://x.atlassian.net', projectKeys: ['X'], fields: { story: 'description' } },
+      jira: {
+        baseUrl: 'https://x.atlassian.net',
+        projectKeys: ['X'],
+        fields: { story: 'description' },
+      },
       web: { baseUrl: { staging: 'https://x.com' }, defaultEnv: 'staging' },
       adapters: ['web'],
     });

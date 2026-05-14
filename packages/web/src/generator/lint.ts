@@ -1,6 +1,6 @@
-import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { lintSelectors, type SelectorWarning } from './selector-rules';
+import { type SelectorWarning, lintSelectors } from './selector-rules';
 
 export interface LintResult {
   ok: boolean;

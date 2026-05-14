@@ -1,17 +1,20 @@
-import { resolveArtifactPaths, generateRunId } from '../artifact/paths';
-import { acquireLock, releaseLock, isLockStale, readLock, forceUnlock } from '../lock/file-lock';
-import { NdjsonLogger } from '../logging/ndjson-logger';
-import { loadConfig } from '../config/load';
-import { readAuthState } from '../auth/state';
-import { needsRefresh } from '../auth/refresh';
-import { stagePlaywrightState, runAuthSetup, runPlaywright } from '@xera-ai/web';
-import { chromium } from '@playwright/test';
-import { mkdirSync, existsSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { chromium } from '@playwright/test';
+import { runAuthSetup, runPlaywright, stagePlaywrightState } from '@xera-ai/web';
+import { generateRunId, resolveArtifactPaths } from '../artifact/paths';
+import { needsRefresh } from '../auth/refresh';
+import { readAuthState } from '../auth/state';
+import { loadConfig } from '../config/load';
+import { acquireLock, forceUnlock, isLockStale, readLock, releaseLock } from '../lock/file-lock';
+import { NdjsonLogger } from '../logging/ndjson-logger';
 
 export async function execCmd(argv: string[]): Promise<number> {
   const ticket = argv[0];
-  if (!ticket) { console.error('[xera:exec] usage: exec <TICKET>'); return 1; }
+  if (!ticket) {
+    console.error('[xera:exec] usage: exec <TICKET>');
+    return 1;
+  }
   const cwd = process.cwd();
   const config = await loadConfig(cwd);
   const paths = resolveArtifactPaths(cwd, ticket);
@@ -21,12 +24,16 @@ export async function execCmd(argv: string[]): Promise<number> {
   // Acquire lock
   if (!acquireLock(paths.lockPath, runId)) {
     if (isLockStale(paths.lockPath)) {
-      console.error(`[xera:exec] stale lock detected; force unlocking. Run \`xera-internal unlock ${ticket}\` to clear manually.`);
+      console.error(
+        `[xera:exec] stale lock detected; force unlocking. Run \`xera-internal unlock ${ticket}\` to clear manually.`,
+      );
       forceUnlock(paths.lockPath);
       acquireLock(paths.lockPath, runId);
     } else {
       const existing = readLock(paths.lockPath);
-      console.error(`[xera:exec] another run in progress (PID ${existing?.pid} on ${existing?.hostname}, started ${existing?.started_at}). Wait or run \`xera-internal unlock ${ticket}\`.`);
+      console.error(
+        `[xera:exec] another run in progress (PID ${existing?.pid} on ${existing?.hostname}, started ${existing?.started_at}). Wait or run \`xera-internal unlock ${ticket}\`.`,
+      );
       return 1;
     }
   }
@@ -39,11 +46,18 @@ export async function execCmd(argv: string[]): Promise<number> {
       try {
         for (const [roleName, roleCreds] of Object.entries(config.web.auth.roles)) {
           const entry = readAuthState(paths.authDir, roleName);
-          if (needsRefresh(entry, { ttl: config.web.auth.ttl, refreshBuffer: config.web.auth.refreshBuffer })) {
+          if (
+            needsRefresh(entry, {
+              ttl: config.web.auth.ttl,
+              refreshBuffer: config.web.auth.refreshBuffer,
+            })
+          ) {
             const email = process.env[roleCreds.envEmail];
             const password = process.env[roleCreds.envPassword];
             if (!email || !password) {
-              console.error(`[xera:exec] missing env ${roleCreds.envEmail} or ${roleCreds.envPassword} for role "${roleName}"`);
+              console.error(
+                `[xera:exec] missing env ${roleCreds.envEmail} or ${roleCreds.envPassword} for role "${roleName}"`,
+              );
               return 1;
             }
             await runAuthSetup({
@@ -113,4 +127,3 @@ export async function execCmd(argv: string[]): Promise<number> {
     releaseLock(paths.lockPath);
   }
 }
-

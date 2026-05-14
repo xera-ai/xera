@@ -10,7 +10,7 @@ describe('lintTicket', () => {
     writeFileSync(join(dir, 'spec.ts'), `page.locator('.MuiButton-root-3xyz')`);
     const r = await lintTicket(dir);
     expect(r.ok).toBe(false);
-    expect(r.warnings.some(w => w.rule === 'no-auto-classname')).toBe(true);
+    expect(r.warnings.some((w) => w.rule === 'no-auto-classname')).toBe(true);
     rmSync(dir, { recursive: true });
   });
   test('returns ok when no issues', async () => {

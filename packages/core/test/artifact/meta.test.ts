@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { readMeta, writeMeta, type MetaJson } from '../../src/artifact/meta';
+import { type MetaJson, readMeta, writeMeta } from '../../src/artifact/meta';
 
 describe('meta.json IO', () => {
   test('writeMeta then readMeta round-trips', () => {

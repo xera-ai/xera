@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { resolveAuthKey, AUTH_KEY_ENV } from '../../src/auth/key';
+import { AUTH_KEY_ENV, resolveAuthKey } from '../../src/auth/key';
 
 describe('resolveAuthKey', () => {
   test('reads XERA_AUTH_KEY from env', () => {

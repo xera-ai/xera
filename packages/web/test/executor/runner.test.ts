@@ -24,7 +24,10 @@ describe('runPlaywright', () => {
 
   test('returns FAIL when subprocess exits non-zero', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'xera-exec-'));
-    writeFileSync(join(dir, 'report.json'), JSON.stringify({ suites: [], stats: { unexpected: 1 } }));
+    writeFileSync(
+      join(dir, 'report.json'),
+      JSON.stringify({ suites: [], stats: { unexpected: 1 } }),
+    );
     const result = await runPlaywright({
       specPath: '/tmp/spec.ts',
       configPath: '/tmp/playwright.config.ts',

@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test';
-import { mkdtempSync, rmSync, existsSync, writeFileSync } from 'node:fs';
-import { tmpdir, hostname } from 'node:os';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { hostname, tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { acquireLock, releaseLock, readLock, isLockStale } from '../../src/lock/file-lock';
+import { acquireLock, isLockStale, readLock, releaseLock } from '../../src/lock/file-lock';
 
 describe('file-lock', () => {
   test('acquireLock creates file with PID/host/run-id; second acquire fails', () => {

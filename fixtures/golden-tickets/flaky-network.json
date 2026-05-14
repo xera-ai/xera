@@ -2,8 +2,13 @@
   "ticket": "GOLD-004",
   "description": "Same spec passed in prior runs, no spec change, timeout at network step",
   "scenarios": [
-    { "name": "Submit form", "outcome": "FAIL", "class": "FLAKY", "confidence": "medium",
-      "rationale": "Previous 3 runs passed; failure at waitForResponse with no spec changes." }
+    {
+      "name": "Submit form",
+      "outcome": "FAIL",
+      "class": "FLAKY",
+      "confidence": "medium",
+      "rationale": "Previous 3 runs passed; failure at waitForResponse with no spec changes."
+    }
   ],
   "scenarioCounts": { "total": 1, "passed": 0, "failed": 1, "skipped": 0 },
   "expected": { "overall": "FLAKY", "overallConfidence": "medium" }

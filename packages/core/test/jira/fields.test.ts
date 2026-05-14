@@ -16,6 +16,6 @@ describe('rankStoryCandidates', () => {
       { id: 'description', name: 'description', hasContent: false },
       { id: 'customfield_10001', name: 'customfield_10001', hasContent: true },
     ]);
-    expect(ranked.map(f => f.id)).toEqual(['customfield_10001']);
+    expect(ranked.map((f) => f.id)).toEqual(['customfield_10001']);
   });
 });

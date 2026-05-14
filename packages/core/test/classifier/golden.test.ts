@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { aggregateScenarios } from '../../src/classifier/aggregate';
 
-const fixturesDir = join(process.cwd(), '..', '..', 'fixtures', 'golden-tickets');
+const fixturesDir = join(import.meta.dir, '..', '..', '..', '..', 'fixtures', 'golden-tickets');
 
 describe('classifier golden fixtures', () => {
   for (const file of readdirSync(fixturesDir)) {

@@ -1,7 +1,7 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { z } from 'zod';
-import { encrypt, decrypt } from './encrypt';
+import { decrypt, encrypt } from './encrypt';
 import { resolveAuthKey } from './key';
 
 export const AuthStateEntrySchema = z.object({
