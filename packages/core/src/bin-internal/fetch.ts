@@ -60,12 +60,25 @@ export async function fetchCmd(argv: string[], opts: FetchCmdOpts = {}): Promise
 function renderStory(t: JiraTicket): string {
   const lines: string[] = [];
   lines.push(`# ${t.key}: ${t.summary}`, '');
-  lines.push(`## Story`, '', t.story.trim(), '');
+
+  const story = t.story.trim();
+  // Avoid double "## Story" heading when Jira description already starts with it.
+  if (/^##\s+story\b/i.test(story)) {
+    lines.push(story, '');
+  } else {
+    lines.push('## Story', '', story, '');
+  }
+
   if (t.acceptanceCriteria && t.acceptanceCriteria.trim()) {
-    lines.push(`## Acceptance Criteria`, '', t.acceptanceCriteria.trim(), '');
+    const ac = t.acceptanceCriteria.trim();
+    if (/^##\s+acceptance\s+criteria\b/i.test(ac)) {
+      lines.push(ac, '');
+    } else {
+      lines.push('## Acceptance Criteria', '', ac, '');
+    }
   }
   if (t.attachments.length > 0) {
-    lines.push(`## Attachments`, '', ...t.attachments.map(a => `- [${a.filename}](${a.url})`), '');
+    lines.push('## Attachments', '', ...t.attachments.map((a) => `- [${a.filename}](${a.url})`), '');
   }
   return lines.join('\n');
 }
