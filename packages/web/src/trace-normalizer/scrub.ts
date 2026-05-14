@@ -74,7 +74,12 @@ export function scrub(run: NormalizedRun): NormalizedRun {
           totalScrubs += countScrubbed(n.responseHeaders ?? {}, resHeaders ?? {});
           totalScrubs += countScrubbed(n.requestBody ?? {}, reqBody ?? {});
           totalScrubs += countScrubbed(n.responseBody ?? {}, resBody ?? {});
-          return { ...n, requestHeaders: reqHeaders, responseHeaders: resHeaders, requestBody: reqBody, responseBody: resBody };
+          const out: NormalizedNetworkEntry = { method: n.method, url: n.url, status: n.status };
+          if (reqHeaders !== undefined) out.requestHeaders = reqHeaders;
+          if (resHeaders !== undefined) out.responseHeaders = resHeaders;
+          if (reqBody !== undefined) out.requestBody = reqBody;
+          if (resBody !== undefined) out.responseBody = resBody;
+          return out;
         });
       }
       newSc.failure = newF;

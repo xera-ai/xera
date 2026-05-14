@@ -25,10 +25,10 @@ export function parsePlaywrightReport(report: PWReport, runId: string): Normaliz
     const sc: NormalizedScenario = { name: spec.title, outcome };
     if (outcome === 'FAIL' && lastResult) {
       const screenshot = lastResult.attachments?.find(a => a.name === 'screenshot')?.path;
-      sc.failure = {
-        errorMessage: lastResult.error?.message,
-        screenshotPath: screenshot,
-      };
+      const failure: NormalizedScenario['failure'] = {};
+      if (lastResult.error?.message !== undefined) failure!.errorMessage = lastResult.error.message;
+      if (screenshot !== undefined) failure!.screenshotPath = screenshot;
+      sc.failure = failure;
     }
     scenarios.push(sc);
   }

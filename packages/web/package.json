@@ -5,7 +5,10 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": { "import": "./dist/index.js", "types": "./dist/index.d.ts" }
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
   },
   "files": ["dist"],
   "scripts": {
@@ -13,9 +16,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@xera/core": "workspace:*",
     "@cucumber/gherkin": "30.0.4",
     "@cucumber/messages": "27.0.2",
-    "@playwright/test": "1.48.0"
+    "@playwright/test": "1.48.0",
+    "@xera/core": "workspace:*",
+    "fflate": "0.8.2"
   }
 }
