@@ -1,0 +1,10 @@
+{
+  "ticket": "GOLD-002",
+  "description": "UI changed, story unchanged",
+  "scenarios": [
+    { "name": "Click submit", "outcome": "FAIL", "class": "SELECTOR_DRIFT", "confidence": "high",
+      "rationale": "Expected role=button name=Submit; found role=button name=Send nearby." }
+  ],
+  "scenarioCounts": { "total": 1, "passed": 0, "failed": 1, "skipped": 0 },
+  "expected": { "overall": "SELECTOR_DRIFT", "overallConfidence": "high" }
+}
