@@ -11,10 +11,11 @@
   "bin": { "xera-internal": "./dist/bin/internal.js" },
   "files": ["dist", "bin"],
   "scripts": {
-    "build": "bun build ./src/index.ts ./src/bin/internal.ts --outdir ./dist --target bun",
+    "build": "bun build ./src/index.ts ./bin/internal.ts --outdir ./dist --target bun",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "zod": "3.23.8"
+    "zod": "3.23.8",
+    "@xera/web": "workspace:*"
   }
 }
