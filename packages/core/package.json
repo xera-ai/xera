@@ -1,6 +1,6 @@
 {
   "name": "@xera-ai/core",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,14 +17,14 @@
     }
   },
   "bin": { "xera-internal": "./dist/bin/internal.js" },
-  "files": ["dist", "bin"],
+  "files": ["dist", "src", "bin"],
   "scripts": {
     "build": "bun build ./src/index.ts ./bin/internal.ts --outdir ./dist --target bun --external @playwright/test --external @xera-ai/web --external zod",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "zod": "3.23.8",
-    "@xera-ai/web": "^0.1.4",
+    "@xera-ai/web": "^0.1.5",
     "@playwright/test": "1.48.0"
   }
 }
