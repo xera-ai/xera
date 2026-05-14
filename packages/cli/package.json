@@ -1,0 +1,17 @@
+{
+  "name": "@xera/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": { "xera": "./bin/xera" },
+  "files": ["dist", "bin", "templates"],
+  "scripts": {
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@xera/core": "workspace:*",
+    "@clack/prompts": "0.7.0",
+    "cac": "6.7.14",
+    "picocolors": "1.1.0"
+  }
+}

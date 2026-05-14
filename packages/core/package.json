@@ -1,0 +1,20 @@
+{
+  "name": "@xera/core",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "import": "./dist/index.js", "types": "./dist/index.d.ts" },
+    "./adapter": { "import": "./dist/adapter/types.js", "types": "./dist/adapter/types.d.ts" }
+  },
+  "bin": { "xera-internal": "./dist/bin/internal.js" },
+  "files": ["dist", "bin"],
+  "scripts": {
+    "build": "bun build ./src/index.ts ./src/bin/internal.ts --outdir ./dist --target bun",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "3.23.8"
+  }
+}

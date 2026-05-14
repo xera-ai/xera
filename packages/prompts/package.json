@@ -1,0 +1,5 @@
+{
+  "name": "@xera/prompts",
+  "version": "1.0.0",
+  "files": ["*.md", "version.json"]
+}
