@@ -6,13 +6,14 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "bun": "./src/index.ts",
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     }
   },
   "files": ["dist"],
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target bun",
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun --external @playwright/test --external @xera/core --external @cucumber/gherkin --external @cucumber/messages --external fflate",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

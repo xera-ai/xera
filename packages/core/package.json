@@ -5,8 +5,16 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": { "import": "./dist/index.js", "types": "./dist/index.d.ts" },
-    "./adapter": { "import": "./dist/adapter/types.js", "types": "./dist/adapter/types.d.ts" }
+    ".": {
+      "bun": "./src/index.ts",
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./adapter": {
+      "bun": "./src/adapter/types.ts",
+      "import": "./dist/adapter/types.js",
+      "types": "./dist/adapter/types.d.ts"
+    }
   },
   "bin": { "xera-internal": "./dist/bin/internal.js" },
   "files": ["dist", "bin"],
