@@ -140,6 +140,7 @@ export async function initCommand(opts: { yes: boolean }): Promise<void> {
   pkg.dependencies['@xera-ai/prompts'] = '^1.0.0';
   pkg.devDependencies = pkg.devDependencies ?? {};
   pkg.devDependencies['@playwright/test'] = '^1.48.0';
+  pkg.devDependencies['@types/node'] = '^22.0.0';
   pkg.devDependencies['typescript'] = '^5.6.3';
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 
