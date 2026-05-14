@@ -30,6 +30,8 @@
         "xera-internal": "./dist/bin/internal.js",
       },
       "dependencies": {
+        "@playwright/test": "1.48.0",
+        "@xera/web": "workspace:*",
         "zod": "3.23.8",
       },
     },

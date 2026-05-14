@@ -27,11 +27,14 @@ export async function fetchCmd(argv: string[], opts: FetchCmdOpts = {}): Promise
     const client = await createJiraClient({
       baseUrl: config.jira.baseUrl,
       preferMcp: true,
-      rest: process.env.JIRA_EMAIL && process.env.JIRA_API_TOKEN
-        ? { email: process.env.JIRA_EMAIL, apiToken: process.env.JIRA_API_TOKEN }
-        : undefined,
+      ...(process.env.JIRA_EMAIL && process.env.JIRA_API_TOKEN
+        ? { rest: { email: process.env.JIRA_EMAIL, apiToken: process.env.JIRA_API_TOKEN } }
+        : {}),
     });
-    t = await client.fetchTicket(ticket, config.jira.fields);
+    const fieldMap = config.jira.fields.acceptanceCriteria !== undefined
+      ? { story: config.jira.fields.story, acceptanceCriteria: config.jira.fields.acceptanceCriteria }
+      : { story: config.jira.fields.story };
+    t = await client.fetchTicket(ticket, fieldMap);
   }
 
   const story = renderStory(t);

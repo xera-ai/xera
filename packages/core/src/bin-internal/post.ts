@@ -22,9 +22,9 @@ export async function postCmd(argv: string[]): Promise<number> {
   const client = await createJiraClient({
     baseUrl: config.jira.baseUrl,
     preferMcp: true,
-    rest: process.env.JIRA_EMAIL && process.env.JIRA_API_TOKEN
-      ? { email: process.env.JIRA_EMAIL, apiToken: process.env.JIRA_API_TOKEN }
-      : undefined,
+    ...(process.env.JIRA_EMAIL && process.env.JIRA_API_TOKEN
+      ? { rest: { email: process.env.JIRA_EMAIL, apiToken: process.env.JIRA_API_TOKEN } }
+      : {}),
   });
   const r = await client.postComment(ticket, body);
   console.log(`[xera:post] posted comment id=${r.id}`);
