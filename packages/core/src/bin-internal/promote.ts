@@ -1,4 +1,4 @@
-import { promotePom } from '@xera/web';
+import { promotePom } from '@xera-ai/web';
 
 export async function promoteCmd(argv: string[]): Promise<number> {
   const [ticket, className] = argv;

@@ -13,7 +13,7 @@ Every project has a single root config: `xera.config.ts`. This file is committed
 ## Full schema
 
 ```ts
-import { defineConfig } from '@xera/core';
+import { defineConfig } from '@xera-ai/core';
 
 export default defineConfig({
   jira: {

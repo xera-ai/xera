@@ -1,6 +1,6 @@
 import type { Browser } from '@playwright/test';
 import { pathToFileURL } from 'node:url';
-import { writeAuthState } from '@xera/core';
+import { writeAuthState } from '@xera-ai/core';
 import type { AuthRoleCreds } from './define';
 
 export interface RunAuthSetupInput {

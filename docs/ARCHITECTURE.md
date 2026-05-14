@@ -13,11 +13,11 @@ Skills (`.claude/skills/xera-*.md`)
   │ tell the session LLM what to do
   │ session LLM calls `bun run xera:*`
   ▼
-`xera-internal` binary (in @xera/core)
+`xera-internal` binary (in @xera-ai/core)
   │ deterministic helpers only
   │ writes artifacts to .xera/<TICKET>/
   ▼
-@xera/web — Playwright adapter
+@xera-ai/web — Playwright adapter
   │ generator helpers (validate, typecheck, lint)
   │ executor + trace normalizer + secret scrubber
   ▼
@@ -36,17 +36,17 @@ Playwright + the user's app under test
 
 | Package | Responsibility | Public bin |
 |---|---|---|
-| `@xera/core` | Config, paths, hashing, lock, log, Jira client, classifier framework, auth state | `xera-internal` |
-| `@xera/cli` | Public CLI: `init`, `doctor` | `xera` |
-| `@xera/web` | Playwright adapter | — |
-| `@xera/skills` | Claude Code skill `.md` files | — |
-| `@xera/prompts` | Versioned LLM prompt templates | — |
+| `@xera-ai/core` | Config, paths, hashing, lock, log, Jira client, classifier framework, auth state | `xera-internal` |
+| `@xera-ai/cli` | Public CLI: `init`, `doctor` | `xera` |
+| `@xera-ai/web` | Playwright adapter | — |
+| `@xera-ai/skills` | Claude Code skill `.md` files | — |
+| `@xera-ai/prompts` | Versioned LLM prompt templates | — |
 
 ## Extension model
 
 To add a new test adapter (mobile, API, performance, security):
 
-1. Create `packages/<adapter>/` implementing `TestAdapter` from `@xera/core/adapter`.
+1. Create `packages/<adapter>/` implementing `TestAdapter` from `@xera-ai/core/adapter`.
 2. Add the adapter id to `xera.config.ts.adapters`.
 3. Write per-adapter generator helpers and a trace normalizer.
 4. Reuse the classifier framework, status writer, Jira comment builder, and skills as-is.

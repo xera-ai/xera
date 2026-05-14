@@ -1,5 +1,5 @@
 {
-  "name": "@xera/web",
+  "name": "@xera-ai/web",
   "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -13,14 +13,14 @@
   },
   "files": ["dist"],
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target bun --external @playwright/test --external @xera/core --external @cucumber/gherkin --external @cucumber/messages --external fflate",
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun --external @playwright/test --external @xera-ai/core --external @cucumber/gherkin --external @cucumber/messages --external fflate",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@cucumber/gherkin": "30.0.4",
     "@cucumber/messages": "27.0.2",
     "@playwright/test": "1.48.0",
-    "@xera/core": "workspace:*",
+    "@xera-ai/core": "workspace:*",
     "fflate": "0.8.2"
   }
 }

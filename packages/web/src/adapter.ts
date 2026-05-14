@@ -1,6 +1,6 @@
 import { runPlaywright } from './executor';
 import { normalizeRun } from './trace-normalizer/normalize';
-import type { TestAdapter, GenerateInput, GenerateResult, ExecuteInput, RunResult, DoctorReport } from '@xera/core/adapter';
+import type { TestAdapter, GenerateInput, GenerateResult, ExecuteInput, RunResult, DoctorReport } from '@xera-ai/core/adapter';
 import { join } from 'node:path';
 
 export const WebAdapter: TestAdapter = {

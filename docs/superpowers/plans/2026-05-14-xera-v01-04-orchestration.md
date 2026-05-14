@@ -347,7 +347,7 @@ If no ticket key was given, ask for one.
    - If `feature_generated_from_story_hash === story_hash` AND `.xera/{{TICKET}}/test.feature` exists, the feature is current. Ask the user: "test.feature is up-to-date with the current story. Regenerate anyway? (y/N)". If no, STOP and tell user nothing to do.
    - If `story_hash` differs (story drift), say so: "Story has changed since the last feature was generated. Regenerating."
 
-3. Read the prompt template from `node_modules/@xera/prompts/feature-from-story.md`. Follow its hard rules.
+3. Read the prompt template from `node_modules/@xera-ai/prompts/feature-from-story.md`. Follow its hard rules.
 
 4. Read `.xera/{{TICKET}}/story.md` and write `.xera/{{TICKET}}/test.feature` following the prompt. Do NOT include any text outside the Gherkin file body.
 
@@ -394,7 +394,7 @@ The user invoked `/xera-script <TICKET>`. If no key, ask.
 
 3. List existing shared POMs by reading `shared/page-objects/` (every `.ts` file, parse exported class names). Pass this list to yourself as context for reuse decisions.
 
-4. Read `node_modules/@xera/prompts/script-from-feature.md`. Follow its hard rules.
+4. Read `node_modules/@xera-ai/prompts/script-from-feature.md`. Follow its hard rules.
 
 5. Read `.xera/{{TICKET}}/test.feature` and `.xera/{{TICKET}}/story.md`. Generate:
    - `.xera/{{TICKET}}/spec.ts`
@@ -485,7 +485,7 @@ The user invoked `/xera-report <TICKET>`. If no key, ask.
    - `.xera/{{TICKET}}/status.json` (may not exist on first run)
    - `.xera/{{TICKET}}/meta.json`
 
-4. Read `node_modules/@xera/prompts/diagnose-failure.md`. Follow its decision algorithm. Produce `classifier-input.json` matching the exact shape described. Save to `.xera/{{TICKET}}/classifier-input.json`.
+4. Read `node_modules/@xera-ai/prompts/diagnose-failure.md`. Follow its decision algorithm. Produce `classifier-input.json` matching the exact shape described. Save to `.xera/{{TICKET}}/classifier-input.json`.
 
 5. Run: `bun run xera:report {{TICKET}} -- --input=.xera/{{TICKET}}/classifier-input.json`
 

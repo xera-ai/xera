@@ -1,6 +1,6 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { readAuthState } from '@xera/core';
+import { readAuthState } from '@xera-ai/core';
 
 export function stagePlaywrightState(authDir: string, role: string): string {
   const entry = readAuthState(authDir, role);

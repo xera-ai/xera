@@ -1,5 +1,5 @@
 import { resolveArtifactPaths } from '../artifact/paths';
-import { typecheckTicket } from '@xera/web';
+import { typecheckTicket } from '@xera-ai/web';
 
 export async function typecheckCmd(argv: string[]): Promise<number> {
   const ticket = argv[0];

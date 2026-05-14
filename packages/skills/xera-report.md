@@ -18,7 +18,7 @@ The user invoked `/xera-report <TICKET>`. If no key, ask.
    - `.xera/{{TICKET}}/status.json` (may not exist on first run)
    - `.xera/{{TICKET}}/meta.json`
 
-4. Read `node_modules/@xera/prompts/diagnose-failure.md`. Follow its decision algorithm. Produce `classifier-input.json` matching the exact shape described. Save to `.xera/{{TICKET}}/classifier-input.json`.
+4. Read `node_modules/@xera-ai/prompts/diagnose-failure.md`. Follow its decision algorithm. Produce `classifier-input.json` matching the exact shape described. Save to `.xera/{{TICKET}}/classifier-input.json`.
 
 5. Run: `bun run xera:report {{TICKET}} -- --input=.xera/{{TICKET}}/classifier-input.json`
 

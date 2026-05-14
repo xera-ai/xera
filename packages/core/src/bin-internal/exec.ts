@@ -4,7 +4,7 @@ import { NdjsonLogger } from '../logging/ndjson-logger';
 import { loadConfig } from '../config/load';
 import { readAuthState } from '../auth/state';
 import { needsRefresh } from '../auth/refresh';
-import { stagePlaywrightState, runAuthSetup, runPlaywright } from '@xera/web';
+import { stagePlaywrightState, runAuthSetup, runPlaywright } from '@xera-ai/web';
 import { chromium } from '@playwright/test';
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';

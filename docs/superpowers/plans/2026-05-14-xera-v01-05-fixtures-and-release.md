@@ -494,11 +494,11 @@ claude
 
 See [the design spec](docs/superpowers/specs/2026-05-14-xera-core-web-design.md) for the full architecture. In short:
 
-- `@xera/cli` — public CLI (`init`, `doctor`)
-- `@xera/core` — config, artifact IO, classifier, Jira client, auth state, `xera-internal` binary
-- `@xera/web` — Playwright adapter
-- `@xera/skills` — Claude Code skill `.md` files
-- `@xera/prompts` — versioned LLM prompt templates
+- `@xera-ai/cli` — public CLI (`init`, `doctor`)
+- `@xera-ai/core` — config, artifact IO, classifier, Jira client, auth state, `xera-internal` binary
+- `@xera-ai/web` — Playwright adapter
+- `@xera-ai/skills` — Claude Code skill `.md` files
+- `@xera-ai/prompts` — versioned LLM prompt templates
 
 ## Documentation
 
@@ -561,7 +561,7 @@ Every project has a single root config: `xera.config.ts`. This file is committed
 ## Full schema
 
 ```ts
-import { defineConfig } from '@xera/core';
+import { defineConfig } from '@xera-ai/core';
 
 export default defineConfig({
   jira: {
@@ -789,11 +789,11 @@ Skills (`.claude/skills/xera-*.md`)
   │ tell the session LLM what to do
   │ session LLM calls `bun run xera:*`
   ▼
-`xera-internal` binary (in @xera/core)
+`xera-internal` binary (in @xera-ai/core)
   │ deterministic helpers only
   │ writes artifacts to .xera/<TICKET>/
   ▼
-@xera/web — Playwright adapter
+@xera-ai/web — Playwright adapter
   │ generator helpers (validate, typecheck, lint)
   │ executor + trace normalizer + secret scrubber
   ▼
@@ -812,17 +812,17 @@ Playwright + the user's app under test
 
 | Package | Responsibility | Public bin |
 |---|---|---|
-| `@xera/core` | Config, paths, hashing, lock, log, Jira client, classifier framework, auth state | `xera-internal` |
-| `@xera/cli` | Public CLI: `init`, `doctor` | `xera` |
-| `@xera/web` | Playwright adapter | — |
-| `@xera/skills` | Claude Code skill `.md` files | — |
-| `@xera/prompts` | Versioned LLM prompt templates | — |
+| `@xera-ai/core` | Config, paths, hashing, lock, log, Jira client, classifier framework, auth state | `xera-internal` |
+| `@xera-ai/cli` | Public CLI: `init`, `doctor` | `xera` |
+| `@xera-ai/web` | Playwright adapter | — |
+| `@xera-ai/skills` | Claude Code skill `.md` files | — |
+| `@xera-ai/prompts` | Versioned LLM prompt templates | — |
 
 ## Extension model
 
 To add a new test adapter (mobile, API, performance, security):
 
-1. Create `packages/<adapter>/` implementing `TestAdapter` from `@xera/core/adapter`.
+1. Create `packages/<adapter>/` implementing `TestAdapter` from `@xera-ai/core/adapter`.
 2. Add the adapter id to `xera.config.ts.adapters`.
 3. Write per-adapter generator helpers and a trace normalizer.
 4. Reuse the classifier framework, status writer, Jira comment builder, and skills as-is.
@@ -842,26 +842,26 @@ git commit -m "docs: condensed architecture overview"
 ### Task 13.5: `xera-starter` template repo
 
 **Files:** (in a separate repo)
-- Create `thanhtrinity/xera-starter` on GitHub
+- Create `xera-ai/xera-starter` on GitHub
 - Initialize with: `xera.config.ts`, `playwright.config.ts`, `package.json` skeleton, `.env.example`, README
 
 - [ ] **Step 1: Create starter repo**
 
 ```bash
-gh repo create thanhtrinity/xera-starter --public --description "Template repo for xera projects — pre-init'd boilerplate"
-cd /tmp && gh repo clone thanhtrinity/xera-starter && cd xera-starter
+gh repo create xera-ai/xera-starter --public --description "Template repo for xera projects — pre-init'd boilerplate"
+cd /tmp && gh repo clone xera-ai/xera-starter && cd xera-starter
 ```
 
 - [ ] **Step 2: Run `bunx xera init --yes` against an empty dir to produce the starter content**
 
 ```bash
-# (after publishing @xera/cli to npm — see Task 13.6)
-bunx @xera/cli init --yes
+# (after publishing @xera-ai/cli to npm — see Task 13.6)
+bunx @xera-ai/cli init --yes
 # Edit the generated files to be more generic templates:
 #  - xera.config.ts: leave placeholders like https://YOUR-WORKSPACE.atlassian.net
 #  - .env.example: blank values
 #  - shared/auth-setup.ts: commented template
-# Write a README pointing at thanhtrinity/xera for docs.
+# Write a README pointing at xera-ai/xera for docs.
 git add . && git commit -m "Initial xera-starter content"
 git push -u origin main
 ```
@@ -869,7 +869,7 @@ git push -u origin main
 - [ ] **Step 3: Mark as template via GitHub UI** (Settings → "Template repository")
 
 ```bash
-gh repo edit thanhtrinity/xera-starter --template
+gh repo edit xera-ai/xera-starter --template
 ```
 
 ---
@@ -895,23 +895,23 @@ All must be green.
 ```bash
 bunx npm login
 # core depends on nothing internal
-bun publish --filter @xera/core --dry-run
+bun publish --filter @xera-ai/core --dry-run
 # web depends on core
-bun publish --filter @xera/web --dry-run
+bun publish --filter @xera-ai/web --dry-run
 # cli depends on core
-bun publish --filter @xera/cli --dry-run
-bun publish --filter @xera/skills --dry-run
-bun publish --filter @xera/prompts --dry-run
+bun publish --filter @xera-ai/cli --dry-run
+bun publish --filter @xera-ai/skills --dry-run
+bun publish --filter @xera-ai/prompts --dry-run
 ```
 
 - [ ] **Step 3: Real publish**
 
 ```bash
-bun publish --filter @xera/core
-bun publish --filter @xera/web
-bun publish --filter @xera/cli
-bun publish --filter @xera/skills
-bun publish --filter @xera/prompts
+bun publish --filter @xera-ai/core
+bun publish --filter @xera-ai/web
+bun publish --filter @xera-ai/cli
+bun publish --filter @xera-ai/skills
+bun publish --filter @xera-ai/prompts
 ```
 
 - [ ] **Step 4: Verify**
@@ -965,7 +965,7 @@ mkdir my-tests && cd my-tests
 bunx xera init
 \`\`\`
 
-See the [README](https://github.com/thanhtrinity/xera#readme) for the full quickstart.
+See the [README](https://github.com/xera-ai/xera#readme) for the full quickstart.
 
 ## Roadmap
 

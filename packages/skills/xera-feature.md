@@ -13,7 +13,7 @@ If no ticket key was given, ask for one.
    - If `feature_generated_from_story_hash === story_hash` AND `.xera/{{TICKET}}/test.feature` exists, the feature is current. Ask the user: "test.feature is up-to-date with the current story. Regenerate anyway? (y/N)". If no, STOP and tell user nothing to do.
    - If `story_hash` differs (story drift), say so: "Story has changed since the last feature was generated. Regenerating."
 
-3. Read the prompt template from `node_modules/@xera/prompts/feature-from-story.md`. Follow its hard rules.
+3. Read the prompt template from `node_modules/@xera-ai/prompts/feature-from-story.md`. Follow its hard rules.
 
 4. Read `.xera/{{TICKET}}/story.md` and write `.xera/{{TICKET}}/test.feature` following the prompt. Do NOT include any text outside the Gherkin file body.
 

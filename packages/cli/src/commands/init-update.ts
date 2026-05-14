@@ -18,13 +18,13 @@ export async function initUpdateCommand(_opts: { yes: boolean }): Promise<void> 
   }
   const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
   pkg.dependencies = pkg.dependencies ?? {};
-  pkg.dependencies['@xera/core'] = '^0.1.0';
-  pkg.dependencies['@xera/web'] = '^0.1.0';
-  pkg.dependencies['@xera/prompts'] = '^1.0.0';
+  pkg.dependencies['@xera-ai/core'] = '^0.1.0';
+  pkg.dependencies['@xera-ai/web'] = '^0.1.0';
+  pkg.dependencies['@xera-ai/prompts'] = '^1.0.0';
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 
   // Refresh skills with 3-way diff
-  const skillsSrc = require.resolve('@xera/skills/package.json');
+  const skillsSrc = require.resolve('@xera-ai/skills/package.json');
   const newSkillsDir = join(skillsSrc, '..');
   const localSkillsDir = join(cwd, '.claude/skills');
 

@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { loadConfig } from '@xera/core';
+import { loadConfig } from '@xera-ai/core';
 
 export interface Check {
   name: string;

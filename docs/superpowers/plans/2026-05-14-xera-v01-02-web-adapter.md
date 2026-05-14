@@ -2,13 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build `@xera/web` — the Playwright adapter: executor wrapper that handles auth-state refresh, the trace normalizer with secret scrubber, and the generator helpers (Gherkin validate, typecheck, lint, POM scan, promote).
+**Goal:** Build `@xera-ai/web` — the Playwright adapter: executor wrapper that handles auth-state refresh, the trace normalizer with secret scrubber, and the generator helpers (Gherkin validate, typecheck, lint, POM scan, promote).
 
-**Architecture:** Adapter implements the `TestAdapter` interface from `@xera/core`. The executor invokes `playwright test` as a subprocess with a generated config that pre-injects `storageState`. The trace normalizer unzips `trace.zip`, parses Playwright trace events, runs the deterministic secret scrubber, and emits `normalized.json`. Generator helpers are stateless utilities consumed by skills.
+**Architecture:** Adapter implements the `TestAdapter` interface from `@xera-ai/core`. The executor invokes `playwright test` as a subprocess with a generated config that pre-injects `storageState`. The trace normalizer unzips `trace.zip`, parses Playwright trace events, runs the deterministic secret scrubber, and emits `normalized.json`. Generator helpers are stateless utilities consumed by skills.
 
 **Tech Stack:** `@playwright/test`, `@cucumber/gherkin`, `@cucumber/messages`, `node:zlib`, `node:stream`.
 
-**Prereqs:** Plan 01 complete (`@xera/core` exports available).
+**Prereqs:** Plan 01 complete (`@xera-ai/core` exports available).
 
 ---
 
@@ -124,8 +124,8 @@ import { describe, expect, test } from 'bun:test';
 import { mkdtempSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { generateKey } from '@xera/core';
-import { AUTH_KEY_ENV } from '@xera/core';
+import { generateKey } from '@xera-ai/core';
+import { AUTH_KEY_ENV } from '@xera-ai/core';
 import { runAuthSetup } from '../../src/auth-setup/runner';
 
 describe('runAuthSetup', () => {
@@ -173,7 +173,7 @@ describe('runAuthSetup', () => {
 ```ts
 import type { Browser } from '@playwright/test';
 import { pathToFileURL } from 'node:url';
-import { writeAuthState } from '@xera/core';
+import { writeAuthState } from '@xera-ai/core';
 import type { AuthRoleCreds } from './define';
 
 export interface RunAuthSetupInput {
@@ -236,7 +236,7 @@ import { describe, expect, test } from 'bun:test';
 import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { generateKey, AUTH_KEY_ENV, writeAuthState } from '@xera/core';
+import { generateKey, AUTH_KEY_ENV, writeAuthState } from '@xera-ai/core';
 import { stagePlaywrightState } from '../../src/auth-setup/playwright-state';
 
 describe('stagePlaywrightState', () => {
@@ -268,7 +268,7 @@ describe('stagePlaywrightState', () => {
 ```ts
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { readAuthState } from '@xera/core';
+import { readAuthState } from '@xera-ai/core';
 
 export function stagePlaywrightState(authDir: string, role: string): string {
   const entry = readAuthState(authDir, role);
@@ -1555,7 +1555,7 @@ git commit -m "web: scan shared POMs + explicit promote with rewrite"
 ```ts
 import { runPlaywright } from './executor';
 import { normalizeRun } from './trace-normalizer/normalize';
-import type { TestAdapter, GenerateInput, GenerateResult, ExecuteInput, RunResult, DoctorReport } from '@xera/core/adapter';
+import type { TestAdapter, GenerateInput, GenerateResult, ExecuteInput, RunResult, DoctorReport } from '@xera-ai/core/adapter';
 import { join } from 'node:path';
 
 export const WebAdapter: TestAdapter = {

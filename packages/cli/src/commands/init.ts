@@ -3,7 +3,7 @@ import pc from 'picocolors';
 import { existsSync, writeFileSync, readFileSync, appendFileSync, unlinkSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
-import { generateKey } from '@xera/core';
+import { generateKey } from '@xera-ai/core';
 import { scaffoldFile, copyDir, TEMPLATE_DIR } from '../scaffold';
 
 const require = createRequire(import.meta.url);
@@ -105,8 +105,8 @@ export async function initCommand(opts: { yes: boolean }): Promise<void> {
   // Seed SAMPLE-001
   copyDir(join(TEMPLATE_DIR, 'sample/SAMPLE-001'), join(cwd, '.xera/SAMPLE-001'));
 
-  // Copy skills from @xera/skills into .claude/skills/
-  const skillsSrc = require.resolve('@xera/skills/package.json');
+  // Copy skills from @xera-ai/skills into .claude/skills/
+  const skillsSrc = require.resolve('@xera-ai/skills/package.json');
   const skillsDir = join(skillsSrc, '..');
   copyDir(skillsDir, join(cwd, '.claude/skills'));
   // Remove the package.json/version.json we copied
@@ -133,9 +133,9 @@ export async function initCommand(opts: { yes: boolean }): Promise<void> {
   pkg.scripts['xera:unlock'] = 'xera-internal unlock';
   pkg.scripts['xera:promote'] = 'xera-internal promote';
   pkg.dependencies = pkg.dependencies ?? {};
-  pkg.dependencies['@xera/core'] = '^0.1.0';
-  pkg.dependencies['@xera/web'] = '^0.1.0';
-  pkg.dependencies['@xera/prompts'] = '^1.0.0';
+  pkg.dependencies['@xera-ai/core'] = '^0.1.0';
+  pkg.dependencies['@xera-ai/web'] = '^0.1.0';
+  pkg.dependencies['@xera-ai/prompts'] = '^1.0.0';
   pkg.devDependencies = pkg.devDependencies ?? {};
   pkg.devDependencies['@playwright/test'] = '^1.48.0';
   pkg.devDependencies['typescript'] = '^5.6.3';

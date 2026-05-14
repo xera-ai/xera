@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Stand up the Bun workspace and build `@xera/core` foundations: config, artifact paths, hashing, logging, file lock, Jira client (MCP + REST), and the encrypted auth-state manager.
+**Goal:** Stand up the Bun workspace and build `@xera-ai/core` foundations: config, artifact paths, hashing, logging, file lock, Jira client (MCP + REST), and the encrypted auth-state manager.
 
-**Architecture:** Five workspace packages scaffolded. All shared types and IO live in `@xera/core`. Jira is abstracted behind a `JiraClient` interface with two backends (MCP preferred, REST fallback). Auth state is AES-256-GCM-encrypted at rest, with TTL/expiry-based refresh.
+**Architecture:** Five workspace packages scaffolded. All shared types and IO live in `@xera-ai/core`. Jira is abstracted behind a `JiraClient` interface with two backends (MCP preferred, REST fallback). Auth state is AES-256-GCM-encrypted at rest, with TTL/expiry-based refresh.
 
 **Tech Stack:** Bun, TypeScript 5.x strict, vitest-style `bun test`, zod, biome, node:crypto.
 
@@ -125,7 +125,7 @@ git commit -m "chore: bootstrap bun workspace + biome + tsconfig"
 
 ```json
 {
-  "name": "@xera/core",
+  "name": "@xera-ai/core",
   "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -171,7 +171,7 @@ export const VERSION = '0.1.0';
 
 ```json
 {
-  "name": "@xera/cli",
+  "name": "@xera-ai/cli",
   "version": "0.1.0",
   "type": "module",
   "bin": { "xera": "./bin/xera" },
@@ -181,7 +181,7 @@ export const VERSION = '0.1.0';
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@xera/core": "workspace:*",
+    "@xera-ai/core": "workspace:*",
     "@clack/prompts": "0.7.0",
     "cac": "6.7.14",
     "picocolors": "1.1.0"
@@ -218,7 +218,7 @@ Make executable: `chmod +x packages/cli/bin/xera`
 
 ```json
 {
-  "name": "@xera/web",
+  "name": "@xera-ai/web",
   "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -232,7 +232,7 @@ Make executable: `chmod +x packages/cli/bin/xera`
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@xera/core": "workspace:*",
+    "@xera-ai/core": "workspace:*",
     "@cucumber/gherkin": "30.0.4",
     "@cucumber/messages": "27.0.2",
     "@playwright/test": "1.48.0"
@@ -260,7 +260,7 @@ export const WEB_VERSION = '0.1.0';
 
 ```json
 {
-  "name": "@xera/skills",
+  "name": "@xera-ai/skills",
   "version": "0.1.0",
   "files": ["*.md", "version.json"]
 }
@@ -276,7 +276,7 @@ export const WEB_VERSION = '0.1.0';
 
 ```json
 {
-  "name": "@xera/prompts",
+  "name": "@xera-ai/prompts",
   "version": "1.0.0",
   "files": ["*.md", "version.json"]
 }
@@ -291,7 +291,7 @@ export const WEB_VERSION = '0.1.0';
 - [ ] **Step 15: Verify workspace resolution**
 
 Run: `bun install`
-Expected: `node_modules/@xera/core` (symlink), `node_modules/@xera/cli`, `node_modules/@xera/web` all exist.
+Expected: `node_modules/@xera-ai/core` (symlink), `node_modules/@xera-ai/cli`, `node_modules/@xera-ai/web` all exist.
 
 - [ ] **Step 16: Commit**
 
@@ -339,7 +339,7 @@ Open the Actions tab on GitHub; the workflow should pass (no tests yet, just typ
 
 ---
 
-## Phase 1 — `@xera/core` foundations
+## Phase 1 — `@xera-ai/core` foundations
 
 ### Task 1.1: Config schema
 
@@ -2203,7 +2203,7 @@ git commit -m "core: re-export jira + auth modules"
 
 ## End of Plan 01
 
-At this point `@xera/core` has all foundation modules with passing tests. CI should be green.
+At this point `@xera-ai/core` has all foundation modules with passing tests. CI should be green.
 
 Verify:
 

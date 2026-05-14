@@ -25,7 +25,7 @@
 
 ```ts
 import type { Classification } from '../artifact/status';
-import type { NormalizedRun, NormalizedScenario } from '@xera/web';
+import type { NormalizedRun, NormalizedScenario } from '@xera-ai/web';
 
 export type { Classification };
 export type Confidence = 'low' | 'medium' | 'high';
@@ -52,7 +52,7 @@ export interface ClassifyContextInput {
 }
 ```
 
-Note: the actual *reasoning* in v0.1 is done by the LLM (via skill prompt + diagnose-failure.md). What lives in `@xera/core/classifier` are deterministic helpers + a final aggregator/writer. The skill calls `xera-internal report` which uses these helpers and the LLM-produced per-scenario classification (passed as input).
+Note: the actual *reasoning* in v0.1 is done by the LLM (via skill prompt + diagnose-failure.md). What lives in `@xera-ai/core/classifier` are deterministic helpers + a final aggregator/writer. The skill calls `xera-internal report` which uses these helpers and the LLM-produced per-scenario classification (passed as input).
 
 - [ ] **Step 2: Failing test for history**
 
@@ -748,7 +748,7 @@ git commit -m "core: xera-internal fetch — writes story.md + meta.json"
 ```ts
 import { readFileSync, existsSync } from 'node:fs';
 import { resolveArtifactPaths } from '../artifact/paths';
-import { validateGherkin } from '@xera/web';
+import { validateGherkin } from '@xera-ai/web';
 
 export async function validateFeatureCmd(argv: string[]): Promise<number> {
   const ticket = argv[0];
@@ -766,7 +766,7 @@ export async function validateFeatureCmd(argv: string[]): Promise<number> {
 
 ```ts
 import { resolveArtifactPaths } from '../artifact/paths';
-import { typecheckTicket } from '@xera/web';
+import { typecheckTicket } from '@xera-ai/web';
 
 export async function typecheckCmd(argv: string[]): Promise<number> {
   const ticket = argv[0];
@@ -783,7 +783,7 @@ export async function typecheckCmd(argv: string[]): Promise<number> {
 
 ```ts
 import { resolveArtifactPaths } from '../artifact/paths';
-import { lintTicket } from '@xera/web';
+import { lintTicket } from '@xera-ai/web';
 
 export async function lintCmd(argv: string[]): Promise<number> {
   const ticket = argv[0];
@@ -856,7 +856,7 @@ import { NdjsonLogger } from '../logging/ndjson-logger';
 import { loadConfig } from '../config/load';
 import { readAuthState } from '../auth/state';
 import { needsRefresh } from '../auth/refresh';
-import { stagePlaywrightState, runAuthSetup, runPlaywright } from '@xera/web';
+import { stagePlaywrightState, runAuthSetup, runPlaywright } from '@xera-ai/web';
 import { chromium } from '@playwright/test';
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -1014,7 +1014,7 @@ git commit -m "core: xera-internal exec with auth refresh, lock, and config gen"
 
 ```ts
 import { resolveArtifactPaths } from '../artifact/paths';
-import { normalizeRun } from '@xera/web';
+import { normalizeRun } from '@xera-ai/web';
 import { readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -1189,7 +1189,7 @@ export async function unlockCmd(argv: string[]): Promise<number> {
 - [ ] **Step 3: promote**
 
 ```ts
-import { promotePom } from '@xera/web';
+import { promotePom } from '@xera-ai/web';
 
 export async function promoteCmd(argv: string[]): Promise<number> {
   const [ticket, className] = argv;
@@ -1296,7 +1296,7 @@ The templates can use `{{var}}` placeholders, replaced by `scaffold.ts`.
 `packages/cli/templates/xera.config.ts.tmpl`:
 
 ```ts
-import { defineConfig } from '@xera/core';
+import { defineConfig } from '@xera-ai/core';
 
 export default defineConfig({
   jira: {
@@ -1383,7 +1383,7 @@ XERA_AUTH_KEY={{authKey}}
 `packages/cli/templates/auth-setup.ts.tmpl`:
 
 ```ts
-import { defineAuthSetup } from '@xera/web';
+import { defineAuthSetup } from '@xera-ai/web';
 
 export default defineAuthSetup(async (page, _role, creds) => {
   await page.goto('/login');
@@ -1511,7 +1511,7 @@ import * as p from '@clack/prompts';
 import pc from 'picocolors';
 import { existsSync, writeFileSync, readFileSync, appendFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { generateKey } from '@xera/core';
+import { generateKey } from '@xera-ai/core';
 import { scaffoldFile, copyDir, TEMPLATE_DIR } from '../scaffold';
 
 export async function initCommand(opts: { yes: boolean }): Promise<void> {
@@ -1583,8 +1583,8 @@ export async function initCommand(opts: { yes: boolean }): Promise<void> {
   // Seed SAMPLE-001
   copyDir(join(TEMPLATE_DIR, 'sample/SAMPLE-001'), join(cwd, '.xera/SAMPLE-001'));
 
-  // Copy skills from @xera/skills into .claude/skills/
-  const skillsSrc = require.resolve('@xera/skills/package.json');
+  // Copy skills from @xera-ai/skills into .claude/skills/
+  const skillsSrc = require.resolve('@xera-ai/skills/package.json');
   const skillsDir = join(skillsSrc, '..');
   copyDir(skillsDir, join(cwd, '.claude/skills'));
   // Remove the package.json/version.json we copied
@@ -1609,9 +1609,9 @@ export async function initCommand(opts: { yes: boolean }): Promise<void> {
   pkg.scripts['xera:unlock'] = 'xera-internal unlock';
   pkg.scripts['xera:promote'] = 'xera-internal promote';
   pkg.dependencies = pkg.dependencies ?? {};
-  pkg.dependencies['@xera/core'] = '^0.1.0';
-  pkg.dependencies['@xera/web'] = '^0.1.0';
-  pkg.dependencies['@xera/prompts'] = '^1.0.0';
+  pkg.dependencies['@xera-ai/core'] = '^0.1.0';
+  pkg.dependencies['@xera-ai/web'] = '^0.1.0';
+  pkg.dependencies['@xera-ai/prompts'] = '^1.0.0';
   pkg.devDependencies = pkg.devDependencies ?? {};
   pkg.devDependencies['@playwright/test'] = '^1.48.0';
   pkg.devDependencies['typescript'] = '^5.6.3';
@@ -1641,7 +1641,7 @@ git commit -m "cli: implement xera init with interactive scaffold + skills copy"
 ```ts
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { loadConfig } from '@xera/core';
+import { loadConfig } from '@xera-ai/core';
 
 export interface Check { name: string; ok: boolean; message?: string; }
 
@@ -1702,7 +1702,7 @@ export async function runChecks(cwd: string): Promise<Check[]> {
 - [ ] **Step 2: Implement doctor command**
 
 ```ts
-import { NdjsonLogger, resolveArtifactPaths } from '@xera/core';
+import { NdjsonLogger, resolveArtifactPaths } from '@xera-ai/core';
 import { existsSync } from 'node:fs';
 import { runChecks } from '../checks';
 import pc from 'picocolors';
@@ -1769,13 +1769,13 @@ export async function initUpdateCommand(_opts: { yes: boolean }): Promise<void> 
   const pkgPath = join(cwd, 'package.json');
   if (!existsSync(pkgPath)) { p.cancel('No package.json found — run `xera init` first.'); process.exit(1); }
   const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
-  pkg.dependencies['@xera/core'] = '^0.1.0';
-  pkg.dependencies['@xera/web'] = '^0.1.0';
-  pkg.dependencies['@xera/prompts'] = '^1.0.0';
+  pkg.dependencies['@xera-ai/core'] = '^0.1.0';
+  pkg.dependencies['@xera-ai/web'] = '^0.1.0';
+  pkg.dependencies['@xera-ai/prompts'] = '^1.0.0';
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 
   // Refresh skills with 3-way diff
-  const skillsSrc = require.resolve('@xera/skills/package.json');
+  const skillsSrc = require.resolve('@xera-ai/skills/package.json');
   const newSkillsDir = join(skillsSrc, '..');
   const localSkillsDir = join(cwd, '.claude/skills');
 

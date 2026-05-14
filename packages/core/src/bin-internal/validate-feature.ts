@@ -1,6 +1,6 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { resolveArtifactPaths } from '../artifact/paths';
-import { validateGherkin } from '@xera/web';
+import { validateGherkin } from '@xera-ai/web';
 
 export async function validateFeatureCmd(argv: string[]): Promise<number> {
   const ticket = argv[0];

@@ -1,5 +1,5 @@
 import { resolveArtifactPaths } from '../artifact/paths';
-import { normalizeRun } from '@xera/web';
+import { normalizeRun } from '@xera-ai/web';
 import { readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 

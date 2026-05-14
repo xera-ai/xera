@@ -34,11 +34,11 @@ claude
 
 See [the design spec](docs/superpowers/specs/2026-05-14-xera-core-web-design.md) for the full architecture. In short:
 
-- `@xera/cli` — public CLI (`init`, `doctor`)
-- `@xera/core` — config, artifact IO, classifier, Jira client, auth state, `xera-internal` binary
-- `@xera/web` — Playwright adapter
-- `@xera/skills` — Claude Code skill `.md` files
-- `@xera/prompts` — versioned LLM prompt templates
+- `@xera-ai/cli` — public CLI (`init`, `doctor`)
+- `@xera-ai/core` — config, artifact IO, classifier, Jira client, auth state, `xera-internal` binary
+- `@xera-ai/web` — Playwright adapter
+- `@xera-ai/skills` — Claude Code skill `.md` files
+- `@xera-ai/prompts` — versioned LLM prompt templates
 
 ## Documentation
 

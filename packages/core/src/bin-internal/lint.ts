@@ -1,5 +1,5 @@
 import { resolveArtifactPaths } from '../artifact/paths';
-import { lintTicket } from '@xera/web';
+import { lintTicket } from '@xera-ai/web';
 
 export async function lintCmd(argv: string[]): Promise<number> {
   const ticket = argv[0];

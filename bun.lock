@@ -10,6 +10,10 @@
         "typescript": "5.6.3",
       },
     },
+    "fixtures/mock-jira": {
+      "name": "@xera-fixtures/mock-jira",
+      "version": "0.0.0",
+    },
     "fixtures/sample-app": {
       "name": "@xera-fixtures/sample-app",
       "version": "0.0.0",
@@ -26,46 +30,46 @@
       },
     },
     "packages/cli": {
-      "name": "@xera/cli",
+      "name": "@xera-ai/cli",
       "version": "0.1.0",
       "bin": {
         "xera": "./bin/xera",
       },
       "dependencies": {
         "@clack/prompts": "0.7.0",
-        "@xera/core": "workspace:*",
+        "@xera-ai/core": "workspace:*",
         "cac": "6.7.14",
         "picocolors": "1.1.0",
       },
     },
     "packages/core": {
-      "name": "@xera/core",
+      "name": "@xera-ai/core",
       "version": "0.1.0",
       "bin": {
         "xera-internal": "./dist/bin/internal.js",
       },
       "dependencies": {
         "@playwright/test": "1.48.0",
-        "@xera/web": "workspace:*",
+        "@xera-ai/web": "workspace:*",
         "zod": "3.23.8",
       },
     },
     "packages/prompts": {
-      "name": "@xera/prompts",
+      "name": "@xera-ai/prompts",
       "version": "1.0.0",
     },
     "packages/skills": {
-      "name": "@xera/skills",
+      "name": "@xera-ai/skills",
       "version": "0.1.0",
     },
     "packages/web": {
-      "name": "@xera/web",
+      "name": "@xera-ai/web",
       "version": "0.1.0",
       "dependencies": {
         "@cucumber/gherkin": "30.0.4",
         "@cucumber/messages": "27.0.2",
         "@playwright/test": "1.48.0",
-        "@xera/core": "workspace:*",
+        "@xera-ai/core": "workspace:*",
         "fflate": "0.8.2",
       },
     },
@@ -169,17 +173,19 @@
 
     "@types/uuid": ["@types/uuid@10.0.0", "", {}, "sha512-7gqG38EyHgyP1S+7+xomFtL+ZNHcKv6DwNaCZmJmo1vgMugyF3TCnXVg4t1uk89mLNwnLtnY3TpOpCOyp1/xHQ=="],
 
+    "@xera-ai/cli": ["@xera-ai/cli@workspace:packages/cli"],
+
+    "@xera-ai/core": ["@xera-ai/core@workspace:packages/core"],
+
+    "@xera-ai/prompts": ["@xera-ai/prompts@workspace:packages/prompts"],
+
+    "@xera-ai/skills": ["@xera-ai/skills@workspace:packages/skills"],
+
+    "@xera-ai/web": ["@xera-ai/web@workspace:packages/web"],
+
+    "@xera-fixtures/mock-jira": ["@xera-fixtures/mock-jira@workspace:fixtures/mock-jira"],
+
     "@xera-fixtures/sample-app": ["@xera-fixtures/sample-app@workspace:fixtures/sample-app"],
-
-    "@xera/cli": ["@xera/cli@workspace:packages/cli"],
-
-    "@xera/core": ["@xera/core@workspace:packages/core"],
-
-    "@xera/prompts": ["@xera/prompts@workspace:packages/prompts"],
-
-    "@xera/skills": ["@xera/skills@workspace:packages/skills"],
-
-    "@xera/web": ["@xera/web@workspace:packages/web"],
 
     "bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
 
