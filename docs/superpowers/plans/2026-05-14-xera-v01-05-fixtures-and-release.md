@@ -10,6 +10,9 @@
 
 ---
 
+> **Status:** ✅ Completed 2026-05-14. All tasks in this plan are implemented and shipped. See [POSTMORTEM.md](POSTMORTEM.md) for bugs that surfaced in the plan code itself and post-launch patches.
+
+
 ## Phase 12 — Fixtures and integration tests
 
 ### Task 12.1: Next.js sample-app — login + dashboard
@@ -25,7 +28,7 @@
 - Create: `fixtures/sample-app/app/api/login/route.ts`
 - Create: `fixtures/sample-app/middleware.ts`
 
-- [ ] **Step 1: `package.json`**
+- [x] **Step 1: `package.json`**
 
 ```json
 {
@@ -51,7 +54,7 @@
 }
 ```
 
-- [ ] **Step 2: `next.config.mjs` + `tsconfig.json`**
+- [x] **Step 2: `next.config.mjs` + `tsconfig.json`**
 
 `next.config.mjs`:
 ```js
@@ -82,7 +85,7 @@ export default { reactStrictMode: true };
 }
 ```
 
-- [ ] **Step 3: `app/layout.tsx` and `app/page.tsx`**
+- [x] **Step 3: `app/layout.tsx` and `app/page.tsx`**
 
 `app/layout.tsx`:
 ```tsx
@@ -104,7 +107,7 @@ export default function Home() {
 }
 ```
 
-- [ ] **Step 4: `app/login/page.tsx`**
+- [x] **Step 4: `app/login/page.tsx`**
 
 ```tsx
 'use client';
@@ -140,7 +143,7 @@ export default function LoginPage() {
 }
 ```
 
-- [ ] **Step 5: `app/dashboard/page.tsx`**
+- [x] **Step 5: `app/dashboard/page.tsx`**
 
 ```tsx
 import { cookies } from 'next/headers';
@@ -159,7 +162,7 @@ export default async function DashboardPage() {
 }
 ```
 
-- [ ] **Step 6: `app/api/login/route.ts`**
+- [x] **Step 6: `app/api/login/route.ts`**
 
 ```ts
 import { cookies } from 'next/headers';
@@ -178,7 +181,7 @@ export async function POST(req: Request) {
 }
 ```
 
-- [ ] **Step 7: Install + commit**
+- [x] **Step 7: Install + commit**
 
 ```bash
 cd fixtures/sample-app && bun install
@@ -197,7 +200,7 @@ git commit -m "fixtures: Next.js sample app with login + dashboard + protected r
 - Create: `fixtures/mock-jira/tickets/SAMPLE-001.json`
 - Create: `fixtures/mock-jira/tickets/SAMPLE-002.json`
 
-- [ ] **Step 1: `package.json`**
+- [x] **Step 1: `package.json`**
 
 ```json
 {
@@ -211,7 +214,7 @@ git commit -m "fixtures: Next.js sample app with login + dashboard + protected r
 }
 ```
 
-- [ ] **Step 2: `server.ts`**
+- [x] **Step 2: `server.ts`**
 
 ```ts
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
@@ -265,7 +268,7 @@ console.log(`mock-jira listening on http://localhost:${PORT}`);
 console.log(`available tickets: ${readdirSync(TICKETS_DIR).join(', ')}`);
 ```
 
-- [ ] **Step 3: Ticket fixtures**
+- [x] **Step 3: Ticket fixtures**
 
 `fixtures/mock-jira/tickets/SAMPLE-001.json`:
 
@@ -293,7 +296,7 @@ console.log(`available tickets: ${readdirSync(TICKETS_DIR).join(', ')}`);
 }
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add fixtures/mock-jira
@@ -309,7 +312,7 @@ git commit -m "fixtures: mock-jira HTTP server with deterministic tickets"
 
 This test boots mock-jira + sample-app, runs `xera init`, then exercises `xera-internal` end-to-end. Skill steps are skipped (they require a Claude Code session) — instead the test pre-stages `test.feature` and `spec.ts` files identical to what the skills would have produced, and asserts the deterministic parts work.
 
-- [ ] **Step 1: Write the test**
+- [x] **Step 1: Write the test**
 
 ```ts
 import { describe, expect, test, beforeAll, afterAll } from 'bun:test';
@@ -392,7 +395,7 @@ describe('xera integration — init + fetch + exec + report', () => {
 });
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add packages/cli/test/integration/init-and-run.test.ts
@@ -406,7 +409,7 @@ git commit -m "cli: integration test — init + fetch against mock-jira"
 **Files:**
 - Create: `.github/workflows/nightly-e2e.yml`
 
-- [ ] **Step 1: Write the workflow**
+- [x] **Step 1: Write the workflow**
 
 ```yaml
 name: Nightly E2E
@@ -436,7 +439,7 @@ jobs:
             **/playwright-report
 ```
 
-- [ ] **Step 2: Commit + push**
+- [x] **Step 2: Commit + push**
 
 ```bash
 git add .github/workflows/nightly-e2e.yml
@@ -453,7 +456,7 @@ git push
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Rewrite to reflect implemented framework**
+- [x] **Step 1: Rewrite to reflect implemented framework**
 
 Open `README.md` and replace the "design phase" framing with the real quickstart. Keep the structure but update status to "v0.1.0".
 
@@ -529,7 +532,7 @@ MIT.
 thanh@trinity-technology.com
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add README.md
@@ -543,7 +546,7 @@ git commit -m "docs: README quickstart for v0.1.0"
 **Files:**
 - Create: `docs/CONFIGURATION.md`
 
-- [ ] **Step 1: Write reference doc**
+- [x] **Step 1: Write reference doc**
 
 ```markdown
 # xera Configuration Reference
@@ -658,7 +661,7 @@ XERA_ENV=staging             # optional override
 Validates everything above and prints what is missing. Run after any config change.
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add docs/CONFIGURATION.md
@@ -672,7 +675,7 @@ git commit -m "docs: full configuration reference"
 **Files:**
 - Create: `docs/TROUBLESHOOTING.md`
 
-- [ ] **Step 1: Write the doc**
+- [x] **Step 1: Write the doc**
 
 ```markdown
 # xera Troubleshooting
@@ -757,7 +760,7 @@ rm -rf .xera/.auth/
 Do not regenerate `XERA_AUTH_KEY` unless you accept losing cached auth state.
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add docs/TROUBLESHOOTING.md
@@ -771,7 +774,7 @@ git commit -m "docs: top-10 troubleshooting guide"
 **Files:**
 - Create: `docs/ARCHITECTURE.md`
 
-- [ ] **Step 1: Write a condensed architecture overview**
+- [x] **Step 1: Write a condensed architecture overview**
 
 ```markdown
 # xera Architecture (v0.1)
@@ -830,7 +833,7 @@ To add a new test adapter (mobile, API, performance, security):
 The classifier and reporter are adapter-agnostic by design.
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add docs/ARCHITECTURE.md
@@ -845,14 +848,14 @@ git commit -m "docs: condensed architecture overview"
 - Create `xera-ai/xera-starter` on GitHub
 - Initialize with: `xera.config.ts`, `playwright.config.ts`, `package.json` skeleton, `.env.example`, README
 
-- [ ] **Step 1: Create starter repo**
+- [x] **Step 1: Create starter repo**
 
 ```bash
 gh repo create xera-ai/xera-starter --public --description "Template repo for xera projects — pre-init'd boilerplate"
 cd /tmp && gh repo clone xera-ai/xera-starter && cd xera-starter
 ```
 
-- [ ] **Step 2: Run `bunx xera init --yes` against an empty dir to produce the starter content**
+- [x] **Step 2: Run `bunx xera init --yes` against an empty dir to produce the starter content**
 
 ```bash
 # (after publishing @xera-ai/cli to npm — see Task 13.6)
@@ -866,7 +869,7 @@ git add . && git commit -m "Initial xera-starter content"
 git push -u origin main
 ```
 
-- [ ] **Step 3: Mark as template via GitHub UI** (Settings → "Template repository")
+- [x] **Step 3: Mark as template via GitHub UI** (Settings → "Template repository")
 
 ```bash
 gh repo edit xera-ai/xera-starter --template
@@ -878,7 +881,7 @@ gh repo edit xera-ai/xera-starter --template
 
 **Files:** none (publish step)
 
-- [ ] **Step 1: Pre-publish checks**
+- [x] **Step 1: Pre-publish checks**
 
 ```bash
 bun install --frozen-lockfile
@@ -890,7 +893,7 @@ bun run --filter '*' build
 
 All must be green.
 
-- [ ] **Step 2: Login to npm + dry-run publish (in order: core, web, cli, skills, prompts)**
+- [x] **Step 2: Login to npm + dry-run publish (in order: core, web, cli, skills, prompts)**
 
 ```bash
 bunx npm login
@@ -904,7 +907,7 @@ bun publish --filter @xera-ai/skills --dry-run
 bun publish --filter @xera-ai/prompts --dry-run
 ```
 
-- [ ] **Step 3: Real publish**
+- [x] **Step 3: Real publish**
 
 ```bash
 bun publish --filter @xera-ai/core
@@ -914,7 +917,7 @@ bun publish --filter @xera-ai/skills
 bun publish --filter @xera-ai/prompts
 ```
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 ```bash
 # In a fresh tmp dir
@@ -930,14 +933,14 @@ ls -la
 
 **Files:** none (release step)
 
-- [ ] **Step 1: Tag and push**
+- [x] **Step 1: Tag and push**
 
 ```bash
 git tag -a v0.1.0 -m "xera v0.1.0 — Core + Web adapter"
 git push --tags
 ```
 
-- [ ] **Step 2: Create GitHub release**
+- [x] **Step 2: Create GitHub release**
 
 ```bash
 gh release create v0.1.0 \
@@ -974,7 +977,7 @@ EOF
 )"
 ```
 
-- [ ] **Step 3: Done**
+- [x] **Step 3: Done**
 
 ```bash
 git push

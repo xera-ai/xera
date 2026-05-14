@@ -12,6 +12,9 @@
 
 ---
 
+> **Status:** ✅ Completed 2026-05-14. All tasks in this plan are implemented and shipped. See [POSTMORTEM.md](POSTMORTEM.md) for bugs that surfaced in the plan code itself and post-launch patches.
+
+
 ## Phase 7 — Classifier framework
 
 ### Task 7.1: Classification types and history utility
@@ -21,7 +24,7 @@
 - Create: `packages/core/src/classifier/history.ts`
 - Create: `packages/core/test/classifier/history.test.ts`
 
-- [ ] **Step 1: Define types**
+- [x] **Step 1: Define types**
 
 ```ts
 import type { Classification } from '../artifact/status';
@@ -54,7 +57,7 @@ export interface ClassifyContextInput {
 
 Note: the actual *reasoning* in v0.1 is done by the LLM (via skill prompt + diagnose-failure.md). What lives in `@xera-ai/core/classifier` are deterministic helpers + a final aggregator/writer. The skill calls `xera-internal report` which uses these helpers and the LLM-produced per-scenario classification (passed as input).
 
-- [ ] **Step 2: Failing test for history**
+- [x] **Step 2: Failing test for history**
 
 ```ts
 import { describe, expect, test } from 'bun:test';
@@ -81,7 +84,7 @@ describe('summarizeHistory', () => {
 });
 ```
 
-- [ ] **Step 3: Implement history**
+- [x] **Step 3: Implement history**
 
 ```ts
 import type { Classification } from '../artifact/status';
@@ -113,7 +116,7 @@ export function summarizeHistory(
 }
 ```
 
-- [ ] **Step 4: Tests pass + commit**
+- [x] **Step 4: Tests pass + commit**
 
 ```bash
 cd packages/core && bun test
@@ -131,7 +134,7 @@ git commit -m "core: classifier types + history summarizer"
 
 When the LLM has classified each failing scenario individually, the aggregator decides the overall verdict.
 
-- [ ] **Step 1: Failing tests**
+- [x] **Step 1: Failing tests**
 
 ```ts
 import { describe, expect, test } from 'bun:test';
@@ -164,7 +167,7 @@ describe('aggregateScenarios', () => {
 });
 ```
 
-- [ ] **Step 2: Run failing + implement**
+- [x] **Step 2: Run failing + implement**
 
 ```ts
 import type { ClassifyOutput, ScenarioClassification, Confidence } from './types';
@@ -195,7 +198,7 @@ export function aggregateScenarios(scenarios: ScenarioClassification[]): Classif
 }
 ```
 
-- [ ] **Step 3: Tests pass + commit**
+- [x] **Step 3: Tests pass + commit**
 
 ```bash
 cd packages/core && bun test
@@ -211,7 +214,7 @@ git commit -m "core: aggregate per-scenario classifications into overall verdict
 - Create: `packages/core/src/reporter/jira-comment.ts`
 - Create: `packages/core/test/reporter/jira-comment.test.ts`
 
-- [ ] **Step 1: Failing tests**
+- [x] **Step 1: Failing tests**
 
 ```ts
 import { describe, expect, test } from 'bun:test';
@@ -256,7 +259,7 @@ describe('buildJiraComment', () => {
 });
 ```
 
-- [ ] **Step 2: Run failing + implement**
+- [x] **Step 2: Run failing + implement**
 
 ```ts
 import type { ClassifyOutput } from '../classifier/types';
@@ -292,7 +295,7 @@ export function buildJiraComment(input: JiraCommentInput): string {
 }
 ```
 
-- [ ] **Step 3: Tests pass + commit**
+- [x] **Step 3: Tests pass + commit**
 
 ```bash
 cd packages/core && bun test
@@ -308,7 +311,7 @@ git commit -m "core: Jira comment builder (English, includes reproduce)"
 - Create: `packages/core/src/reporter/status-writer.ts`
 - Create: `packages/core/test/reporter/status-writer.test.ts`
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 ```ts
 import { describe, expect, test } from 'bun:test';
@@ -352,7 +355,7 @@ describe('writeStatusFromClassification', () => {
 });
 ```
 
-- [ ] **Step 2: Run failing + implement**
+- [x] **Step 2: Run failing + implement**
 
 ```ts
 import type { ClassifyOutput } from '../classifier/types';
@@ -394,7 +397,7 @@ export function writeStatusFromClassification(path: string, input: StatusWriterI
 }
 ```
 
-- [ ] **Step 3: Tests pass + commit**
+- [x] **Step 3: Tests pass + commit**
 
 ```bash
 cd packages/core && bun test
@@ -416,7 +419,7 @@ git commit -m "core: status-writer integrates classification into status.json"
 
 These fixtures contain the *expected* per-scenario classifications. The test asserts the aggregator handles them correctly. The fixtures are also reused by Plan 05's E2E + Plan 04's diagnose-failure prompt evaluation.
 
-- [ ] **Step 1: Create fixtures**
+- [x] **Step 1: Create fixtures**
 
 `fixtures/golden-tickets/sample-pass.json`:
 
@@ -493,7 +496,7 @@ These fixtures contain the *expected* per-scenario classifications. The test ass
 }
 ```
 
-- [ ] **Step 2: Failing test**
+- [x] **Step 2: Failing test**
 
 ```ts
 import { describe, expect, test } from 'bun:test';
@@ -516,7 +519,7 @@ describe('classifier golden fixtures', () => {
 });
 ```
 
-- [ ] **Step 3: Tests pass + commit**
+- [x] **Step 3: Tests pass + commit**
 
 ```bash
 cd packages/core && bun test
@@ -535,7 +538,7 @@ git commit -m "core+fixtures: classifier golden harness with 5 fixtures"
 - Modify: `packages/core/package.json` (build script — already includes bin/internal.ts)
 - Create: `packages/core/bin/internal.ts`
 
-- [ ] **Step 1: Write the dispatcher**
+- [x] **Step 1: Write the dispatcher**
 
 `packages/core/src/bin-internal/index.ts`:
 
@@ -590,7 +593,7 @@ const code = await run(process.argv.slice(2));
 process.exit(code);
 ```
 
-- [ ] **Step 2: Make bin executable + commit**
+- [x] **Step 2: Make bin executable + commit**
 
 ```bash
 chmod +x packages/core/bin/internal.ts
@@ -608,7 +611,7 @@ The subcommand files (referenced above) are implemented in the following tasks. 
 - Create: `packages/core/src/bin-internal/fetch.ts`
 - Create: `packages/core/test/bin-internal/fetch.test.ts`
 
-- [ ] **Step 1: Failing test (mocks Jira client)**
+- [x] **Step 1: Failing test (mocks Jira client)**
 
 ```ts
 import { describe, expect, test } from 'bun:test';
@@ -650,7 +653,7 @@ describe('xera-internal fetch', () => {
 });
 ```
 
-- [ ] **Step 2: Run failing + implement**
+- [x] **Step 2: Run failing + implement**
 
 ```ts
 import { writeFileSync, mkdirSync } from 'node:fs';
@@ -725,7 +728,7 @@ function renderStory(t: JiraTicket): string {
 }
 ```
 
-- [ ] **Step 3: Tests pass + commit**
+- [x] **Step 3: Tests pass + commit**
 
 ```bash
 cd packages/core && bun test
@@ -743,7 +746,7 @@ git commit -m "core: xera-internal fetch — writes story.md + meta.json"
 - Create: `packages/core/src/bin-internal/lint.ts`
 - Create: `packages/core/test/bin-internal/quality-gates.test.ts`
 
-- [ ] **Step 1: Implement validate-feature**
+- [x] **Step 1: Implement validate-feature**
 
 ```ts
 import { readFileSync, existsSync } from 'node:fs';
@@ -762,7 +765,7 @@ export async function validateFeatureCmd(argv: string[]): Promise<number> {
 }
 ```
 
-- [ ] **Step 2: Implement typecheck**
+- [x] **Step 2: Implement typecheck**
 
 ```ts
 import { resolveArtifactPaths } from '../artifact/paths';
@@ -779,7 +782,7 @@ export async function typecheckCmd(argv: string[]): Promise<number> {
 }
 ```
 
-- [ ] **Step 3: Implement lint**
+- [x] **Step 3: Implement lint**
 
 ```ts
 import { resolveArtifactPaths } from '../artifact/paths';
@@ -796,7 +799,7 @@ export async function lintCmd(argv: string[]): Promise<number> {
 }
 ```
 
-- [ ] **Step 4: Smoke test all three**
+- [x] **Step 4: Smoke test all three**
 
 ```ts
 import { describe, expect, test } from 'bun:test';
@@ -831,7 +834,7 @@ describe('quality gate subcommands', () => {
 });
 ```
 
-- [ ] **Step 5: Tests pass + commit**
+- [x] **Step 5: Tests pass + commit**
 
 ```bash
 cd packages/core && bun test
@@ -847,7 +850,7 @@ git commit -m "core: xera-internal validate-feature + typecheck + lint subcomman
 - Create: `packages/core/src/bin-internal/exec.ts`
 - Create: `packages/core/test/bin-internal/exec.test.ts`
 
-- [ ] **Step 1: Implement**
+- [x] **Step 1: Implement**
 
 ```ts
 import { resolveArtifactPaths, generateRunId } from '../artifact/paths';
@@ -963,7 +966,7 @@ ${projects.join(',\n')}
 }
 ```
 
-- [ ] **Step 2: Lightweight test (skip real Playwright; assert lock + config gen)**
+- [x] **Step 2: Lightweight test (skip real Playwright; assert lock + config gen)**
 
 ```ts
 import { describe, expect, test } from 'bun:test';
@@ -993,7 +996,7 @@ describe('xera-internal exec', () => {
 });
 ```
 
-- [ ] **Step 3: Tests pass + commit**
+- [x] **Step 3: Tests pass + commit**
 
 ```bash
 cd packages/core && bun test
@@ -1010,7 +1013,7 @@ git commit -m "core: xera-internal exec with auth refresh, lock, and config gen"
 - Create: `packages/core/src/bin-internal/report.ts`
 - Create: `packages/core/src/bin-internal/post.ts`
 
-- [ ] **Step 1: normalize**
+- [x] **Step 1: normalize**
 
 ```ts
 import { resolveArtifactPaths } from '../artifact/paths';
@@ -1035,7 +1038,7 @@ export async function normalizeCmd(argv: string[]): Promise<number> {
 }
 ```
 
-- [ ] **Step 2: report**
+- [x] **Step 2: report**
 
 `report` takes the per-scenario classifications produced by the LLM-driven skill (passed via `--input=path-to-json`) and writes `status.json` + draft comment file.
 
@@ -1089,7 +1092,7 @@ export async function reportCmd(argv: string[]): Promise<number> {
 }
 ```
 
-- [ ] **Step 3: post**
+- [x] **Step 3: post**
 
 ```ts
 import { readFileSync, existsSync } from 'node:fs';
@@ -1129,7 +1132,7 @@ export async function postCmd(argv: string[]): Promise<number> {
 }
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/core/src/bin-internal/{normalize,report,post}.ts
@@ -1145,7 +1148,7 @@ git commit -m "core: xera-internal normalize + report + post subcommands"
 - Create: `packages/core/src/bin-internal/unlock.ts`
 - Create: `packages/core/src/bin-internal/promote.ts`
 
-- [ ] **Step 1: status**
+- [x] **Step 1: status**
 
 ```ts
 import { resolveArtifactPaths } from '../artifact/paths';
@@ -1163,7 +1166,7 @@ export async function statusCmd(argv: string[]): Promise<number> {
 }
 ```
 
-- [ ] **Step 2: unlock**
+- [x] **Step 2: unlock**
 
 ```ts
 import { resolveArtifactPaths } from '../artifact/paths';
@@ -1186,7 +1189,7 @@ export async function unlockCmd(argv: string[]): Promise<number> {
 }
 ```
 
-- [ ] **Step 3: promote**
+- [x] **Step 3: promote**
 
 ```ts
 import { promotePom } from '@xera-ai/web';
@@ -1203,7 +1206,7 @@ export async function promoteCmd(argv: string[]): Promise<number> {
 }
 ```
 
-- [ ] **Step 4: Commit + verify build**
+- [x] **Step 4: Commit + verify build**
 
 ```bash
 cd packages/core && bun run typecheck && bun run build
@@ -1220,7 +1223,7 @@ git commit -m "core: xera-internal status + unlock + promote subcommands"
 **Files:**
 - Create: `packages/cli/src/index.ts`
 
-- [ ] **Step 1: Write entry**
+- [x] **Step 1: Write entry**
 
 ```ts
 import { cac } from 'cac';
@@ -1265,7 +1268,7 @@ export default async function main(): Promise<void> {
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add packages/cli/src/index.ts
@@ -1291,7 +1294,7 @@ git commit -m "cli: bin entry with init + doctor commands wired"
 
 The templates can use `{{var}}` placeholders, replaced by `scaffold.ts`.
 
-- [ ] **Step 1: Write templates**
+- [x] **Step 1: Write templates**
 
 `packages/cli/templates/xera.config.ts.tmpl`:
 
@@ -1450,7 +1453,7 @@ test.describe('SAMPLE-001: Playwright docs site smoke test', () => {
 }
 ```
 
-- [ ] **Step 2: Implement `scaffold.ts`**
+- [x] **Step 2: Implement `scaffold.ts`**
 
 ```ts
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
@@ -1504,7 +1507,7 @@ export function copyDir(src: string, dest: string): void {
 export const TEMPLATE_DIR = TEMPLATE_ROOT;
 ```
 
-- [ ] **Step 3: Implement `init.ts`**
+- [x] **Step 3: Implement `init.ts`**
 
 ```ts
 import * as p from '@clack/prompts';
@@ -1621,7 +1624,7 @@ export async function initCommand(opts: { yes: boolean }): Promise<void> {
 }
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/cli/src/{scaffold,commands/init}.ts packages/cli/templates/
@@ -1636,7 +1639,7 @@ git commit -m "cli: implement xera init with interactive scaffold + skills copy"
 - Create: `packages/cli/src/commands/doctor.ts`
 - Create: `packages/cli/src/checks.ts`
 
-- [ ] **Step 1: Implement checks**
+- [x] **Step 1: Implement checks**
 
 ```ts
 import { existsSync, readFileSync } from 'node:fs';
@@ -1699,7 +1702,7 @@ export async function runChecks(cwd: string): Promise<Check[]> {
 }
 ```
 
-- [ ] **Step 2: Implement doctor command**
+- [x] **Step 2: Implement doctor command**
 
 ```ts
 import { NdjsonLogger, resolveArtifactPaths } from '@xera-ai/core';
@@ -1737,7 +1740,7 @@ export async function doctorCommand(opts: { strict?: string; logs?: string; usag
 }
 ```
 
-- [ ] **Step 3: Commit + smoke test**
+- [x] **Step 3: Commit + smoke test**
 
 ```bash
 cd packages/cli && bun run typecheck
@@ -1752,7 +1755,7 @@ git commit -m "cli: xera doctor (init, --strict, --logs, --usage)"
 **Files:**
 - Create: `packages/cli/src/commands/init-update.ts`
 
-- [ ] **Step 1: Implement**
+- [x] **Step 1: Implement**
 
 ```ts
 import * as p from '@clack/prompts';
@@ -1809,7 +1812,7 @@ export async function initUpdateCommand(_opts: { yes: boolean }): Promise<void> 
 }
 ```
 
-- [ ] **Step 2: Commit + final CLI build**
+- [x] **Step 2: Commit + final CLI build**
 
 ```bash
 cd packages/cli && bun run typecheck && bun run build

@@ -12,6 +12,9 @@
 
 ---
 
+> **Status:** ✅ Completed 2026-05-14. All tasks in this plan are implemented and shipped. See [POSTMORTEM.md](POSTMORTEM.md) for bugs that surfaced in the plan code itself and post-launch patches.
+
+
 ## Phase 4 — Web executor & auth setup
 
 ### Task 4.1: Playwright args + config builder
@@ -20,7 +23,7 @@
 - Create: `packages/web/src/executor/playwright-args.ts`
 - Create: `packages/web/test/executor/playwright-args.test.ts`
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 ```ts
 import { describe, expect, test } from 'bun:test';
@@ -43,7 +46,7 @@ describe('buildPlaywrightArgs', () => {
 });
 ```
 
-- [ ] **Step 2: Run failing + implement**
+- [x] **Step 2: Run failing + implement**
 
 ```ts
 export interface PlaywrightArgsInput {
@@ -64,7 +67,7 @@ export function buildPlaywrightArgs(input: PlaywrightArgsInput): string[] {
 }
 ```
 
-- [ ] **Step 3: Tests pass + commit**
+- [x] **Step 3: Tests pass + commit**
 
 ```bash
 cd packages/web && bun test
@@ -79,7 +82,7 @@ git commit -m "web: build Playwright CLI args"
 **Files:**
 - Create: `packages/web/src/auth-setup/define.ts`
 
-- [ ] **Step 1: Write helper**
+- [x] **Step 1: Write helper**
 
 ```ts
 import type { Page } from '@playwright/test';
@@ -100,7 +103,7 @@ export type AuthSetupFn = (page: Page, role: string, creds: AuthRoleCreds) => Pr
 export function defineAuthSetup(fn: AuthSetupFn): AuthSetupFn { return fn; }
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add packages/web/src/auth-setup/define.ts
@@ -115,7 +118,7 @@ git commit -m "web: export defineAuthSetup helper"
 - Create: `packages/web/src/auth-setup/runner.ts`
 - Create: `packages/web/test/auth-setup/runner.test.ts`
 
-- [ ] **Step 1: Failing test (mocks Playwright)**
+- [x] **Step 1: Failing test (mocks Playwright)**
 
 The runner is the most subtle piece because it orchestrates: load setup script → run headless browser → capture storageState → encrypt + persist. For the unit test we mock the setup function and a fake "browser context" that returns deterministic state.
 
@@ -168,7 +171,7 @@ describe('runAuthSetup', () => {
 });
 ```
 
-- [ ] **Step 2: Run failing + implement**
+- [x] **Step 2: Run failing + implement**
 
 ```ts
 import type { Browser } from '@playwright/test';
@@ -211,7 +214,7 @@ export async function runAuthSetup(input: RunAuthSetupInput): Promise<void> {
 }
 ```
 
-- [ ] **Step 3: Tests pass + commit**
+- [x] **Step 3: Tests pass + commit**
 
 ```bash
 cd packages/web && bun test
@@ -229,7 +232,7 @@ git commit -m "web: auth-setup runner persists encrypted storageState"
 
 The Playwright config receives a path to a storageState JSON file. We can't hand it our encrypted blob, so before exec we stage decrypted state to a temp file (gitignored auto since it's in `.xera/.auth/.cache/<role>.json` which is also gitignored).
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 ```ts
 import { describe, expect, test } from 'bun:test';
@@ -263,7 +266,7 @@ describe('stagePlaywrightState', () => {
 });
 ```
 
-- [ ] **Step 2: Run failing + implement**
+- [x] **Step 2: Run failing + implement**
 
 ```ts
 import { writeFileSync, mkdirSync } from 'node:fs';
@@ -281,7 +284,7 @@ export function stagePlaywrightState(authDir: string, role: string): string {
 }
 ```
 
-- [ ] **Step 3: Tests pass + commit**
+- [x] **Step 3: Tests pass + commit**
 
 ```bash
 cd packages/web && bun test
@@ -297,7 +300,7 @@ git commit -m "web: stage decrypted Playwright storageState to .cache"
 - Create: `packages/web/src/executor/index.ts`
 - Create: `packages/web/test/executor/runner.test.ts`
 
-- [ ] **Step 1: Failing test using a mocked spawn**
+- [x] **Step 1: Failing test using a mocked spawn**
 
 ```ts
 import { describe, expect, test } from 'bun:test';
@@ -339,7 +342,7 @@ describe('runPlaywright', () => {
 });
 ```
 
-- [ ] **Step 2: Run failing + implement**
+- [x] **Step 2: Run failing + implement**
 
 ```ts
 import { join } from 'node:path';
@@ -384,7 +387,7 @@ export async function runPlaywright(input: RunPlaywrightInput): Promise<RunPlayw
 }
 ```
 
-- [ ] **Step 3: Tests pass + commit**
+- [x] **Step 3: Tests pass + commit**
 
 ```bash
 cd packages/web && bun test
@@ -404,7 +407,7 @@ git commit -m "web: runPlaywright subprocess wrapper"
 
 The scrub rules are deterministic regexes. We test every rule individually with both positive and adversarial cases.
 
-- [ ] **Step 1: Failing tests (positive + adversarial)**
+- [x] **Step 1: Failing tests (positive + adversarial)**
 
 ```ts
 import { describe, expect, test } from 'bun:test';
@@ -483,13 +486,13 @@ describe('scrubFreeText', () => {
 });
 ```
 
-- [ ] **Step 2: Run failing**
+- [x] **Step 2: Run failing**
 
 ```bash
 cd packages/web && bun test test/trace-normalizer/scrub-rules.test.ts
 ```
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```ts
 export const SENSITIVE_HEADERS: readonly string[] = [
@@ -551,7 +554,7 @@ export function scrubFreeText(s: string): string {
 }
 ```
 
-- [ ] **Step 4: Tests pass + commit**
+- [x] **Step 4: Tests pass + commit**
 
 ```bash
 cd packages/web && bun test
@@ -567,7 +570,7 @@ git commit -m "web: scrub-rules catalog with regex tests"
 - Create: `packages/web/src/trace-normalizer/scrub.ts`
 - Create: `packages/web/test/trace-normalizer/scrub.test.ts`
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 ```ts
 import { describe, expect, test } from 'bun:test';
@@ -606,7 +609,7 @@ describe('scrub(normalizedRun)', () => {
 });
 ```
 
-- [ ] **Step 2: Run failing + implement**
+- [x] **Step 2: Run failing + implement**
 
 ```ts
 import { scrubHeaders, scrubBodyJson, scrubFreeText } from './scrub-rules';
@@ -697,7 +700,7 @@ export function scrub(run: NormalizedRun): NormalizedRun {
 }
 ```
 
-- [ ] **Step 3: Tests pass + commit**
+- [x] **Step 3: Tests pass + commit**
 
 ```bash
 cd packages/web && bun test
@@ -714,7 +717,7 @@ git commit -m "web: scrub() pass over normalized run with field count"
 
 Real production tokens hide in awkward places. This test suite acts as the regression guard for must-have #8.
 
-- [ ] **Step 1: Write adversarial cases**
+- [x] **Step 1: Write adversarial cases**
 
 ```ts
 import { describe, expect, test } from 'bun:test';
@@ -780,7 +783,7 @@ describe('scrub adversarial', () => {
 });
 ```
 
-- [ ] **Step 2: Tests pass + commit**
+- [x] **Step 2: Tests pass + commit**
 
 ```bash
 cd packages/web && bun test
@@ -800,7 +803,7 @@ git commit -m "web: scrubber adversarial regression suite"
 
 Playwright's JSON reporter format has a defined shape. We extract just the scenario-level data we need.
 
-- [ ] **Step 1: Create fixture report-pass.json**
+- [x] **Step 1: Create fixture report-pass.json**
 
 ```json
 {
@@ -816,7 +819,7 @@ Playwright's JSON reporter format has a defined shape. We extract just the scena
 }
 ```
 
-- [ ] **Step 2: Create fixture report-fail.json**
+- [x] **Step 2: Create fixture report-fail.json**
 
 ```json
 {
@@ -839,7 +842,7 @@ Playwright's JSON reporter format has a defined shape. We extract just the scena
 }
 ```
 
-- [ ] **Step 3: Failing test**
+- [x] **Step 3: Failing test**
 
 ```ts
 import { describe, expect, test } from 'bun:test';
@@ -866,7 +869,7 @@ describe('parsePlaywrightReport', () => {
 });
 ```
 
-- [ ] **Step 4: Run failing + implement**
+- [x] **Step 4: Run failing + implement**
 
 ```ts
 import type { NormalizedRun, NormalizedScenario } from './scrub';
@@ -912,7 +915,7 @@ export function parsePlaywrightReport(report: PWReport, runId: string): Normaliz
 }
 ```
 
-- [ ] **Step 5: Tests pass + commit**
+- [x] **Step 5: Tests pass + commit**
 
 ```bash
 cd packages/web && bun test
@@ -931,7 +934,7 @@ git commit -m "web: parse Playwright JSON report into NormalizedRun"
 
 Playwright's trace.zip contains `trace.network` (NDJSON), `trace.trace` (NDJSON of events), and resources. For v0.1 we only enrich the FAILED scenarios with network + console events near the failure step. We use Bun's built-in unzip via `Bun.file(path).arrayBuffer()` + a small JS unzip.
 
-- [ ] **Step 1: Implement unzip helper using `fflate`**
+- [x] **Step 1: Implement unzip helper using `fflate`**
 
 Add dependency:
 ```bash
@@ -963,7 +966,7 @@ export function unzipTrace(tracePath: string): TraceEntries {
 }
 ```
 
-- [ ] **Step 2: Failing test for normalize**
+- [x] **Step 2: Failing test for normalize**
 
 ```ts
 import { describe, expect, test } from 'bun:test';
@@ -1011,7 +1014,7 @@ describe('normalizeRun', () => {
 });
 ```
 
-- [ ] **Step 3: Run failing + implement `normalize.ts`**
+- [x] **Step 3: Run failing + implement `normalize.ts`**
 
 ```ts
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
@@ -1079,7 +1082,7 @@ export async function normalizeRun(input: NormalizeRunInput): Promise<Normalized
 }
 ```
 
-- [ ] **Step 4: Tests pass + commit**
+- [x] **Step 4: Tests pass + commit**
 
 ```bash
 cd packages/web && bun test
@@ -1097,7 +1100,7 @@ git commit -m "web: trace normalizer with network + console enrichment"
 - Create: `packages/web/src/generator/gherkin-validate.ts`
 - Create: `packages/web/test/generator/gherkin-validate.test.ts`
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 ```ts
 import { describe, expect, test } from 'bun:test';
@@ -1120,7 +1123,7 @@ describe('validateGherkin', () => {
 });
 ```
 
-- [ ] **Step 2: Run failing + implement**
+- [x] **Step 2: Run failing + implement**
 
 ```ts
 import { AstBuilder, GherkinClassicTokenMatcher, Parser } from '@cucumber/gherkin';
@@ -1153,7 +1156,7 @@ export function validateGherkin(content: string): GherkinValidateResult {
 }
 ```
 
-- [ ] **Step 3: Tests pass + commit**
+- [x] **Step 3: Tests pass + commit**
 
 ```bash
 cd packages/web && bun test
@@ -1169,7 +1172,7 @@ git commit -m "web: Gherkin validator with line-aware errors"
 - Create: `packages/web/src/generator/typecheck.ts`
 - Create: `packages/web/test/generator/typecheck.test.ts`
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 ```ts
 import { describe, expect, test } from 'bun:test';
@@ -1199,7 +1202,7 @@ describe('typecheckTicket', () => {
 });
 ```
 
-- [ ] **Step 2: Run failing + implement**
+- [x] **Step 2: Run failing + implement**
 
 ```ts
 import { spawnSync } from 'node:child_process';
@@ -1218,7 +1221,7 @@ export async function typecheckTicket(ticketDir: string): Promise<TypecheckResul
 }
 ```
 
-- [ ] **Step 3: Tests pass + commit**
+- [x] **Step 3: Tests pass + commit**
 
 ```bash
 cd packages/web && bun test
@@ -1236,7 +1239,7 @@ git commit -m "web: typecheck wrapper using tsc --noEmit"
 
 We don't pull in a full AST tool for MVP; a simple regex visitor on `.ts` content catches the common cases. The rule warnings are LLM-actionable.
 
-- [ ] **Step 1: Failing tests**
+- [x] **Step 1: Failing tests**
 
 ```ts
 import { describe, expect, test } from 'bun:test';
@@ -1262,7 +1265,7 @@ describe('lintSelectors', () => {
 });
 ```
 
-- [ ] **Step 2: Run failing + implement**
+- [x] **Step 2: Run failing + implement**
 
 ```ts
 export interface SelectorWarning {
@@ -1301,7 +1304,7 @@ export function lintSelectors(source: string): { warnings: SelectorWarning[] } {
 }
 ```
 
-- [ ] **Step 3: Tests pass + commit**
+- [x] **Step 3: Tests pass + commit**
 
 ```bash
 cd packages/web && bun test
@@ -1317,7 +1320,7 @@ git commit -m "web: selector lint rules (no auto-class, prefer-role, no-xpath)"
 - Create: `packages/web/src/generator/lint.ts`
 - Create: `packages/web/test/generator/lint.test.ts`
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 ```ts
 import { describe, expect, test } from 'bun:test';
@@ -1345,7 +1348,7 @@ describe('lintTicket', () => {
 });
 ```
 
-- [ ] **Step 2: Run failing + implement**
+- [x] **Step 2: Run failing + implement**
 
 ```ts
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
@@ -1380,7 +1383,7 @@ export async function lintTicket(ticketDir: string): Promise<LintResult> {
 }
 ```
 
-- [ ] **Step 3: Tests pass + commit**
+- [x] **Step 3: Tests pass + commit**
 
 ```bash
 cd packages/web && bun test
@@ -1398,7 +1401,7 @@ git commit -m "web: lintTicket walks ticket dir and runs selector rules"
 - Create: `packages/web/test/generator/pom-scan.test.ts`
 - Create: `packages/web/test/generator/promote.test.ts`
 
-- [ ] **Step 1: Failing test for pom-scan**
+- [x] **Step 1: Failing test for pom-scan**
 
 ```ts
 import { describe, expect, test } from 'bun:test';
@@ -1421,7 +1424,7 @@ describe('scanSharedPoms', () => {
 });
 ```
 
-- [ ] **Step 2: Implement pom-scan**
+- [x] **Step 2: Implement pom-scan**
 
 ```ts
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
@@ -1450,7 +1453,7 @@ export function scanSharedPoms(repoRoot: string): SharedPom[] {
 }
 ```
 
-- [ ] **Step 3: Failing test for promote**
+- [x] **Step 3: Failing test for promote**
 
 ```ts
 import { describe, expect, test } from 'bun:test';
@@ -1494,7 +1497,7 @@ describe('promotePom', () => {
 });
 ```
 
-- [ ] **Step 4: Implement promote**
+- [x] **Step 4: Implement promote**
 
 ```ts
 import { existsSync, readFileSync, writeFileSync, renameSync } from 'node:fs';
@@ -1534,7 +1537,7 @@ export async function promotePom(input: PromoteInput): Promise<void> {
 }
 ```
 
-- [ ] **Step 5: Tests pass + commit**
+- [x] **Step 5: Tests pass + commit**
 
 ```bash
 cd packages/web && bun test
@@ -1550,7 +1553,7 @@ git commit -m "web: scan shared POMs + explicit promote with rewrite"
 - Create: `packages/web/src/adapter.ts`
 - Modify: `packages/web/src/index.ts`
 
-- [ ] **Step 1: Write adapter**
+- [x] **Step 1: Write adapter**
 
 ```ts
 import { runPlaywright } from './executor';
@@ -1597,7 +1600,7 @@ export const WebAdapter: TestAdapter = {
 };
 ```
 
-- [ ] **Step 2: Update `packages/web/src/index.ts`**
+- [x] **Step 2: Update `packages/web/src/index.ts`**
 
 ```ts
 export * from './adapter';
@@ -1619,7 +1622,7 @@ export * from './generator/pom-scan';
 export * from './generator/promote';
 ```
 
-- [ ] **Step 3: Typecheck + commit**
+- [x] **Step 3: Typecheck + commit**
 
 ```bash
 cd packages/web && bun run typecheck

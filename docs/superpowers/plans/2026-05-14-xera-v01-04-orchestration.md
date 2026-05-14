@@ -10,6 +10,9 @@
 
 ---
 
+> **Status:** ✅ Completed 2026-05-14. All tasks in this plan are implemented and shipped. See [POSTMORTEM.md](POSTMORTEM.md) for bugs that surfaced in the plan code itself and post-launch patches.
+
+
 ## Phase 10 — Prompt templates
 
 ### Task 10.1: `feature-from-story.md`
@@ -17,7 +20,7 @@
 **Files:**
 - Create: `packages/prompts/feature-from-story.md`
 
-- [ ] **Step 1: Write the prompt**
+- [x] **Step 1: Write the prompt**
 
 ```markdown
 ---
@@ -55,7 +58,7 @@ You will read a user story written in markdown and produce a Gherkin (.feature) 
 Write only the Gherkin content. No code fences, no preamble, no trailing prose. The first line must be `Feature:` (after optional `# Note:` comments).
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add packages/prompts/feature-from-story.md
@@ -69,7 +72,7 @@ git commit -m "prompts: feature-from-story v1.0.0"
 **Files:**
 - Create: `packages/prompts/script-from-feature.md`
 
-- [ ] **Step 1: Write the prompt**
+- [x] **Step 1: Write the prompt**
 
 ```markdown
 ---
@@ -149,7 +152,7 @@ export class LoginPage {
 Write each file separately. Tell the skill the path of each file you produce. The skill writes them; you do not.
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add packages/prompts/script-from-feature.md
@@ -163,7 +166,7 @@ git commit -m "prompts: script-from-feature v1.0.0"
 **Files:**
 - Create: `packages/prompts/diagnose-failure.md`
 
-- [ ] **Step 1: Write the prompt**
+- [x] **Step 1: Write the prompt**
 
 ```markdown
 ---
@@ -257,7 +260,7 @@ Write `classifier-input.json` with this shape:
 The skill will pass this file to `bun run xera:report -- --input=<path>`.
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add packages/prompts/diagnose-failure.md
@@ -275,7 +278,7 @@ Each skill is a `.md` file with frontmatter and instructions for the session LLM
 **Files:**
 - Create: `packages/skills/xera-fetch.md`
 
-- [ ] **Step 1: Write the skill**
+- [x] **Step 1: Write the skill**
 
 ```markdown
 ---
@@ -315,7 +318,7 @@ If the user did not provide a ticket key, ask: "Which Jira ticket key?" and wait
 5. Suggest next step: "Generate Gherkin? Run `/xera-feature {{TICKET}}` or run the full pipeline with `/xera-run {{TICKET}}`."
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add packages/skills/xera-fetch.md
@@ -329,7 +332,7 @@ git commit -m "skills: xera-fetch"
 **Files:**
 - Create: `packages/skills/xera-feature.md`
 
-- [ ] **Step 1: Write the skill**
+- [x] **Step 1: Write the skill**
 
 ```markdown
 ---
@@ -363,7 +366,7 @@ If no ticket key was given, ask for one.
 7. Summarize to the user: number of scenarios, list of scenario names. Suggest: "Generate Playwright spec? `/xera-script {{TICKET}}`."
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add packages/skills/xera-feature.md
@@ -377,7 +380,7 @@ git commit -m "skills: xera-feature"
 **Files:**
 - Create: `packages/skills/xera-script.md`
 
-- [ ] **Step 1: Write the skill**
+- [x] **Step 1: Write the skill**
 
 ```markdown
 ---
@@ -411,7 +414,7 @@ The user invoked `/xera-script <TICKET>`. If no key, ask.
    Suggest: "Run the test now with `/xera-exec {{TICKET}}`, or do the whole pipeline with `/xera-run {{TICKET}}`."
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add packages/skills/xera-script.md
@@ -425,7 +428,7 @@ git commit -m "skills: xera-script"
 **Files:**
 - Create: `packages/skills/xera-exec.md`
 
-- [ ] **Step 1: Write the skill**
+- [x] **Step 1: Write the skill**
 
 ```markdown
 ---
@@ -448,7 +451,7 @@ The user invoked `/xera-exec <TICKET>`. If no key, ask.
 4. Suggest: "Diagnose this run with `/xera-report {{TICKET}}`."
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add packages/skills/xera-exec.md
@@ -462,7 +465,7 @@ git commit -m "skills: xera-exec"
 **Files:**
 - Create: `packages/skills/xera-report.md`
 
-- [ ] **Step 1: Write the skill**
+- [x] **Step 1: Write the skill**
 
 ```markdown
 ---
@@ -498,7 +501,7 @@ The user invoked `/xera-report <TICKET>`. If no key, ask.
 8. Summarize result and link to the Jira comment (if MCP returned a URL).
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add packages/skills/xera-report.md
@@ -512,7 +515,7 @@ git commit -m "skills: xera-report"
 **Files:**
 - Create: `packages/skills/xera-run.md`
 
-- [ ] **Step 1: Write the skill**
+- [x] **Step 1: Write the skill**
 
 ```markdown
 ---
@@ -560,7 +563,7 @@ Follow `xera-report.md` from step 3 onwards. If the user is the SAMPLE-001 ticke
 Print a single-paragraph summary covering: overall result, classification, per-scenario counts, link to Jira comment (if posted), and the reproduce command (`bunx xera-internal exec {{TICKET}} --replay=<runId>`).
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add packages/skills/xera-run.md
@@ -574,7 +577,7 @@ git commit -m "skills: xera-run (orchestrator)"
 **Files:**
 - Create: `packages/skills/xera-promote.md`
 
-- [ ] **Step 1: Write the skill**
+- [x] **Step 1: Write the skill**
 
 ```markdown
 ---
@@ -603,7 +606,7 @@ The user invoked `/xera-promote <TICKET> <PomClassName>`.
    ```
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add packages/skills/xera-promote.md
@@ -617,7 +620,7 @@ git commit -m "skills: xera-promote"
 **Files:**
 - Modify: `packages/skills/version.json`
 
-- [ ] **Step 1: Update version.json**
+- [x] **Step 1: Update version.json**
 
 ```json
 {
@@ -635,7 +638,7 @@ git commit -m "skills: xera-promote"
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add packages/skills/version.json
