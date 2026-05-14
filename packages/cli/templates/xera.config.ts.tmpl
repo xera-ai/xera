@@ -1,0 +1,34 @@
+import { defineConfig } from '@xera/core';
+
+export default defineConfig({
+  jira: {
+    baseUrl: '{{jiraBaseUrl}}',
+    projectKeys: [{{projectKeys}}],
+    fields: {
+      story: '{{storyField}}',
+      {{#if acceptanceCriteriaField}}
+      acceptanceCriteria: '{{acceptanceCriteriaField}}',
+      {{/if}}
+    },
+  },
+  web: {
+    baseUrl: {
+      staging: '{{stagingUrl}}',
+    },
+    defaultEnv: 'staging',
+    {{#if authEnabled}}
+    auth: {
+      strategy: 'storageState',
+      ttl: '8h',
+      refreshBuffer: '30m',
+      setupScript: './shared/auth-setup.ts',
+      roles: {
+        {{#each roles}}
+        {{this}}: { envEmail: 'TEST_{{upper this}}_EMAIL', envPassword: 'TEST_{{upper this}}_PWD' },
+        {{/each}}
+      },
+    },
+    {{/if}}
+  },
+  adapters: ['web'],
+});

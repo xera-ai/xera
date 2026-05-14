@@ -1,0 +1,7 @@
+import { defineConfig, devices } from '@playwright/test';
+export default defineConfig({
+  testDir: './.xera',
+  testMatch: '**/spec.ts',
+  use: { baseURL: '{{stagingUrl}}', trace: 'on', video: 'retain-on-failure', screenshot: 'only-on-failure' },
+  projects: [{ name: 'chromium', use: { ...devices['Desktop Chromium'] } }],
+});

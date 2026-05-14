@@ -1,0 +1,10 @@
+import { defineAuthSetup } from '@xera/web';
+
+export default defineAuthSetup(async (page, _role, creds) => {
+  await page.goto('/login');
+  await page.getByLabel('Email').fill(creds.email);
+  await page.getByLabel('Password').fill(creds.password);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.waitForURL(/.*\/dashboard/);
+  return { expiresAt: Date.now() + 8 * 3600 * 1000 };
+});
