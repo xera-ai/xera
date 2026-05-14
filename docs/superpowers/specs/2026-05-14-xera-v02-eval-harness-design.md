@@ -22,10 +22,10 @@ This directly addresses POSTMORTEM risk #1 (*"LLM non-determinism for spec gen �
 - 1 new skill: `packages/skills/xera-eval.md`
 - 1 new prompt template: `packages/prompts/eval-rubric.md`
 - 3 new `xera-internal` subcommands: `eval-prepare`, `eval-deterministic`, `eval-report`
-- 3–5 hand-crafted golden tickets under `fixtures/golden-eval/<ticket-id>/`
+- 5 hand-crafted golden tickets under `fixtures/golden-eval/<ticket-id>/` at v0.2.0 (with explicit growth target to 15–20 by v0.2.x patch releases as contributors add coverage). 5 is enough to validate the harness end-to-end; 15+ is needed before per-ticket noise stops dominating regression signal. See §7 risk #6.
 - Reuse existing `fixtures/golden-tickets/` for classifier eval (no new fixtures)
 - `.xera/eval/<run-id>/` artifact layout (mirrors `.xera/<TICKET>/`)
-- `xera doctor` extension: when invoked inside the xera repo, validate golden-eval fixtures + eval scripts
+- `xera-internal doctor` subcommand (NEW; maintainer-only binary): validate golden-eval fixtures + eval scripts. The public `xera doctor` shipped to end users is NOT touched — that command stays focused on consumer-project health and would otherwise carry dead code paths only triggered inside xera repo.
 - Tests: unit per subcommand + an end-to-end test driving the full skill flow with stubbed session LLM (writes pre-baked `actual/` files; does not require a real Claude Code session)
 
 ### 1.3 Out-of-scope (deferred to v0.2.x or later)
@@ -44,9 +44,10 @@ From a clean checkout of xera, a maintainer can:
 1. `bun install`
 2. Open Claude Code in the repo root.
 3. Run `/xera-eval` in the session.
-4. Within one session turn-budget, see 5 tickets × 3 stages judged.
+4. Skill orchestrates gen + sub-agent-driven judge across 5 tickets × applicable stages.
 5. Read `.xera/eval/<run-id>/report.md` with per-dimension PASS/FAIL + 1-sentence judge notes per dimension.
 6. Edit a prompt template, re-run, observe scores change.
+7. Edit `eval-rubric.md`, run `/xera-eval --judge-only`, observe re-judge without re-gen.
 
 If any of those breaks for a maintainer, v0.2 is not ready.
 
@@ -98,11 +99,23 @@ xera repo (maintainer's Claude Code session)
          │         phase 4. The deterministic result is signal recorded in the report;
          │         it never short-circuits the judge.
          │
-         ├── Phase 4: JUDGE (session LLM cognitive work)
-         │     Read packages/prompts/eval-rubric.md (judge instructions)
-         │     For each actual + golden pair:
-         │       → judge per rubric dimensions, output structured JSON per dimension
-         │       → write to judge-scores.json (per-ticket, per-stage, per-dimension)
+         ├── Phase 4: JUDGE (sub-agent cognitive work — fresh context per ticket × stage)
+         │     For each actual + golden pair, the orchestrating skill spawns a
+         │     sub-agent via the Task tool. Each sub-agent invocation gets ONLY:
+         │       - The contents of packages/prompts/eval-rubric.md
+         │       - The contents of actual/<ticket>/<artifact>
+         │       - The contents of the golden reference for that stage
+         │         (golden/test.feature for gherkin; golden/spec-requirements.md
+         │          for spec; golden expected.json for classifier)
+         │       - The stage name
+         │     Sub-agent returns a strict JSON dimensions object (schema in §3.5).
+         │     Orchestrator appends each sub-agent's output to judge-scores.json.
+         │
+         │     RATIONALE: a sub-agent has a fresh context window — it has NOT
+         │     seen the prompt template being evaluated, has NOT seen the gen
+         │     phase, and has NO conversation history that could bias the
+         │     judgment toward "looks like what I just wrote." This is the
+         │     critical mitigation for self-evaluation bias. See §2.2 #7 and §7 #1.
          │
          └── Phase 5: REPORT (CLI)
                bun run xera:eval-report
@@ -127,7 +140,9 @@ xera repo (maintainer's Claude Code session)
 
 6. **Idempotent re-run.** If `<run-id>` exists, fail fast unless `--force`. Reuses `packages/core/src/lock.ts` for concurrent-run safety.
 
-7. **Skill orchestrates, CLI is deterministic plumbing.** Same skill↔CLI split as v0.1. Judging is *session LLM cognitive work* invoked by the skill text directly, NOT by spawning a sub-agent. (Per CLAUDE.md: "The prompt is data the skill points at, not a separate sub-agent.")
+7. **Sub-agent for judge phase (deliberate exception to CLAUDE.md no-sub-agent rule).** Gen phase (phase 2) is direct session work, matching v0.1 pattern. Judge phase (phase 4) spawns a sub-agent per ticket × stage. Justification: CLAUDE.md's "prompt is data the skill points at, not a sub-agent" rule applies to user-facing `/xera-*` skills where a sub-agent would obscure the work from the QA. The eval skill is a *maintainer-only* tool whose entire purpose is to evaluate quality without bias. A fresh context is the critical mitigation against self-evaluation bias (see §7 #1). Documented as a deliberate exception in the skill's frontmatter.
+
+8. **Interleave gen-then-judge per ticket × stage, not batched.** Phase 2 and phase 4 are conceptually separate but executed interleaved: for each (ticket, stage), generate immediately followed by judging in the same loop iteration. Avoids ballooning the orchestrator's context with all 5 gen outputs before judging starts. Sub-agent for judge means orchestrator's context grows only by the sub-agent's small JSON return value per iteration.
 
 ---
 
@@ -149,13 +164,17 @@ Deterministic gate (runs *before* judge): `xera:validate-feature` (gherkin synta
 
 ### 3.2 `script-from-feature` (Playwright spec.ts)
 
+Spec stage golden is a **requirements list** (`spec-requirements.md`) not a concrete `.ts` file (see §4.1 rationale). Judge checks each requirement individually rather than matching text.
+
 | Dimension | Question judge answers |
 |---|---|
+| **Requirements satisfied** | For each bullet in `spec-requirements.md`, is the requirement met by the actual `spec.ts`? Cite the requirement(s) that fail. |
 | **Step fidelity** | Does each `test()` body execute the When/Then of the matching scenario? |
-| **POM use** | Is interaction via the POM (`page-objects/`) instead of inline `page.locator(...)` for non-trivial elements? |
 | **Wait strategy** | Are explicit waits used (`expect(...).toBeVisible()`, `waitFor`)? No `waitForTimeout` / arbitrary `setTimeout`? |
 | **Assertion quality** | Are assertions specific (right element, right state) — not just "page loaded"? |
 | **No dead code** | No unused imports, no commented-out lines, no `console.log`? |
+
+The Requirements-satisfied dimension subsumes POM use, selector strategy, etc., because those are encoded as bullets in `spec-requirements.md` per fixture.
 
 Deterministic gate: `xera:typecheck` + `xera:lint` + selector-rules + pom-scan (existing v0.1).
 
@@ -178,12 +197,15 @@ Deterministic gate: exact bucket match against the golden's `expected.json#expec
 
 ### 3.5 Judge prompt (`packages/prompts/eval-rubric.md`)
 
-Single prompt template with sections per stage. Judge reads:
+Single prompt template with sections per stage. The orchestrator passes the following to the judge sub-agent:
 
 - The stage being evaluated
-- The actual output (path)
-- The golden output (path) — except for classifier where comparison is the bucket string + free-form RCA scoring
-- The rubric dimensions for that stage
+- The actual output (as file contents pasted into the sub-agent prompt — sub-agent reads no project files)
+- The golden reference for that stage:
+  - `feature-from-story`: the golden `test.feature` text
+  - `script-from-feature`: the golden `spec-requirements.md` bullet list
+  - `diagnose-failure`: the golden `expected.json` (bucket + RCA notes)
+- The rubric dimensions for that stage (from `eval-rubric.md`)
 
 Output: a strict JSON object the report tooling consumes. Schema enforced by zod in `eval-report`:
 
@@ -210,17 +232,29 @@ Output: a strict JSON object the report tooling consumes. Schema enforced by zod
 ```
 fixtures/golden-eval/
   README.md                          # how to add a new golden
-  EVAL-001-simple-login/
+  EVAL-001-simple-login/             # ADAPTED FROM fixtures/sample-app + SAMPLE-001
     story.md                         # input: simulated Jira story
     meta.json                        # { "id": "EVAL-001",
                                      #   "summary": "User can log in",
+                                     #   "source": "sample-app/SAMPLE-001",
                                      #   "stages": ["feature-from-story",
                                      #              "script-from-feature"] }
     golden/
-      test.feature                   # human-authored ground truth
-      spec.ts                        # human-authored ground truth
-      page-objects/
-        login.page.ts
+      test.feature                   # human-authored ground truth (exact text;
+                                     # Gherkin is syntactically constrained
+                                     # enough that text comparison is fair)
+      spec-requirements.md           # human-authored REQUIREMENTS list, NOT a
+                                     # full spec.ts. Markdown bullets of MUST /
+                                     # MUST NOT / SHOULD statements judge
+                                     # checks the actual spec.ts against.
+                                     # Example contents:
+                                     #   - MUST import and use LoginPage POM
+                                     #     from page-objects/login.page.ts
+                                     #   - MUST assert URL contains "/dashboard"
+                                     #     after successful login
+                                     #   - MUST NOT use page.waitForTimeout
+                                     #   - MUST use getByRole / getByLabel
+                                     #     selectors, not raw CSS for form fields
   EVAL-002-form-validation/...
   EVAL-003-multi-step-wizard/...
   EVAL-004-rich-acceptance-criteria/...
@@ -313,9 +347,14 @@ No `eval-judge` subcommand: judging is **session LLM cognitive work** invoked by
 name: xera-eval
 description: Evaluate AI gen quality across golden tickets (maintainer-only).
 inputs:
-  - --prompt: optional. One of feature-from-story | script-from-feature | diagnose-failure.
-  - --ticket: optional. Restrict to one golden ticket id.
-  - --force:  optional. Allow re-running with the same run-id.
+  - --prompt:      optional. One of feature-from-story | script-from-feature | diagnose-failure.
+  - --ticket:      optional. Restrict to one golden ticket id.
+  - --force:       optional. Allow re-running with the same run-id.
+  - --judge-only:  optional. Skip phases 1-3; re-run phase 4 (judge) against
+                   the most recent .xera/eval/<run-id>/actual/ tree, then
+                   phase 5 (report). Used when iterating on eval-rubric.md
+                   without wanting to burn tokens re-generating outputs.
+                   Errors if no prior run exists in .xera/eval/.
 outputs:
   - .xera/eval/<run-id>/report.md
   - .xera/eval/<run-id>/summary.json
@@ -356,6 +395,8 @@ The end-to-end test is the crucial one — it proves the deterministic plumbing 
 | Judge produces verdict outside `{PASS, FAIL, NA}` | `eval-report` rejects with zod error; does NOT coerce |
 | `--ticket=BAD-ID` (no matching fixture) | `eval-prepare` fails fast: `No golden fixture for BAD-ID` |
 | `--prompt=BAD-STAGE` | `eval-prepare` fails fast: `Unknown stage: BAD-STAGE. Valid: feature-from-story, script-from-feature, diagnose-failure.` |
+| `--judge-only` with no prior run | Fail fast: `No prior eval run found in .xera/eval/. Run /xera-eval without --judge-only first.` |
+| `--judge-only` combined with `--prompt` or `--ticket` | Honor the scope filters when selecting which prior `actual/` outputs to re-judge. Useful for "I tweaked the gherkin rubric only, re-judge feature-from-story stage only." |
 
 ### 5.3 Determinism & repeatability notes
 
@@ -364,37 +405,43 @@ The end-to-end test is the crucial one — it proves the deterministic plumbing 
 - Trend across runs is **deliberately not tracked** in v0.2. Maintainer judges trend manually by reading `summary.json` history. (Auto trend tracking = v0.3 if needed.)
 - `eval-rubric.md` is itself versioned. Changes to the rubric invalidate cross-version comparison.
 
-### 5.4 Doctor integration
+### 5.4 Doctor (maintainer-only)
 
-Extend `xera doctor` (the existing public CLI) to, **only when invoked inside the xera repo** (detected by presence of `packages/skills/` + `packages/prompts/`), additionally check:
+New `xera-internal doctor` subcommand. Lives in `@xera-ai/core`'s `xera-internal` binary alongside the other `eval-*` subcommands. Checks:
 
 - `fixtures/golden-eval/` exists and contains ≥ 3 ticket dirs
-- Each golden ticket dir has the files declared in its `meta.json#stages`
+- Each golden ticket dir has the files declared in its `meta.json#stages` (e.g., `feature-from-story` stage → `golden/test.feature` required; `script-from-feature` stage → `golden/spec-requirements.md` required)
 - `packages/prompts/eval-rubric.md` parses (frontmatter + version)
 - `bun run xera:eval-prepare`, `xera:eval-deterministic`, `xera:eval-report` scripts all exist in root `package.json`
+- `packages/skills/xera-eval.md` parses (frontmatter)
 
-No new top-level command on the public `xera` CLI: eval stays internal-only (`xera-internal eval-*`) because end users do not run eval.
+The public `xera doctor` CLI shipped to end users via `@xera-ai/cli` is **not modified**. Eval is strictly maintainer-only, so end users never need any of these checks. Adding them to the public CLI would create dead code in 100% of end-user installs (no consumer project has `fixtures/golden-eval/`).
 
 ---
 
 ## 6. Roadmap positioning
 
-This spec replaces the "AI gen evaluation rubric harness" item in v0.1 spec §19.2. After v0.2 ships, the three remaining v0.2 candidates from the original roadmap split into their own specs:
+This spec replaces the "AI gen evaluation rubric harness" item in v0.1 spec §19.2. After v0.2.0 ships, the next steps:
 
-- v0.2.1+ — CI mode (separate spec; would build on this eval harness by wrapping it in a GitHub Action with API-key judge)
-- v0.3 — Self-healing auto-fix (separate spec)
-- v0.3+ — Test data factories + cleanup (separate spec)
+- **v0.2.x patch releases** — Grow `fixtures/golden-eval/` from 5 to 15–20 tickets. Each new ticket is its own PR adding `story.md` + `meta.json` + `golden/*`. No new harness code required; pure fixture growth. Target ~3 tickets per patch.
+- **v0.2.1+ — CI mode** (separate spec; would build on this eval harness by wrapping it in a GitHub Action; needs API-key judge in §7 #1)
+- **v0.3 — Self-healing auto-fix** (separate spec)
+- **v0.3+ — Test data factories + cleanup** (separate spec)
 
 ---
 
 ## 7. Open Questions / Risks
 
-1. **Judge stability across sessions.** The same maintainer running `/xera-eval` twice on identical prompts may get different verdicts because session LLM is stochastic. Mitigation: rubric phrased as concrete questions, dimensions binary (PASS/FAIL only), `eval-rubric.md` version-pinned. If judge drift becomes a real problem, v0.3 adds Anthropic API direct judge with fixed `model` + `temperature=0`.
+1. **Self-evaluation bias.** Same model judging its own output systematically inflates scores. **Mitigation in v0.2:** judge runs in a sub-agent with fresh context (§2.1 phase 4, §2.2 decision #7). Sub-agent has not seen the prompt template under test, the gen attempt, or any orchestrator history — its inputs are exactly the rubric + actual + golden as text payloads passed via the Task tool prompt. This is a real mitigation, not just documentation. **Residual risk:** sub-agent is still the same underlying model family; intrinsic preferences remain. v0.3+ Anthropic API direct judge with fixed `temperature=0` strengthens this further if needed.
 
-2. **Token cost per session.** 5 tickets × 3 stages × (gen + judge) ≈ 30 LLM turns. May exhaust context if rubric prompt is long. Mitigation: judge each stage in a separate turn; rubric prompt is concise and stage-scoped; `--prompt` flag lets maintainer scope to one stage when iterating.
+2. **Judge stability across runs.** Two runs of identical prompts may yield different verdicts (LLM stochasticity). Mitigation: rubric phrased as concrete questions; dimensions binary (PASS/FAIL only, not 1–5); `eval-rubric.md` version-pinned. If sub-agent default temperature varies across Claude Code versions, document running eval at a pinned `Claude Code` version per release.
 
-3. **Golden tickets going stale as prompts evolve.** A golden authored against today's prompts may not match the *intended* output after a prompt rewrite. Mitigation: golden files are version-controlled, contributors update them in the same PR as the prompt change. README in `fixtures/golden-eval/` documents the policy.
+3. **Token cost.** 5 tickets × 3 stages × 1 gen turn + 5 × 3 × 1 sub-agent invocation = ~30 LLM-bound operations. Sub-agent has its own token budget separate from orchestrator's context, so orchestrator does not balloon. Mitigation: `--prompt` and `--ticket` flags scope; `--judge-only` skips gen entirely; interleave (§2.2 #8) bounds orchestrator-side context growth.
 
-4. **Eval running inside the same session that authored the prompt change.** Risk that the session LLM "knows" about the change and adjusts its judgment. Mitigation: judge prompt does not see the diff; it sees only the actual + golden outputs and the rubric. (Cannot fully eliminate; accept as v0.2 limitation.)
+4. **Golden tickets going stale as prompts evolve.** A golden authored against today's prompts may not match the *intended* output after a prompt rewrite. Mitigation: golden files are version-controlled, contributors update them in the same PR as the prompt change. README in `fixtures/golden-eval/` documents the policy.
 
-5. **Test stub for end-to-end is itself a maintenance cost.** If the skill flow changes, the e2e test must be updated. Mitigation: stub is small (it just pre-writes files); skill changes that break it are exactly the changes that should require test updates.
+5. **Sub-agent exception to CLAUDE.md.** The CLAUDE.md rule is "skills do not spawn sub-agents for prompts" — eval skill deliberately breaks it. Risk: future maintainer reads CLAUDE.md, doesn't see the exception, mistakenly removes sub-agent usage during "consistency cleanup." Mitigation: spec §2.2 #7 documents the exception with rationale; xera-eval.md frontmatter has a comment block explaining why it spawns sub-agents.
+
+6. **5 golden tickets has weak statistical signal.** Single bad gen on one ticket flips overall score 20% — noise dominates regression detection. Mitigation: v0.2.x roadmap explicitly grows the set to 15–20 (§6). v0.2.0 baseline existence is the contribution; statistical credibility comes with patch releases.
+
+7. **Test stub for end-to-end is itself a maintenance cost.** If the skill flow changes, the e2e test must be updated. Mitigation: stub is small (pre-writes files); skill changes that break it are exactly the changes that should require test updates.
