@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "zod": "3.23.8",
-    "@xera/web": "workspace:*"
+    "@xera/web": "workspace:*",
+    "@playwright/test": "1.48.0"
   }
 }
