@@ -1,1 +1,13 @@
-{ "skills": "0.1.0", "compatible_prompts": "^1.0.0" }
+{
+  "skills": "0.1.0",
+  "compatible_prompts": "^1.0.0",
+  "skill_files": [
+    "xera-run.md",
+    "xera-fetch.md",
+    "xera-feature.md",
+    "xera-script.md",
+    "xera-exec.md",
+    "xera-report.md",
+    "xera-promote.md"
+  ]
+}
