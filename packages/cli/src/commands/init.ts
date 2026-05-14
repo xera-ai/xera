@@ -105,14 +105,16 @@ export async function initCommand(opts: { yes: boolean }): Promise<void> {
   // Seed SAMPLE-001
   copyDir(join(TEMPLATE_DIR, 'sample/SAMPLE-001'), join(cwd, '.xera/SAMPLE-001'));
 
-  // Copy skills from @xera-ai/skills into .claude/skills/
+  // Copy skill .md files from @xera-ai/skills into BOTH .claude/skills/ (for the
+  // Skill tool) AND .claude/commands/ (for Claude Code slash-command discovery).
   const skillsSrc = require.resolve('@xera-ai/skills/package.json');
   const skillsDir = join(skillsSrc, '..');
-  copyDir(skillsDir, join(cwd, '.claude/skills'));
-  // Remove the package.json/version.json we copied
-  for (const name of ['package.json', 'version.json']) {
-    const f = join(cwd, '.claude/skills', name);
-    if (existsSync(f)) unlinkSync(f);
+  for (const target of ['.claude/skills', '.claude/commands']) {
+    copyDir(skillsDir, join(cwd, target));
+    for (const name of ['package.json', 'version.json']) {
+      const f = join(cwd, target, name);
+      if (existsSync(f)) unlinkSync(f);
+    }
   }
 
   // Add npm scripts
