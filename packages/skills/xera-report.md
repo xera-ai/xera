@@ -3,7 +3,7 @@ name: xera-report
 description: Classify the latest run, draft a Jira comment, and post it. Use after `/xera-exec` when QA wants the diagnosis and Jira update.
 ---
 
-You are running `/xera-report <TICKET>` (or you were dispatched to this step by `/xera-run`). If no ticket key is provided, ask the user.
+You are running `/xera-report <TICKET>` (or `/xera-report --no-heal <TICKET>` to skip the heal sub-flow described in step 4a; or you were dispatched to this step by `/xera-run`). If no ticket key is provided, ask the user.
 
 ## Important — this skill does AI work
 
@@ -50,11 +50,17 @@ Step 4 below is *cognitive work that YOU, the session, must do*. It is not a she
 
    **Do not skip this step.** If you find yourself about to call `bun run xera:report` without having written this file, stop and write the file first.
 
-4a. **Heal sub-flow (only if SELECTOR_DRIFT present).** Read `.xera/{{TICKET}}/classifier-input.json` (which you just wrote in step 4) and check whether any scenario has `class: "SELECTOR_DRIFT"`. If none, skip this entire sub-flow and proceed directly to step 5 (Aggregate + draft).
+4a. **Heal sub-flow (only if SELECTOR_DRIFT present).** If the user passed `--no-heal` in the invocation, skip this entire sub-flow and proceed directly to step 5.
+
+Otherwise: read `.xera/{{TICKET}}/classifier-input.json` (which you just wrote in step 4) and check whether any scenario has `class: "SELECTOR_DRIFT"`. If none, skip this entire sub-flow and proceed directly to step 5 (Aggregate + draft).
 
 If at least one scenario is SELECTOR_DRIFT, take the FIRST such scenario (by array order — the single-heal guard) and execute Phases A–C below. Subsequent SELECTOR_DRIFT scenarios are NOT auto-healed in the same `/xera-report` invocation; list them in the report output as "additional drifts: re-run /xera-report after applying the first heal."
 
-   **Phase A — Prepare.** Determine the runId from the most recent run directory under `.xera/{{TICKET}}/runs/` (sorted descending — the latest folder name is the runId). Then run:
+   **Phase A — Prepare.** Determine the runId from the most recent run directory under `.xera/{{TICKET}}/runs/` (sorted descending — the latest folder name is the runId).
+
+   **Sentinel check (single-heal enforcement):** Check whether `.xera/{{TICKET}}/runs/{{RUN_ID}}/.heal-attempted` exists. If yes, the heal sub-flow has already been attempted for this run; skip the entire heal sub-flow and proceed to step 5. (This prevents re-heal loops if the user accidentally invokes `/xera-report` twice on the same run.) If it does not exist, create it by writing an empty file via `bash -c 'touch .xera/{{TICKET}}/runs/{{RUN_ID}}/.heal-attempted'` BEFORE proceeding to the heal-prepare invocation.
+
+   Then run:
 
    ```bash
    bun packages/core/bin/internal.ts heal-prepare {{TICKET}} {{RUN_ID}} "{{SCENARIO_NAME}}"
@@ -102,8 +108,9 @@ If at least one scenario is SELECTOR_DRIFT, take the FIRST such scenario (by arr
 
       - Read `heal-input.json` to get `pomFile` and `pomLineContent`.
       - Read the current `pomFile` text. If it does NOT contain `pomLineContent` verbatim → STOP with the message: "POM line drifted since heal was proposed; please re-run /xera-report." Do NOT write any changes.
-      - Otherwise: replace the verbatim occurrence of `pomLineContent` with `newPomLine` from heal-output.json. Write the file back.
-      - Tell the user: "Re-running test to verify heal — this takes ~30s..."
+      - Count the number of `pomLineContent` occurrences in `pomFile`. If MORE THAN ONE → STOP with the message: "POM contains duplicate line matching the heal target; cannot apply ambiguously. Please disambiguate manually and re-run /xera-report." Do NOT write any changes.
+      - Otherwise (exactly one occurrence): replace it with `newPomLine` from heal-output.json. Write the file back.
+      - Tell the user: "Re-running test to verify heal — this typically takes 1-5 minutes..."
       - Run: `bun run xera:exec {{TICKET}}`. Capture exit code:
         - **exit 0:** Run `git add {{POM_FILE}}`. Tell user: "Heal verified ✓ — POM change is staged. Review with `git diff --staged` and commit when ready."
         - **exit 3:** Run `git checkout HEAD -- {{POM_FILE}}` to revert. Read the latest run dir's classifier output (which now reflects the post-heal failure). Tell user: "Heal proposed `{{NEW_LOCATOR}}` but the test still failed. POM reverted. New failure: {{NEW_ERROR_SUMMARY}}. Investigate manually." STOP.
