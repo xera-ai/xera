@@ -68,9 +68,9 @@ This repo vendors superpowers skills (`brainstorming`, `writing-plans`, `executi
 
 Do **not** confuse these with the `/xera-*` end-user skills in `packages/skills/`.
 
-## Do NOT invoke `/xera-*` slash commands inside this repo
+## `/xera-*` skills inside this repo
 
-The `/xera-*` skills expect a consumer project layout: a top-level `xera.config.ts`, a `.xera/<TICKET>/` artifact directory, generated POMs, etc. This monorepo does not have any of that, so running them here will fail or silently no-op.
+Most `/xera-*` skills (`/xera-run`, `/xera-fetch`, `/xera-feature`, `/xera-script`, `/xera-exec`, `/xera-report`, `/xera-promote`) expect a consumer project layout: a top-level `xera.config.ts`, a `.xera/<TICKET>/` artifact directory, generated POMs, etc. This monorepo does not have any of that, so running them here will fail or silently no-op.
 
 To exercise them end-to-end, scaffold a throwaway project:
 
@@ -79,6 +79,8 @@ cd /tmp && rm -rf xera-tryout && mkdir xera-tryout && cd xera-tryout
 bunx @xera-ai/cli init --yes
 # then open Claude Code in that directory and run /xera-run SAMPLE-001
 ```
+
+**Exception: `/xera-eval`** is the v0.2 maintainer-only eval harness and IS intended to run inside this repo. It is wired via `.claude/commands/xera-eval.md` (symlink to `packages/skills/xera-eval.md`) and drives `bun run xera:eval-*` against `fixtures/golden-eval/` + `fixtures/golden-tickets/`. See `docs/superpowers/specs/2026-05-14-xera-v02-eval-harness-design.md`.
 
 ## MCPs you can lean on (when present)
 
