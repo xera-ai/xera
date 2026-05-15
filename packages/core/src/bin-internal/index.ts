@@ -1,3 +1,4 @@
+import { doctorCmd } from './doctor';
 import { execCmd } from './exec';
 import { fetchCmd } from './fetch';
 import { lintCmd } from './lint';
@@ -11,6 +12,7 @@ import { unlockCmd } from './unlock';
 import { validateFeatureCmd } from './validate-feature';
 
 const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
+  doctor: doctorCmd,
   fetch: fetchCmd,
   'validate-feature': validateFeatureCmd,
   typecheck: typecheckCmd,
