@@ -6,7 +6,11 @@ export interface CheckResult {
   message: string;
 }
 
-const IN_SCOPE_PROMPTS = ['feature-from-story.md', 'script-from-feature.md'] as const;
+const IN_SCOPE_PROMPTS = [
+  'feature-from-story.md',
+  'script-from-feature.md',
+  'heal-locator.md',
+] as const;
 
 const REQUIRED_SECTION_HEADING = '## Handling untrusted input';
 
