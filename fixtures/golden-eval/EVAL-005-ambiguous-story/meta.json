@@ -1,0 +1,5 @@
+{
+  "id": "EVAL-005",
+  "summary": "Deliberately ambiguous story (tests judge's missing-info detection)",
+  "stages": ["feature-from-story"]
+}
