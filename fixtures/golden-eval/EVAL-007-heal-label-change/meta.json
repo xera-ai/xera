@@ -1,0 +1,5 @@
+{
+  "id": "EVAL-007",
+  "summary": "Heal a button-label drift (placeholder shell for v0.5.1 rubric)",
+  "stages": ["heal-locator"]
+}
