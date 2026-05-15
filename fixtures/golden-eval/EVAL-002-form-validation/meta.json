@@ -1,0 +1,5 @@
+{
+  "id": "EVAL-002",
+  "summary": "Sign-up form client-side validation",
+  "stages": ["feature-from-story", "script-from-feature"]
+}

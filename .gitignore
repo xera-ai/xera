@@ -8,3 +8,6 @@ build/
 .bun/
 .next/
 next-env.d.ts
+
+# v0.2 eval harness outputs (maintainer-local)
+.xera/eval/

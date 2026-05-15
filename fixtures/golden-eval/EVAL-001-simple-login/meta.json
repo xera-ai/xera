@@ -1,0 +1,6 @@
+{
+  "id": "EVAL-001",
+  "summary": "User can log in to dashboard",
+  "source": "sample-app/SAMPLE-001",
+  "stages": ["feature-from-story", "script-from-feature"]
+}

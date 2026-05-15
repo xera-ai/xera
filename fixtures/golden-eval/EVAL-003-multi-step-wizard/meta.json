@@ -1,0 +1,5 @@
+{
+  "id": "EVAL-003",
+  "summary": "Multi-step onboarding wizard",
+  "stages": ["feature-from-story", "script-from-feature"]
+}
