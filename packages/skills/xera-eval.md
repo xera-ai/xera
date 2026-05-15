@@ -56,13 +56,13 @@ Create the actual output directory if missing: `.xera/eval/{{RUN_ID}}/actual/{{T
 **Stage = feature-from-story:**
 1. Read `packages/prompts/feature-from-story.md` (the prompt under test).
 2. Read `.xera/eval/{{RUN_ID}}/inputs/{{TICKET}}/story.md`.
-3. Mint a per-iteration nonce: `bun -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"`. Wrap the story.md content between two identical `<NONCE>` tags in your generation context. Then follow the prompt to generate the Gherkin output. Do NOT include the nonce markers in the written file.
+3. Mint a per-iteration nonce: `bun -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"`. The output is a value like `XR_a3f9b2c14e8d`. Wrap the story.md content between two identical tags whose name IS that nonce value (e.g. `<XR_a3f9b2c14e8d>...story content...<XR_a3f9b2c14e8d>` — NOT the literal string `<NONCE>`). Then follow the prompt to generate the Gherkin output. Do NOT include the nonce markers in the written file.
 4. Write it to `.xera/eval/{{RUN_ID}}/actual/{{TICKET}}/test.feature`.
 
 **Stage = script-from-feature:**
 1. Read `packages/prompts/script-from-feature.md`.
 2. Read `.xera/eval/{{RUN_ID}}/inputs/{{TICKET}}/test.feature` — this is the GOLDEN feature, not the actual gen from the previous stage. Stage inputs are isolated (spec §2.2 decision #2).
-3. Mint a per-iteration nonce: `bun -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"`. Wrap the test.feature content between two identical `<NONCE>` tags in your generation context. Then follow the prompt to generate `spec.ts` (and any page-object files). Do NOT include the nonce markers in the written files.
+3. Mint a per-iteration nonce: `bun -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"`. The output is a value like `XR_a3f9b2c14e8d`. Wrap the test.feature content between two identical tags whose name IS that nonce value (e.g. `<XR_a3f9b2c14e8d>...feature content...<XR_a3f9b2c14e8d>` — NOT the literal string `<NONCE>`). Then follow the prompt to generate `spec.ts` (and any page-object files). Do NOT include the nonce markers in the written files.
 4. Write `spec.ts` to `.xera/eval/{{RUN_ID}}/actual/{{TICKET}}/spec.ts`.
 5. Write any POM files to `.xera/eval/{{RUN_ID}}/actual/{{TICKET}}/page-objects/<name>.page.ts`.
 
