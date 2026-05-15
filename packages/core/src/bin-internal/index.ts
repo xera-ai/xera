@@ -1,4 +1,7 @@
 import { doctorCmd } from './doctor';
+import { evalDeterministicCmd } from './eval-deterministic';
+import { evalPrepareCmd } from './eval-prepare';
+import { evalReportCmd } from './eval-report';
 import { execCmd } from './exec';
 import { fetchCmd } from './fetch';
 import { lintCmd } from './lint';
@@ -13,17 +16,20 @@ import { validateFeatureCmd } from './validate-feature';
 
 const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
   doctor: doctorCmd,
-  fetch: fetchCmd,
-  'validate-feature': validateFeatureCmd,
-  typecheck: typecheckCmd,
-  lint: lintCmd,
+  'eval-deterministic': evalDeterministicCmd,
+  'eval-prepare': evalPrepareCmd,
+  'eval-report': evalReportCmd,
   exec: execCmd,
+  fetch: fetchCmd,
+  lint: lintCmd,
   normalize: normalizeCmd,
-  report: reportCmd,
   post: postCmd,
-  status: statusCmd,
-  unlock: unlockCmd,
   promote: promoteCmd,
+  report: reportCmd,
+  status: statusCmd,
+  typecheck: typecheckCmd,
+  unlock: unlockCmd,
+  'validate-feature': validateFeatureCmd,
 };
 
 export async function run(argv: string[]): Promise<number> {

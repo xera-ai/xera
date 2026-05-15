@@ -9,11 +9,15 @@
   "workspaces": ["packages/*", "fixtures/*"],
   "scripts": {
     "build": "bun run --filter '*' build",
-    "test": "bun test packages/core packages/web",
-    "test:integration": "bun test packages/cli/test/integration",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "typecheck": "bun run --filter '*' typecheck"
+    "test": "bun test packages/core packages/web",
+    "test:integration": "bun test packages/cli/test/integration",
+    "typecheck": "bun run --filter '*' typecheck",
+    "xera:doctor": "xera-internal doctor",
+    "xera:eval-deterministic": "xera-internal eval-deterministic",
+    "xera:eval-prepare": "xera-internal eval-prepare",
+    "xera:eval-report": "xera-internal eval-report"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
