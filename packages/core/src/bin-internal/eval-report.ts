@@ -53,7 +53,7 @@ function renderReport(summary: Summary): string {
   lines.push('## Dimension breakdown');
   lines.push('');
   for (const r of summary.results) {
-    if (!r.judge) continue;
+    if (!r.judge || r.judge.dimensions.length === 0) continue;
     lines.push(`### ${r.ticket} — ${r.stage}`);
     lines.push('');
     for (const d of r.judge.dimensions) lines.push(`- **${d.name}** — ${d.verdict}: ${d.notes}`);
@@ -76,31 +76,62 @@ export async function evalReportCmd(argv: string[], opts: EvalReportOpts = {}): 
   }
   const manifest = ManifestSchema.parse(JSON.parse(readFileSync(paths.manifest, 'utf8')));
 
-  let det: DeterministicScores;
-  let judge: JudgeScores;
   try {
-    det = DeterministicScoresSchema.parse(
-      JSON.parse(readFileSync(paths.deterministicScores, 'utf8')),
-    );
-  } catch (err) {
-    console.error(
-      `[xera:eval-report] invalid deterministic-scores.json: ${(err as Error).message}`,
-    );
-    return 2;
-  }
-  try {
-    judge = JudgeScoresSchema.parse(JSON.parse(readFileSync(paths.judgeScores, 'utf8')));
-  } catch (err) {
-    console.error(`[xera:eval-report] invalid judge-scores.json: ${(err as Error).message}`);
-    return 2;
-  }
+    let det: DeterministicScores;
+    let judge: JudgeScores;
+    try {
+      det = DeterministicScoresSchema.parse(
+        JSON.parse(readFileSync(paths.deterministicScores, 'utf8')),
+      );
+    } catch (err) {
+      console.error(
+        `[xera:eval-report] invalid deterministic-scores.json: ${(err as Error).message}`,
+      );
+      return 2;
+    }
+    try {
+      judge = JudgeScoresSchema.parse(JSON.parse(readFileSync(paths.judgeScores, 'utf8')));
+    } catch (err) {
+      console.error(`[xera:eval-report] invalid judge-scores.json: ${(err as Error).message}`);
+      return 2;
+    }
 
-  const results: Result[] = [];
-  for (const detEntry of det.entries) {
-    const judgment = judge.judgments.find(
-      (j) => j.ticket === detEntry.ticket && j.stage === detEntry.stage,
-    );
-    if (!judgment && detEntry.error?.startsWith('actual missing')) {
+    const results: Result[] = [];
+    for (const detEntry of det.entries) {
+      const judgment = judge.judgments.find(
+        (j) => j.ticket === detEntry.ticket && j.stage === detEntry.stage,
+      );
+      if (!judgment && detEntry.error?.startsWith('actual missing')) {
+        const r: Result = {
+          ticket: detEntry.ticket,
+          stage: detEntry.stage,
+          deterministic: {
+            passed: detEntry.passed,
+            checks: detEntry.checks,
+            ...(detEntry.error !== undefined ? { error: detEntry.error } : {}),
+          },
+          judge: null,
+          skipped: true,
+        };
+        results.push(r);
+        continue;
+      }
+      if (!judgment) {
+        // Judge entry expected but missing: count as FAIL not SKIPPED.
+        const r: Result = {
+          ticket: detEntry.ticket,
+          stage: detEntry.stage,
+          deterministic: {
+            passed: detEntry.passed,
+            checks: detEntry.checks,
+            ...(detEntry.error !== undefined ? { error: detEntry.error } : {}),
+          },
+          judge: { passed: false, dimensions: [], score: 0 },
+        };
+        results.push(r);
+        continue;
+      }
+      const { passed, score } = scoreJudgment(judgment);
       const r: Result = {
         ticket: detEntry.ticket,
         stage: detEntry.stage,
@@ -109,67 +140,38 @@ export async function evalReportCmd(argv: string[], opts: EvalReportOpts = {}): 
           checks: detEntry.checks,
           ...(detEntry.error !== undefined ? { error: detEntry.error } : {}),
         },
-        judge: null,
-        skipped: true,
+        judge: { passed, dimensions: judgment.dimensions, score },
       };
       results.push(r);
-      continue;
     }
-    if (!judgment) {
-      // Judge entry expected but missing: count as FAIL not SKIPPED.
-      const r: Result = {
-        ticket: detEntry.ticket,
-        stage: detEntry.stage,
-        deterministic: {
-          passed: detEntry.passed,
-          checks: detEntry.checks,
-          ...(detEntry.error !== undefined ? { error: detEntry.error } : {}),
-        },
-        judge: { passed: false, dimensions: [], score: 0 },
-      };
-      results.push(r);
-      continue;
-    }
-    const { passed, score } = scoreJudgment(judgment);
-    const r: Result = {
-      ticket: detEntry.ticket,
-      stage: detEntry.stage,
-      deterministic: {
-        passed: detEntry.passed,
-        checks: detEntry.checks,
-        ...(detEntry.error !== undefined ? { error: detEntry.error } : {}),
-      },
-      judge: { passed, dimensions: judgment.dimensions, score },
+
+    const counted = results.filter((r) => !r.skipped);
+    const passedCount = counted.filter((r) => r.deterministic.passed && r.judge?.passed).length;
+    const failedCount = counted.length - passedCount;
+    const avgScore =
+      counted.length === 0
+        ? 0
+        : counted.reduce(
+            (acc, r) => acc + (r.deterministic.passed && r.judge ? r.judge.score : 0),
+            0,
+          ) / counted.length;
+
+    const summary: Summary = {
+      run_id: runId,
+      git_sha: manifest.git_sha,
+      prompt_versions: manifest.prompt_versions,
+      results,
+      overall: { passed: passedCount, failed: failedCount, total: counted.length, score: avgScore },
     };
-    results.push(r);
+    SummarySchema.parse(summary);
+    writeFileSync(paths.summary, JSON.stringify(summary, null, 2));
+    writeFileSync(paths.report, renderReport(summary));
+
+    console.log(
+      `[xera:eval-report] ${passedCount}/${counted.length} PASS (avg ${(avgScore * 100).toFixed(0)}%)`,
+    );
+    return 0;
+  } finally {
+    releaseLock(paths.lock);
   }
-
-  const counted = results.filter((r) => !r.skipped);
-  const passedCount = counted.filter((r) => r.deterministic.passed && r.judge?.passed).length;
-  const failedCount = counted.length - passedCount;
-  const avgScore =
-    counted.length === 0
-      ? 0
-      : counted.reduce(
-          (acc, r) => acc + (r.deterministic.passed && r.judge ? r.judge.score : 0),
-          0,
-        ) / counted.length;
-
-  const summary: Summary = {
-    run_id: runId,
-    git_sha: manifest.git_sha,
-    prompt_versions: manifest.prompt_versions,
-    results,
-    overall: { passed: passedCount, failed: failedCount, total: counted.length, score: avgScore },
-  };
-  SummarySchema.parse(summary);
-  writeFileSync(paths.summary, JSON.stringify(summary, null, 2));
-  writeFileSync(paths.report, renderReport(summary));
-
-  releaseLock(paths.lock);
-
-  console.log(
-    `[xera:eval-report] ${passedCount}/${counted.length} PASS (avg ${(avgScore * 100).toFixed(0)}%)`,
-  );
-  return 0;
 }

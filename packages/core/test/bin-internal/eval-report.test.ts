@@ -227,4 +227,42 @@ describe('eval-report', () => {
     await evalReportCmd(['rid-1']);
     expect(existsSync(join(cwd, '.xera/eval/rid-1/.lock'))).toBe(false);
   });
+
+  test('releases lock on bad judge JSON (exit 2)', async () => {
+    seedRun(
+      cwd,
+      'rid-1',
+      {
+        run_id: 'rid-1',
+        entries: [
+          {
+            ticket: 'EVAL-001',
+            stage: 'feature-from-story',
+            passed: true,
+            checks: ['validate-feature'],
+          },
+        ],
+      },
+      {
+        run_id: 'rid-1',
+        judgments: [
+          {
+            stage: 'feature-from-story',
+            ticket: 'EVAL-001',
+            dimensions: [{ name: 'Coverage', verdict: 'MAYBE', notes: 'x' }],
+          },
+        ],
+      },
+    );
+    expect(existsSync(join(cwd, '.xera/eval/rid-1/.lock'))).toBe(true);
+    const orig = console.error;
+    console.error = () => {};
+    try {
+      const exit = await evalReportCmd(['rid-1']);
+      expect(exit).toBe(2);
+    } finally {
+      console.error = orig;
+    }
+    expect(existsSync(join(cwd, '.xera/eval/rid-1/.lock'))).toBe(false);
+  });
 });
