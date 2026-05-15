@@ -17,7 +17,8 @@
     "xera:doctor": "xera-internal doctor",
     "xera:eval-deterministic": "xera-internal eval-deterministic",
     "xera:eval-prepare": "xera-internal eval-prepare",
-    "xera:eval-report": "xera-internal eval-report"
+    "xera:eval-report": "xera-internal eval-report",
+    "xera:verify-prompts": "xera-internal verify-prompts"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
