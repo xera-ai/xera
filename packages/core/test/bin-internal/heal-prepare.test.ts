@@ -223,6 +223,23 @@ describe('healPrepare (pure)', () => {
     );
   });
 
+  test('throws when page-objects directory does not exist at all', () => {
+    seedTicket(cwd, 'JIRA-123', 'r1');
+    // Remove the page-objects dir entirely (seedTicket creates it; this test asserts behavior when it's absent).
+    rmSync(join(cwd, '.xera/JIRA-123/page-objects'), { recursive: true, force: true });
+    expect(() => healPrepare(cwd, 'JIRA-123', 'r1', 'User can sign in')).toThrow(
+      /POM line not found/i,
+    );
+  });
+
+  test('returns empty gherkinStep when feature has no When/Then line', () => {
+    seedTicket(cwd, 'JIRA-123', 'r1', {
+      featureContent: 'Feature: Login\n  # no scenarios with steps\n',
+    });
+    const result = healPrepare(cwd, 'JIRA-123', 'r1', 'User can sign in');
+    expect(result.gherkinStep).toBe('');
+  });
+
   test('returns empty domSnapshotAtFailure when trace.zip is missing', () => {
     seedTicket(cwd, 'JIRA-123', 'r1');
     const result = healPrepare(cwd, 'JIRA-123', 'r1', 'User can sign in');

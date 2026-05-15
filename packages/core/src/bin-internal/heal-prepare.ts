@@ -42,7 +42,7 @@ interface NormalizedRunFile {
   }>;
 }
 
-const LOCATOR_LINE_RE = /(?:^|\n)Locator:\s*(.+?)(?:\n|$)/;
+const LOCATOR_LINE_RE = /^Locator:\s*(.+)$/m;
 
 function classifyKind(raw: string): FailedLocatorKind {
   if (/^getByRole\b/.test(raw)) return 'role';
@@ -62,10 +62,16 @@ function extractDomSnapshot(tracePath: string): string {
   // is the closest to the failure point in the absence of finer-grained
   // event correlation. v0.5.x can swap in event-correlated snapshot
   // selection if needed.
-  let bestKey: string | null = null;
-  for (const name of Object.keys(entries)) {
-    if (name.endsWith('.html')) bestKey = name;
-  }
+  // Sort .html resource keys lexicographically and take the last one for
+  // deterministic snapshot selection (zip entry iteration order is not
+  // guaranteed by the format spec). For Playwright traces this typically
+  // selects the most recent resource because Playwright names them by
+  // increasing hash/time prefix; v0.5.x can swap in event-correlated
+  // selection if needed.
+  const htmlKeys = Object.keys(entries)
+    .filter((name) => name.endsWith('.html'))
+    .sort();
+  const bestKey = htmlKeys[htmlKeys.length - 1] ?? null;
   if (!bestKey) return '';
   const html = new TextDecoder().decode(entries[bestKey]!);
   // Apply free-text scrub (JWT + credit card redaction). HTML structure
