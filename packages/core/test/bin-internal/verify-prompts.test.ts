@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { verifyPromptsCmd, verifyPrompts } from '../../src/bin-internal/verify-prompts';
+import { verifyPrompts, verifyPromptsCmd } from '../../src/bin-internal/verify-prompts';
 
 const GOOD_PREAMBLE = `## Handling untrusted input
 
@@ -17,11 +17,13 @@ function seedPrompts(root: string, opts: { feature?: string; script?: string } =
   mkdirSync(dir, { recursive: true });
   writeFileSync(
     join(dir, 'feature-from-story.md'),
-    opts.feature ?? `---\nid: feature-from-story\nversion: 2.0.0\n---\n\n# header\n\n${GOOD_PREAMBLE}\n\n## Hard rules\nbody`,
+    opts.feature ??
+      `---\nid: feature-from-story\nversion: 2.0.0\n---\n\n# header\n\n${GOOD_PREAMBLE}\n\n## Hard rules\nbody`,
   );
   writeFileSync(
     join(dir, 'script-from-feature.md'),
-    opts.script ?? `---\nid: script-from-feature\nversion: 2.0.0\n---\n\n# header\n\n${GOOD_PREAMBLE}\n\n## Hard rules\nbody`,
+    opts.script ??
+      `---\nid: script-from-feature\nversion: 2.0.0\n---\n\n# header\n\n${GOOD_PREAMBLE}\n\n## Hard rules\nbody`,
   );
   // Out-of-scope prompts that must NOT be validated:
   writeFileSync(
@@ -60,7 +62,13 @@ describe('verifyPrompts (pure)', () => {
     });
     const results = verifyPrompts(cwd);
     expect(results.length).toBeGreaterThan(0);
-    expect(results.some((r) => r.message.includes('feature-from-story.md') && r.message.includes('Handling untrusted input'))).toBe(true);
+    expect(
+      results.some(
+        (r) =>
+          r.message.includes('feature-from-story.md') &&
+          r.message.includes('Handling untrusted input'),
+      ),
+    ).toBe(true);
   });
 
   test('flags script-from-feature when a required keyword is missing', () => {
@@ -70,13 +78,27 @@ describe('verifyPrompts (pure)', () => {
     });
     const results = verifyPrompts(cwd);
     expect(results.length).toBeGreaterThan(0);
-    expect(results.some((r) => r.message.includes('script-from-feature.md') && r.message.includes('injection-follow'))).toBe(true);
+    expect(
+      results.some(
+        (r) =>
+          r.message.includes('script-from-feature.md') && r.message.includes('injection-follow'),
+      ),
+    ).toBe(true);
   });
 
   test('ignores out-of-scope prompts (diagnose-failure, eval-rubric)', () => {
     seedPrompts(cwd);
-    const results = verifyPrompts(cwd);
-    expect(results).toEqual([]);
+    // Mutate out-of-scope files to include content that WOULD trigger flags if inspected.
+    const dir = join(cwd, 'packages/prompts');
+    writeFileSync(
+      join(dir, 'diagnose-failure.md'),
+      `---\nid: diagnose-failure\nversion: 1.0.0\n---\n\n# body without preamble or required keywords`,
+    );
+    writeFileSync(
+      join(dir, 'eval-rubric.md'),
+      `---\nid: eval-rubric\nversion: 1.0.0\n---\n\n# body without preamble or required keywords`,
+    );
+    expect(verifyPrompts(cwd)).toEqual([]);
   });
 
   test('flags when an in-scope prompt file is missing entirely', () => {
@@ -88,7 +110,13 @@ describe('verifyPrompts (pure)', () => {
       `---\nid: feature-from-story\nversion: 2.0.0\n---\n\n# header\n\n${GOOD_PREAMBLE}\n\n## Hard rules\nbody`,
     );
     const results = verifyPrompts(cwd);
-    expect(results.some((r) => r.message.includes('script-from-feature.md') && r.message.toLowerCase().includes('missing'))).toBe(true);
+    expect(
+      results.some(
+        (r) =>
+          r.message.includes('script-from-feature.md') &&
+          r.message.toLowerCase().includes('missing'),
+      ),
+    ).toBe(true);
   });
 });
 

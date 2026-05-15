@@ -18,7 +18,10 @@ export function verifyPrompts(repoRoot: string): CheckResult[] {
   for (const filename of IN_SCOPE_PROMPTS) {
     const path = join(promptsDir, filename);
     if (!existsSync(path)) {
-      results.push({ ok: false, message: `${filename}: file missing at packages/prompts/${filename}` });
+      results.push({
+        ok: false,
+        message: `${filename}: file missing at packages/prompts/${filename}`,
+      });
       continue;
     }
     const text = readFileSync(path, 'utf8');
@@ -33,7 +36,7 @@ export function verifyPrompts(repoRoot: string): CheckResult[] {
       if (!text.includes(keyword)) {
         results.push({
           ok: false,
-          message: `${filename}: missing required keyword "${keyword}" inside "${REQUIRED_SECTION_HEADING}" section`,
+          message: `${filename}: missing required keyword "${keyword}" (expected in "${REQUIRED_SECTION_HEADING}" section)`,
         });
       }
     }
