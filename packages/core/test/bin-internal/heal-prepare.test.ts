@@ -245,6 +245,43 @@ describe('healPrepare (pure)', () => {
     const result = healPrepare(cwd, 'JIRA-123', 'r1', 'User can sign in');
     expect(result.domSnapshotAtFailure).toBe('');
   });
+
+  test('selects DOM via frame-snapshot trace event when available', () => {
+    seedTicket(cwd, 'JIRA-123', 'r1', {
+      traceFiles: {
+        'resources/abc.html': '<html><body><button>OLDER snapshot</button></body></html>',
+        'resources/xyz.html': '<html><body><button>NEWER snapshot</button></body></html>',
+        'trace.trace': [
+          JSON.stringify({
+            type: 'frame-snapshot',
+            snapshot: { resourceName: 'resources/abc.html' },
+          }),
+          JSON.stringify({
+            type: 'frame-snapshot',
+            snapshot: { resourceName: 'resources/xyz.html' },
+          }),
+        ].join('\n'),
+      },
+    });
+    const result = healPrepare(cwd, 'JIRA-123', 'r1', 'User can sign in');
+    // Last frame-snapshot event referenced xyz.html — that's what we should pick,
+    // not abc.html (which would be picked by the lex-sort fallback since 'abc' < 'xyz').
+    expect(result.domSnapshotAtFailure).toContain('NEWER snapshot');
+    expect(result.domSnapshotAtFailure).not.toContain('OLDER snapshot');
+  });
+
+  test('falls back to lex-sort last .html when trace events are unparseable', () => {
+    seedTicket(cwd, 'JIRA-123', 'r1', {
+      traceFiles: {
+        'resources/abc.html': '<html><body>A</body></html>',
+        'resources/xyz.html': '<html><body>Z</body></html>',
+        'trace.trace': 'not valid json\nalso garbage',
+      },
+    });
+    const result = healPrepare(cwd, 'JIRA-123', 'r1', 'User can sign in');
+    // Fallback: lex-sort puts 'xyz' last, so we get Z.
+    expect(result.domSnapshotAtFailure).toContain('Z');
+  });
 });
 
 describe('healPrepareCmd (CLI)', () => {

@@ -57,26 +57,65 @@ function extractDomSnapshot(tracePath: string): string {
   if (!existsSync(tracePath)) return '';
   const buf = readFileSync(tracePath);
   const entries = unzipSync(buf);
-  // Strategy: take the LAST .html resource in the zip. Playwright stores
-  // DOM frame snapshots under resources/<hash>.html; the most recent one
-  // is the closest to the failure point in the absence of finer-grained
-  // event correlation. v0.5.x can swap in event-correlated snapshot
-  // selection if needed.
-  // Sort .html resource keys lexicographically and take the last one for
-  // deterministic snapshot selection (zip entry iteration order is not
-  // guaranteed by the format spec). For Playwright traces this typically
-  // selects the most recent resource because Playwright names them by
-  // increasing hash/time prefix; v0.5.x can swap in event-correlated
-  // selection if needed.
-  const htmlKeys = Object.keys(entries)
-    .filter((name) => name.endsWith('.html'))
-    .sort();
-  const bestKey = htmlKeys[htmlKeys.length - 1] ?? null;
-  if (!bestKey) return '';
-  const html = new TextDecoder().decode(entries[bestKey]!);
-  // Apply free-text scrub (JWT + credit card redaction). HTML structure
-  // preserved; only matched secrets in text content are redacted. v0.5.x
-  // may add HTML-aware scrubbing if richer redaction is needed.
+
+  // Strategy: parse the .trace JSONL event file to find the last frame-snapshot
+  // event, then extract the HTML resource it references. This gives us the DOM
+  // snapshot closest to the failure point rather than a lexicographic approximation.
+  // Falls back to last .html by lex sort if the .trace file is missing or unparseable.
+  const traceKey = Object.keys(entries).find((name) => name.endsWith('.trace'));
+  let chosenKey: string | null = null;
+
+  if (traceKey) {
+    const traceText = new TextDecoder().decode(entries[traceKey]!);
+    const lines = traceText.split('\n').filter(Boolean);
+    // Walk events in REVERSE order to find the most recent frame-snapshot.
+    for (let i = lines.length - 1; i >= 0; i--) {
+      try {
+        const evt = JSON.parse(lines[i]!);
+        const isSnapshot = evt.type === 'frame-snapshot' || evt.type === 'snapshot';
+        if (!isSnapshot) continue;
+        const snap = evt.snapshot ?? {};
+        // Try direct resource reference (older format).
+        const resourceName: unknown = snap.resourceName;
+        if (typeof resourceName === 'string') {
+          if (entries[resourceName]) {
+            chosenKey = resourceName;
+            break;
+          }
+          // Some traces store .html files under resources/ with the resourceName as the basename.
+          const guessed = `resources/${resourceName.replace(/^resources\//, '')}`;
+          if (entries[guessed]) {
+            chosenKey = guessed;
+            break;
+          }
+        }
+        // Try snapshot name → look for matching .html in resources/.
+        const snapshotName: unknown = snap.snapshotName;
+        if (typeof snapshotName === 'string') {
+          const directGuess = Object.keys(entries).find(
+            (k) => k.endsWith('.html') && k.includes(snapshotName),
+          );
+          if (directGuess) {
+            chosenKey = directGuess;
+            break;
+          }
+        }
+      } catch {
+        // Skip unparseable trace lines.
+      }
+    }
+  }
+
+  // Fallback: last .html by lexicographic sort (existing heuristic).
+  if (!chosenKey) {
+    const htmlKeys = Object.keys(entries)
+      .filter((name) => name.endsWith('.html'))
+      .sort();
+    chosenKey = htmlKeys[htmlKeys.length - 1] ?? null;
+  }
+
+  if (!chosenKey) return '';
+  const html = new TextDecoder().decode(entries[chosenKey]!);
   return scrubFreeText(html);
 }
 
