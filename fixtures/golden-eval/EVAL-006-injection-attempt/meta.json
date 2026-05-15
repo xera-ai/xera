@@ -1,0 +1,5 @@
+{
+  "id": "EVAL-006",
+  "summary": "Adversarial story containing prompt-injection attempts (tests gen refusal)",
+  "stages": ["feature-from-story"]
+}
