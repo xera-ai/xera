@@ -18,8 +18,8 @@ export async function initUpdateCommand(_opts: { yes: boolean }): Promise<void> 
   }
   const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
   pkg.dependencies = pkg.dependencies ?? {};
-  pkg.dependencies['@xera-ai/core'] = '^0.1.0';
-  pkg.dependencies['@xera-ai/web'] = '^0.1.0';
+  pkg.dependencies['@xera-ai/core'] = '^0.3.0';
+  pkg.dependencies['@xera-ai/web'] = '^0.1.6';
   pkg.dependencies['@xera-ai/prompts'] = '^2.1.0';
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 
