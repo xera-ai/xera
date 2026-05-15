@@ -4,6 +4,7 @@ import { evalPrepareCmd } from './eval-prepare';
 import { evalReportCmd } from './eval-report';
 import { execCmd } from './exec';
 import { fetchCmd } from './fetch';
+import { healPrepareCmd } from './heal-prepare';
 import { lintCmd } from './lint';
 import { normalizeCmd } from './normalize';
 import { postCmd } from './post';
@@ -22,6 +23,7 @@ const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
   'eval-report': evalReportCmd,
   exec: execCmd,
   fetch: fetchCmd,
+  'heal-prepare': healPrepareCmd,
   lint: lintCmd,
   normalize: normalizeCmd,
   post: postCmd,

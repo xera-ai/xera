@@ -24,9 +24,14 @@ export const SENSITIVE_BODY_KEYS: readonly RegExp[] = [
 
 export const JWT_RE = /\beyJ[A-Za-z0-9_-]{7,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{5,}\b/;
 export const CREDIT_CARD_RE = /\b(?:\d{4}[-\s]?){3}\d{4}\b/;
+export const EMAIL_RE = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/;
+// E.164-ish phone with optional + and separators. Conservative: require at least 7 digits.
+export const PHONE_RE = /(?:\+?\d[\d\s().-]{6,}\d)/;
 
 const JWT_RE_G = new RegExp(JWT_RE.source, 'g');
 const CREDIT_CARD_RE_G = new RegExp(CREDIT_CARD_RE.source, 'g');
+export const EMAIL_RE_G = new RegExp(EMAIL_RE.source, 'g');
+export const PHONE_RE_G = new RegExp(PHONE_RE.source, 'g');
 
 const REDACTED = '[REDACTED]';
 
@@ -56,5 +61,9 @@ export function scrubBodyJson(body: unknown): unknown {
 }
 
 export function scrubFreeText(s: string): string {
-  return s.replace(JWT_RE_G, REDACTED).replace(CREDIT_CARD_RE_G, REDACTED);
+  return s
+    .replace(JWT_RE_G, REDACTED)
+    .replace(CREDIT_CARD_RE_G, REDACTED)
+    .replace(EMAIL_RE_G, REDACTED)
+    .replace(PHONE_RE_G, REDACTED);
 }

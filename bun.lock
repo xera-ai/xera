@@ -51,7 +51,8 @@
       },
       "dependencies": {
         "@playwright/test": "1.48.0",
-        "@xera-ai/web": "^0.1.4",
+        "@xera-ai/web": "^0.1.5",
+        "fflate": "0.8.2",
         "zod": "3.23.8",
       },
     },

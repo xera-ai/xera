@@ -119,4 +119,42 @@ describe('scrub adversarial', () => {
       '[REDACTED]',
     );
   });
+
+  test('redacts email address in error message', () => {
+    const r = scrub(runWithError('Contact alice@example.com please'));
+    expect(r.scenarios[0]!.failure!.errorMessage).not.toContain('alice@example.com');
+    expect(r.scenarios[0]!.failure!.errorMessage).toContain('[REDACTED]');
+    expect(r.scrubbed_fields_count).toBeGreaterThan(0);
+  });
+
+  test('redacts multiple emails in one string', () => {
+    const r = scrub(runWithError('From alice@a.com to bob@b.com via charlie@c.com'));
+    const msg = r.scenarios[0]!.failure!.errorMessage;
+    expect(msg).not.toContain('alice@a.com');
+    expect(msg).not.toContain('bob@b.com');
+    expect(msg).not.toContain('charlie@c.com');
+  });
+
+  test('redacts e164-style phone number in error message', () => {
+    const r = scrub(runWithError('Call +1 (415) 555-1234 today'));
+    expect(r.scenarios[0]!.failure!.errorMessage).not.toContain('(415) 555-1234');
+    expect(r.scenarios[0]!.failure!.errorMessage).toContain('[REDACTED]');
+  });
+
+  test('does not over-redact short numeric order IDs', () => {
+    const r = scrub(runWithError('Order #12345 confirmed'));
+    expect(r.scenarios[0]!.failure!.errorMessage).toContain('12345');
+  });
+
+  test('redacts email embedded in DOM snapshot text', () => {
+    const r = scrub(runWithError('Value: user.name+tag@sub.domain.io in field'));
+    expect(r.scenarios[0]!.failure!.errorMessage).not.toContain('user.name+tag@sub.domain.io');
+    expect(r.scenarios[0]!.failure!.errorMessage).toContain('[REDACTED]');
+  });
+
+  test('redacts international phone number without country code', () => {
+    const r = scrub(runWithError('Phone: 07700 900 123 on file'));
+    expect(r.scenarios[0]!.failure!.errorMessage).not.toContain('07700 900 123');
+    expect(r.scenarios[0]!.failure!.errorMessage).toContain('[REDACTED]');
+  });
 });
