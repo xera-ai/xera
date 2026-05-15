@@ -1,0 +1,110 @@
+name: Publish
+on:
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "Run bun publish --dry-run (no actual publish to npm)"
+        type: boolean
+        default: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with: { bun-version: '1.3.x' }
+
+      - name: Configure npm auth
+        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Safety gate — lint + typecheck + test
+        run: |
+          bun run lint
+          bun run typecheck
+          bun test packages/core packages/web
+
+      - name: Show local vs npm versions
+        run: |
+          for pkg in web core cli skills prompts; do
+            local_v=$(jq -r .version packages/$pkg/package.json)
+            npm_v=$(curl -s https://registry.npmjs.org/@xera-ai/$pkg/latest | jq -r .version 2>/dev/null || echo "none")
+            echo "@xera-ai/$pkg: local=$local_v npm=$npm_v"
+          done
+
+      - name: Publish @xera-ai/web
+        working-directory: packages/web
+        run: |
+          rm -rf dist
+          bun run build
+          bunx tsc --declaration --emitDeclarationOnly --outDir dist
+          if [ "${{ inputs.dry-run }}" = "true" ]; then
+            bun publish --access public --dry-run
+          else
+            bun publish --access public
+          fi
+
+      - name: Publish @xera-ai/core
+        working-directory: packages/core
+        run: |
+          rm -rf dist
+          bun run build
+          bunx tsc --emitDeclarationOnly
+          if [ "${{ inputs.dry-run }}" = "true" ]; then
+            bun publish --access public --dry-run
+          else
+            bun publish --access public
+          fi
+
+      - name: Publish @xera-ai/cli
+        working-directory: packages/cli
+        run: |
+          rm -rf dist
+          bun run build
+          if [ "${{ inputs.dry-run }}" = "true" ]; then
+            bun publish --access public --dry-run
+          else
+            bun publish --access public
+          fi
+
+      - name: Publish @xera-ai/skills
+        working-directory: packages/skills
+        run: |
+          if [ "${{ inputs.dry-run }}" = "true" ]; then
+            bun publish --access public --dry-run
+          else
+            bun publish --access public
+          fi
+
+      - name: Publish @xera-ai/prompts
+        working-directory: packages/prompts
+        run: |
+          if [ "${{ inputs.dry-run }}" = "true" ]; then
+            bun publish --access public --dry-run
+          else
+            bun publish --access public
+          fi
+
+      - name: Verify versions landed on npm
+        if: ${{ !inputs.dry-run }}
+        run: |
+          sleep 15  # give npm registry CDN time to propagate
+          failed=0
+          for pkg in web core cli skills prompts; do
+            local_v=$(jq -r .version packages/$pkg/package.json)
+            npm_v=$(curl -s https://registry.npmjs.org/@xera-ai/$pkg/latest | jq -r .version)
+            if [ "$local_v" != "$npm_v" ]; then
+              echo "::error::@xera-ai/$pkg version mismatch: local=$local_v npm=$npm_v"
+              failed=1
+            else
+              echo "@xera-ai/$pkg @ $npm_v ✓"
+            fi
+          done
+          exit $failed
