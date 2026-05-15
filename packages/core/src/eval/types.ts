@@ -21,6 +21,7 @@ export const ManifestSchema = z.object({
   git_sha: z.string(),
   tickets: z.array(z.string()).min(1),
   stages: z.array(StageSchema).min(1),
+  ticket_stages: z.record(z.string(), z.array(StageSchema).min(1)),
   prompt_versions: PromptVersionsSchema,
   flags: z.object({
     force: z.boolean(),

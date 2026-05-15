@@ -12,6 +12,7 @@ const manifest: Manifest = {
   git_sha: 'abc',
   tickets: ['EVAL-001'],
   stages: ['feature-from-story'],
+  ticket_stages: { 'EVAL-001': ['feature-from-story'] },
   prompt_versions: {
     'feature-from-story': '1.0.0',
     'script-from-feature': '1.0.0',

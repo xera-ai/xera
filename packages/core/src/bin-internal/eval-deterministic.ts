@@ -117,15 +117,8 @@ export async function evalDeterministicCmd(
   const manifest = ManifestSchema.parse(JSON.parse(readFileSync(paths.manifest, 'utf8')));
 
   const entries: DeterministicEntry[] = [];
-  for (const ticket of manifest.tickets) {
-    for (const stage of manifest.stages) {
-      // Skip stage if it doesn't apply to this ticket type:
-      // - EVAL-* tickets → feature-from-story, script-from-feature
-      // - GOLD-* tickets → diagnose-failure
-      const isClassifier = stage === 'diagnose-failure';
-      const isGoldTicket = ticket.startsWith('GOLD-');
-      if (isClassifier !== isGoldTicket) continue;
-
+  for (const [ticket, ticketStages] of Object.entries(manifest.ticket_stages)) {
+    for (const stage of ticketStages) {
       const inputsDir = paths.ticketInputsDir(ticket);
       const actualDir = paths.ticketActualDir(ticket);
       let result: { passed: boolean; checks: string[]; error?: string };

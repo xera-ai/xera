@@ -15,6 +15,7 @@ describe('eval types', () => {
       git_sha: 'a1b2c3d',
       tickets: ['EVAL-001'],
       stages: ['feature-from-story'] as Stage[],
+      ticket_stages: { 'EVAL-001': ['feature-from-story'] as Stage[] },
       prompt_versions: {
         'feature-from-story': '1.0.0',
         'script-from-feature': '1.0.0',
@@ -33,6 +34,45 @@ describe('eval types', () => {
       git_sha: 'a1b2c3d',
       tickets: ['EVAL-001'],
       stages: ['unknown-stage'],
+      ticket_stages: { 'EVAL-001': ['unknown-stage'] },
+      prompt_versions: {
+        'feature-from-story': '1.0.0',
+        'script-from-feature': '1.0.0',
+        'diagnose-failure': '1.0.0',
+        'eval-rubric': '1.0.0',
+      },
+      flags: { force: false, only_prompt: null, only_ticket: null, judge_only: false },
+    };
+    expect(() => ManifestSchema.parse(bad)).toThrow();
+  });
+
+  test('ManifestSchema requires ticket_stages field', () => {
+    const bad = {
+      run_id: '20260520-103045-a1b2c3d',
+      started_at: '2026-05-20T10:30:45Z',
+      git_sha: 'a1b2c3d',
+      tickets: ['EVAL-001'],
+      stages: ['feature-from-story'] as Stage[],
+      // ticket_stages intentionally omitted
+      prompt_versions: {
+        'feature-from-story': '1.0.0',
+        'script-from-feature': '1.0.0',
+        'diagnose-failure': '1.0.0',
+        'eval-rubric': '1.0.0',
+      },
+      flags: { force: false, only_prompt: null, only_ticket: null, judge_only: false },
+    };
+    expect(() => ManifestSchema.parse(bad)).toThrow();
+  });
+
+  test('ManifestSchema rejects ticket_stages with invalid stage value', () => {
+    const bad = {
+      run_id: '20260520-103045-a1b2c3d',
+      started_at: '2026-05-20T10:30:45Z',
+      git_sha: 'a1b2c3d',
+      tickets: ['EVAL-001'],
+      stages: ['feature-from-story'] as Stage[],
+      ticket_stages: { 'EVAL-001': ['not-a-stage'] },
       prompt_versions: {
         'feature-from-story': '1.0.0',
         'script-from-feature': '1.0.0',

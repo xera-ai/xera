@@ -26,12 +26,16 @@ afterEach(() => {
   rmSync(cwd, { recursive: true, force: true });
 });
 
-const baseManifest = (tickets: string[], stages: Manifest['stages']): Manifest => ({
+const baseManifest = (
+  ticketStages: Record<string, Manifest['stages']>,
+  stages: Manifest['stages'],
+): Manifest => ({
   run_id: 'rid-1',
   started_at: '2026-05-20T00:00:00Z',
   git_sha: 'abc',
-  tickets,
+  tickets: Object.keys(ticketStages),
   stages,
+  ticket_stages: ticketStages,
   prompt_versions: {
     'feature-from-story': '1.0.0',
     'script-from-feature': '1.0.0',
@@ -43,7 +47,7 @@ const baseManifest = (tickets: string[], stages: Manifest['stages']): Manifest =
 
 describe('eval-deterministic', () => {
   test('passes on a valid actual gherkin', async () => {
-    const m = baseManifest(['EVAL-001'], ['feature-from-story']);
+    const m = baseManifest({ 'EVAL-001': ['feature-from-story'] }, ['feature-from-story']);
     seedRun(cwd, 'rid-1', m);
     mkdirSync(join(cwd, '.xera/eval/rid-1/actual/EVAL-001'));
     writeFileSync(
@@ -61,7 +65,10 @@ describe('eval-deterministic', () => {
   });
 
   test('records error on invalid gherkin without short-circuiting other tickets', async () => {
-    const m = baseManifest(['EVAL-001', 'EVAL-002'], ['feature-from-story']);
+    const m = baseManifest(
+      { 'EVAL-001': ['feature-from-story'], 'EVAL-002': ['feature-from-story'] },
+      ['feature-from-story'],
+    );
     seedRun(cwd, 'rid-1', m);
     mkdirSync(join(cwd, '.xera/eval/rid-1/actual/EVAL-001'));
     mkdirSync(join(cwd, '.xera/eval/rid-1/actual/EVAL-002'));
@@ -83,7 +90,7 @@ describe('eval-deterministic', () => {
   });
 
   test('marks missing actual as passed=false with explicit error', async () => {
-    const m = baseManifest(['EVAL-001'], ['feature-from-story']);
+    const m = baseManifest({ 'EVAL-001': ['feature-from-story'] }, ['feature-from-story']);
     seedRun(cwd, 'rid-1', m);
     // No actual/EVAL-001/test.feature written.
     const exit = await evalDeterministicCmd(['rid-1']);
@@ -96,7 +103,7 @@ describe('eval-deterministic', () => {
   });
 
   test('classifier stage: bucket equality with golden', async () => {
-    const m = baseManifest(['GOLD-001'], ['diagnose-failure']);
+    const m = baseManifest({ 'GOLD-001': ['diagnose-failure'] }, ['diagnose-failure']);
     seedRun(cwd, 'rid-1', m);
     mkdirSync(join(cwd, '.xera/eval/rid-1/inputs/GOLD-001'), { recursive: true });
     mkdirSync(join(cwd, '.xera/eval/rid-1/actual/GOLD-001'), { recursive: true });
@@ -132,7 +139,7 @@ describe('eval-deterministic', () => {
   });
 
   test('classifier stage: bucket mismatch records failure', async () => {
-    const m = baseManifest(['GOLD-001'], ['diagnose-failure']);
+    const m = baseManifest({ 'GOLD-001': ['diagnose-failure'] }, ['diagnose-failure']);
     seedRun(cwd, 'rid-1', m);
     mkdirSync(join(cwd, '.xera/eval/rid-1/inputs/GOLD-001'), { recursive: true });
     mkdirSync(join(cwd, '.xera/eval/rid-1/actual/GOLD-001'), { recursive: true });
@@ -173,5 +180,31 @@ describe('eval-deterministic', () => {
     } finally {
       console.error = orig;
     }
+  });
+
+  test('respects per-ticket stages — EVAL ticket with only feature-from-story NOT iterated for script-from-feature', async () => {
+    // Global stages includes both, but ticket_stages restricts EVAL-005 to feature-from-story only.
+    const m = baseManifest({ 'EVAL-005': ['feature-from-story'] }, [
+      'feature-from-story',
+      'script-from-feature',
+    ]);
+    seedRun(cwd, 'rid-1', m);
+    mkdirSync(join(cwd, '.xera/eval/rid-1/actual/EVAL-005'));
+    writeFileSync(
+      join(cwd, '.xera/eval/rid-1/actual/EVAL-005/test.feature'),
+      'Feature: x\n  Scenario: y\n    Given z\n',
+    );
+    const exit = await evalDeterministicCmd(['rid-1']);
+    expect(exit).toBe(0);
+    const scores = JSON.parse(
+      readFileSync(join(cwd, '.xera/eval/rid-1/deterministic-scores.json'), 'utf8'),
+    );
+    // Only 1 entry: feature-from-story. No script-from-feature entry despite being in global stages.
+    expect(scores.entries).toHaveLength(1);
+    expect(scores.entries[0].stage).toBe('feature-from-story');
+    expect(scores.entries[0].ticket).toBe('EVAL-005');
+    expect(
+      scores.entries.find((e: { stage: string }) => e.stage === 'script-from-feature'),
+    ).toBeUndefined();
   });
 });

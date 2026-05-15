@@ -86,6 +86,11 @@ describe('eval-prepare', () => {
         'script-from-feature',
         'diagnose-failure',
       ]);
+      expect(manifest.ticket_stages['EVAL-001']).toEqual([
+        'feature-from-story',
+        'script-from-feature',
+      ]);
+      expect(manifest.ticket_stages['GOLD-001']).toEqual(['diagnose-failure']);
       expect(manifest.prompt_versions['feature-from-story']).toBe('1.2.3');
       expect(existsSync(join(runDir, 'inputs/EVAL-001/story.md'))).toBe(true);
       expect(existsSync(join(runDir, 'inputs/EVAL-001/test.feature'))).toBe(true);
@@ -147,6 +152,27 @@ describe('eval-prepare', () => {
     );
     expect(manifest.stages).toEqual(['diagnose-failure']);
     expect(manifest.tickets).toEqual(['GOLD-001']);
+    expect(manifest.ticket_stages).toEqual({ 'GOLD-001': ['diagnose-failure'] });
+  });
+
+  test('skips a ticket whose declared stages do not intersect with --prompt filter', async () => {
+    // Override EVAL-001 meta to declare only feature-from-story, then request script-from-feature.
+    // There are no GOLD tickets applicable to script-from-feature either.
+    // Expect exit 1 with "No tickets applicable".
+    writeFileSync(
+      join(cwd, 'fixtures/golden-eval/EVAL-001-x/meta.json'),
+      JSON.stringify({ id: 'EVAL-001', summary: 's', stages: ['feature-from-story'] }),
+    );
+    const errs: string[] = [];
+    const orig = console.error;
+    console.error = (...a: unknown[]) => errs.push(a.join(' '));
+    try {
+      const exit = await evalPrepareCmd(['--prompt=script-from-feature']);
+      expect(exit).toBe(1);
+      expect(errs.join('\n')).toContain('No tickets applicable');
+    } finally {
+      console.error = orig;
+    }
   });
 
   test('refuses to re-run with existing run-id unless --force', async () => {

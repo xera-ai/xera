@@ -38,17 +38,16 @@ Exit code:
 - 4 → infra error (lock acquisition). Stop and surface the error.
 
 Read `.xera/eval/{{RUN_ID}}/manifest.json` to learn:
-- `tickets`: which ticket IDs to process.
-- `stages`: which prompt stages to run.
+- `ticket_stages`: the source of truth — a map of ticket ID → the stages that ticket exercises. Iterate this; do NOT iterate `manifest.stages × manifest.tickets`.
 
 ### Phase 2 — Gen (interleaved with Phase 4)
 
-For each (ticket, stage) pair from manifest, gen the actual output IMMEDIATELY followed by the judge sub-agent in the same loop iteration. The skip rules:
+For each (ticket, stage) pair from manifest, gen the actual output IMMEDIATELY followed by the judge sub-agent in the same loop iteration.
 
-- Stage `diagnose-failure` only applies to tickets starting with `GOLD-`.
-- Stages `feature-from-story` and `script-from-feature` only apply to tickets starting with `EVAL-`.
+Iterate over `manifest.ticket_stages`: for each ticket id and its declared stages, run gen + judge for ONLY those stages. The manifest is the source of truth — do NOT iterate `manifest.stages × manifest.tickets`.
 
-For each applicable (ticket, stage):
+For each [ticket, stages] entry in manifest.ticket_stages:
+  For each stage in stages:
 
 #### Gen step
 
@@ -158,7 +157,7 @@ If `--judge-only` was passed:
 1. Locate the most recent prior run: list `.xera/eval/*/manifest.json`, pick the one with the latest `started_at` field. If none, fail with `No prior eval run found in .xera/eval/. Run /xera-eval without --judge-only first.`
 2. Read `manifest.json` to learn the tickets/stages.
 3. Apply any `--prompt` / `--ticket` filters from the user against the manifest's scope (do not extend beyond it).
-4. For each (ticket, stage) in scope: spawn a judge sub-agent using the existing `actual/<ticket>/*` files. Same Task-tool template as Phase 2.
+4. For each (ticket, stage) in `manifest.ticket_stages` filtered by any `--prompt`/`--ticket` flags from the user: spawn a judge sub-agent using the existing `actual/<ticket>/*` files. Same Task-tool template as Phase 2.
 5. Overwrite `.xera/eval/<run-id>/judge-scores.json` with the new array.
 6. Re-run `bun run xera:eval-report <run-id>`.
 

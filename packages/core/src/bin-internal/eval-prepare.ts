@@ -117,6 +117,32 @@ export async function evalPrepareCmd(argv: string[], opts: EvalPrepareOpts = {})
     return 1;
   }
 
+  // Compute per-ticket stages by intersecting the ticket's declared stages with the
+  // global stages array, then filter out tickets with an empty intersection.
+  const ticket_stages: Record<string, Stage[]> = {};
+  for (const ticket of selectedTickets) {
+    const evalT = evalTickets.find((t) => t.id === ticket);
+    let ticketDeclared: Stage[];
+    if (evalT) {
+      ticketDeclared = evalT.stages;
+    } else {
+      // Classifier/GOLD ticket — always diagnose-failure.
+      ticketDeclared = ['diagnose-failure'];
+    }
+    const intersection = ticketDeclared.filter((s) => stages.includes(s));
+    if (intersection.length > 0) {
+      ticket_stages[ticket] = intersection;
+    }
+  }
+
+  // Filter selectedTickets to only those with applicable stages.
+  selectedTickets = selectedTickets.filter((t) => ticket_stages[t] !== undefined);
+
+  if (selectedTickets.length === 0) {
+    console.error('[xera:eval-prepare] No tickets applicable to requested stages.');
+    return 1;
+  }
+
   const runId = generateRunId({
     ...(opts.now ? { now: opts.now } : {}),
     ...(opts.getGitSha ? { getGitSha: opts.getGitSha } : {}),
@@ -156,6 +182,7 @@ export async function evalPrepareCmd(argv: string[], opts: EvalPrepareOpts = {})
     git_sha: runId.split('-')[2] ?? 'nogit',
     tickets: selectedTickets,
     stages,
+    ticket_stages,
     prompt_versions: {
       'feature-from-story': readPromptVersion(repoRoot, 'feature-from-story'),
       'script-from-feature': readPromptVersion(repoRoot, 'script-from-feature'),
