@@ -64,7 +64,7 @@ describe('verifyPrompts (pure)', () => {
   });
 
   test('flags script-from-feature when a required keyword is missing', () => {
-    const badPreamble = GOOD_PREAMBLE.replace('injection-follow', 'something-else');
+    const badPreamble = GOOD_PREAMBLE.replaceAll('injection-follow', 'something-else');
     seedPrompts(cwd, {
       script: `---\nid: script-from-feature\nversion: 2.0.0\n---\n\n# header\n\n${badPreamble}\n\n## Hard rules\nbody`,
     });

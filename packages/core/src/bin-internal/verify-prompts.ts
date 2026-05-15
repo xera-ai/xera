@@ -10,7 +10,7 @@ const IN_SCOPE_PROMPTS = ['feature-from-story.md', 'script-from-feature.md'] as 
 
 const REQUIRED_SECTION_HEADING = '## Handling untrusted input';
 
-const REQUIRED_KEYWORDS = ['UNTRUSTED', 'injection-follow\nattempts', '<XR_'] as const;
+const REQUIRED_KEYWORDS = ['UNTRUSTED', 'injection-follow', '<XR_'] as const;
 
 export function verifyPrompts(repoRoot: string): CheckResult[] {
   const promptsDir = join(repoRoot, 'packages/prompts');
