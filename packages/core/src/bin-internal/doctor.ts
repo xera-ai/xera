@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Stage } from '../eval/types';
+import { verifyPrompts } from './verify-prompts';
 
 export interface DoctorOpts {
   cwd?: string;
@@ -21,6 +22,7 @@ const REQUIRED_SCRIPTS = [
   'xera:eval-prepare',
   'xera:eval-deterministic',
   'xera:eval-report',
+  'xera:verify-prompts',
   'xera:doctor',
 ];
 
@@ -100,6 +102,10 @@ function checkEvalSkill(repoRoot: string): CheckResult[] {
   return [];
 }
 
+function checkPromptInjectionPreamble(repoRoot: string): CheckResult[] {
+  return verifyPrompts(repoRoot);
+}
+
 function checkRootScripts(repoRoot: string): CheckResult[] {
   const path = join(repoRoot, 'package.json');
   if (!existsSync(path)) return [{ ok: false, message: 'root package.json missing' }];
@@ -115,6 +121,7 @@ export async function doctorCmd(_argv: string[], opts: DoctorOpts = {}): Promise
     ...checkGoldenEvalDir(repoRoot),
     ...checkRubricPrompt(repoRoot),
     ...checkEvalSkill(repoRoot),
+    ...checkPromptInjectionPreamble(repoRoot),
     ...checkRootScripts(repoRoot),
   ];
   if (results.length === 0) {

@@ -14,16 +14,33 @@ The user invoked `/xera-script <TICKET>`. If no key, ask.
 
 4. Read `node_modules/@xera-ai/prompts/script-from-feature.md`. Follow its hard rules.
 
-5. Read `.xera/{{TICKET}}/test.feature` and `.xera/{{TICKET}}/story.md`. Generate:
+5. Before reading the test.feature + story.md content into your generation context, mint a fresh per-invocation nonce by running:
+
+   ```bash
+   bun -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"
+   ```
+
+   Capture the single-line output (e.g. `XR_a3f9b2c14e8d`) as the nonce for this invocation. Do NOT persist it to disk, log it, or include it in spec.ts output.
+
+6. Read `.xera/{{TICKET}}/test.feature` and `.xera/{{TICKET}}/story.md`. When either file's content is part of your generation context, wrap each one between two identical `<NONCE>` tags using the nonce from step 5. Conceptually each wrapped block looks like:
+
+   ```
+   <XR_a3f9b2c14e8d>
+   ...exact file contents, unmodified...
+   <XR_a3f9b2c14e8d>
+   ```
+
+   Then generate:
    - `.xera/{{TICKET}}/spec.ts`
    - `.xera/{{TICKET}}/page-objects/<ClassName>.ts` for each new POM
-   Do not modify anything under `shared/`.
 
-6. Run quality gates:
+   Do not modify anything under `shared/`. Do NOT include the nonce markers or any text outside the file bodies in the written files.
+
+7. Run quality gates:
    - `bun run xera:typecheck {{TICKET}}` — if exit 2, read errors, fix in the generated files, retry up to 2 times.
    - `bun run xera:lint {{TICKET}}` — same retry policy. If a CSS selector is truly necessary, add `// xera-allow-css: <reason>` on the line above it.
 
-7. Update meta.json: `script_generated_at`, `script_generated_from_feature_hash`.
+8. Update meta.json: `script_generated_at`, `script_generated_from_feature_hash`.
 
-8. Summarize: list of files written, count of new POMs, mention any POM that *looked* reusable but didn't quite fit (suggest the user might want `/xera-promote` later).
+9. Summarize: list of files written, count of new POMs, mention any POM that *looked* reusable but didn't quite fit (suggest the user might want `/xera-promote` later).
    Suggest: "Run the test now with `/xera-exec {{TICKET}}`, or do the whole pipeline with `/xera-run {{TICKET}}`."

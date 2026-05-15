@@ -13,6 +13,7 @@ import { statusCmd } from './status-cmd';
 import { typecheckCmd } from './typecheck';
 import { unlockCmd } from './unlock';
 import { validateFeatureCmd } from './validate-feature';
+import { verifyPromptsCmd } from './verify-prompts';
 
 const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
   doctor: doctorCmd,
@@ -30,6 +31,7 @@ const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
   typecheck: typecheckCmd,
   unlock: unlockCmd,
   'validate-feature': validateFeatureCmd,
+  'verify-prompts': verifyPromptsCmd,
 };
 
 export async function run(argv: string[]): Promise<number> {

@@ -20,7 +20,7 @@ export async function initUpdateCommand(_opts: { yes: boolean }): Promise<void> 
   pkg.dependencies = pkg.dependencies ?? {};
   pkg.dependencies['@xera-ai/core'] = '^0.1.0';
   pkg.dependencies['@xera-ai/web'] = '^0.1.0';
-  pkg.dependencies['@xera-ai/prompts'] = '^1.0.0';
+  pkg.dependencies['@xera-ai/prompts'] = '^2.0.0';
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 
   // Refresh skills with 3-way diff
