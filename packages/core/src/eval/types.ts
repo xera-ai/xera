@@ -74,11 +74,13 @@ export const ResultSchema = z.object({
     checks: z.array(z.string()),
     error: z.string().optional(),
   }),
-  judge: z.object({
-    passed: z.boolean(),
-    dimensions: z.array(DimensionSchema),
-    score: z.number().min(0).max(1),
-  }).nullable(),
+  judge: z
+    .object({
+      passed: z.boolean(),
+      dimensions: z.array(DimensionSchema),
+      score: z.number().min(0).max(1),
+    })
+    .nullable(),
   skipped: z.boolean().optional(),
 });
 export type Result = z.infer<typeof ResultSchema>;

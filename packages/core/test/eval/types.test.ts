@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 import {
-  ManifestSchema,
-  JudgmentSchema,
   DeterministicScoresSchema,
-  SummarySchema,
+  JudgmentSchema,
+  ManifestSchema,
   type Stage,
+  SummarySchema,
 } from '../../src/eval/types';
 
 describe('eval types', () => {
@@ -70,8 +70,19 @@ describe('eval types', () => {
     const ok = {
       run_id: 'x',
       entries: [
-        { ticket: 'EVAL-001', stage: 'feature-from-story' as Stage, passed: false, checks: ['validate-feature'], error: 'gherkin parse error at line 4' },
-        { ticket: 'EVAL-002', stage: 'feature-from-story' as Stage, passed: true, checks: ['validate-feature'] },
+        {
+          ticket: 'EVAL-001',
+          stage: 'feature-from-story' as Stage,
+          passed: false,
+          checks: ['validate-feature'],
+          error: 'gherkin parse error at line 4',
+        },
+        {
+          ticket: 'EVAL-002',
+          stage: 'feature-from-story' as Stage,
+          passed: true,
+          checks: ['validate-feature'],
+        },
       ],
     };
     expect(DeterministicScoresSchema.parse(ok)).toEqual(ok);
