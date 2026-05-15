@@ -1,0 +1,5 @@
+{
+  "id": "EVAL-004",
+  "summary": "Settings page edit & save",
+  "stages": ["feature-from-story", "script-from-feature"]
+}
