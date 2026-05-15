@@ -25,7 +25,17 @@ describe('AES-256-GCM helpers', () => {
   test('tampered ciphertext throws (GCM auth)', () => {
     const k = generateKey();
     const ct = encrypt('hello', k);
-    const tampered = ct.slice(0, -2) + (ct.endsWith('A') ? 'B' : 'A');
+    // Decode the ct portion, flip all bits in the first byte, re-encode.
+    // The previous `slice + char swap` approach was probabilistically flaky:
+    // ~6% of random ciphertexts decoded to identical bytes after the swap
+    // (when the removed base64 char's first 4 bits were 0000, matching 'A'),
+    // making GCM verification erroneously succeed. Byte-level tampering
+    // guarantees the ct bytes change, so GCM auth MUST detect it.
+    const parts = ct.split(':');
+    const ctBytes = Buffer.from(parts[3]!, 'base64');
+    ctBytes[0] = (ctBytes[0]! ^ 0xff) & 0xff;
+    parts[3] = ctBytes.toString('base64');
+    const tampered = parts.join(':');
     expect(() => decrypt(tampered, k)).toThrow();
   });
 
