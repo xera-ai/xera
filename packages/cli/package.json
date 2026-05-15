@@ -1,6 +1,6 @@
 {
   "name": "@xera-ai/cli",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "type": "module",
   "bin": { "xera": "./bin/xera" },
   "files": ["dist", "bin", "templates"],
@@ -9,8 +9,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@xera-ai/core": "^0.2.0",
-    "@xera-ai/skills": "^0.2.0",
+    "@xera-ai/core": "^0.3.0",
+    "@xera-ai/skills": "^0.3.0",
     "@clack/prompts": "0.7.0",
     "cac": "6.7.14",
     "picocolors": "1.1.0"
