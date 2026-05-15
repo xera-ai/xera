@@ -50,6 +50,67 @@ Step 4 below is *cognitive work that YOU, the session, must do*. It is not a she
 
    **Do not skip this step.** If you find yourself about to call `bun run xera:report` without having written this file, stop and write the file first.
 
+4a. **Heal sub-flow (only if SELECTOR_DRIFT present).** Read `.xera/{{TICKET}}/classifier-input.json` (which you just wrote in step 4) and check whether any scenario has `class: "SELECTOR_DRIFT"`. If none, skip this entire sub-flow and proceed directly to step 5 (Aggregate + draft).
+
+If at least one scenario is SELECTOR_DRIFT, take the FIRST such scenario (by array order — the single-heal guard) and execute Phases A–C below. Subsequent SELECTOR_DRIFT scenarios are NOT auto-healed in the same `/xera-report` invocation; list them in the report output as "additional drifts: re-run /xera-report after applying the first heal."
+
+   **Phase A — Prepare.** Determine the runId from the most recent run directory under `.xera/{{TICKET}}/runs/` (sorted descending — the latest folder name is the runId). Then run:
+
+   ```bash
+   bun packages/core/bin/internal.ts heal-prepare {{TICKET}} {{RUN_ID}} "{{SCENARIO_NAME}}"
+   ```
+
+   Substitute the real runId and scenario name. The scenario name may contain spaces; quote it. Exit code 0 on success (a `heal-input.json` is written into the run dir at `.xera/{{TICKET}}/runs/{{RUN_ID}}/heal-input.json`). Exit 1 on prepare failure — surface the stderr message to the user and STOP the heal sub-flow (do NOT block the rest of /xera-report; proceed to step 5 with no heal applied).
+
+   **Phase B — LLM heal proposal.**
+
+   1. Mint a per-invocation nonce by running:
+
+      ```bash
+      bun -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"
+      ```
+
+      Capture the single-line output (e.g. `XR_a3f9b2c14e8d`) as the nonce for this invocation. Do NOT persist or log it.
+
+   2. Read `node_modules/@xera-ai/prompts/heal-locator.md` (the prompt template). Follow its rules.
+
+   3. Read `.xera/{{TICKET}}/runs/{{RUN_ID}}/heal-input.json` (the prepared payload).
+
+   4. When the heal-input.json's `domSnapshotAtFailure` field content is part of your generation context, wrap it between two identical tags whose name IS the nonce value. Conceptually:
+
+      ```
+      <XR_a3f9b2c14e8d>
+      ...exact domSnapshotAtFailure content...
+      <XR_a3f9b2c14e8d>
+      ```
+
+      Use the real nonce value from step 1, not the literal placeholder. NOT the literal string `<NONCE>`.
+
+   5. Follow `heal-locator.md`'s rules and emit the strict JSON output. Write it to `.xera/{{TICKET}}/runs/{{RUN_ID}}/heal-output.json`. The file must contain ONLY the JSON object — no surrounding prose, no markdown fences.
+
+   **Phase C — Apply + verify.**
+
+   1. Read `.xera/{{TICKET}}/runs/{{RUN_ID}}/heal-output.json`. Parse it.
+
+   2. If the JSON is malformed OR the schema doesn't match (missing required fields, invalid enum values like a `decision` other than `"apply"`/`"refuse"`, invalid `confidence` value, invalid `refusalCategory`), report the parse error to the user as a refusal-equivalent and STOP the heal sub-flow. Proceed to step 5 with no heal applied.
+
+   3. **Low-confidence downgrade:** if `decision === "apply"` AND `confidence === "low"`, treat the output as `decision: "refuse"`, `refusalCategory: "low-confidence"` regardless of what the LLM emitted. Write the downgraded shape back to `heal-output.json` so the audit trail is honest.
+
+   4. If `decision === "refuse"`: report to the user the refusal `refusalCategory` and `reason`. STOP the heal sub-flow.
+
+   5. If `decision === "apply"`:
+
+      - Read `heal-input.json` to get `pomFile` and `pomLineContent`.
+      - Read the current `pomFile` text. If it does NOT contain `pomLineContent` verbatim → STOP with the message: "POM line drifted since heal was proposed; please re-run /xera-report." Do NOT write any changes.
+      - Otherwise: replace the verbatim occurrence of `pomLineContent` with `newPomLine` from heal-output.json. Write the file back.
+      - Tell the user: "Re-running test to verify heal — this takes ~30s..."
+      - Run: `bun run xera:exec {{TICKET}}`. Capture exit code:
+        - **exit 0:** Run `git add {{POM_FILE}}`. Tell user: "Heal verified ✓ — POM change is staged. Review with `git diff --staged` and commit when ready."
+        - **exit 3:** Run `git checkout HEAD -- {{POM_FILE}}` to revert. Read the latest run dir's classifier output (which now reflects the post-heal failure). Tell user: "Heal proposed `{{NEW_LOCATOR}}` but the test still failed. POM reverted. New failure: {{NEW_ERROR_SUMMARY}}. Investigate manually." STOP.
+        - **exit 4 (or any non-0/3 code):** Run `git checkout HEAD -- {{POM_FILE}}` to revert. Tell user: "Heal verification crashed (exit code {{EXIT}}). POM reverted. Investigate manually." STOP.
+
+After the heal sub-flow finishes (whether it applied, refused, or errored), continue to step 5 below to aggregate + draft the report. The Jira comment in step 5 reflects the run as it was originally classified — heal results are a separate concern not (in v0.5) folded into the Jira comment.
+
 5. **Aggregate + draft.** Run: `bun run xera:report {{TICKET}} -- --input=.xera/{{TICKET}}/classifier-input.json`
    This CLI: aggregates per-scenario classifications into an overall verdict, updates `status.json` with history, and writes `jira-comment.draft.md`. If exit code is non-zero, surface the error to the user; do not proceed to post.
 
