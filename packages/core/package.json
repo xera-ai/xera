@@ -25,6 +25,7 @@
   "dependencies": {
     "zod": "3.23.8",
     "@xera-ai/web": "^0.1.5",
-    "@playwright/test": "1.48.0"
+    "@playwright/test": "1.48.0",
+    "fflate": "0.8.2"
   }
 }
