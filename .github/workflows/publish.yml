@@ -6,6 +6,11 @@ on:
         description: "Run bun publish --dry-run (no actual publish to npm)"
         type: boolean
         default: false
+  push:
+    # Auto-publish when a release tag is pushed (e.g. git push origin v0.6.0).
+    # Tag-triggered runs ALWAYS publish for real (no dry-run option).
+    tags:
+      - 'v*'
 jobs:
   publish:
     runs-on: ubuntu-latest
