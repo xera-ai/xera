@@ -295,7 +295,6 @@ export async function initCommand(opts: InitOptions): Promise<void> {
   pkg.devDependencies = pkg.devDependencies ?? {};
   pkg.devDependencies['@playwright/test'] = '^1.60.0';
   pkg.devDependencies['@types/node'] = '^25.8.0';
-  pkg.devDependencies['dotenv'] = '^16.0.0';
   pkg.devDependencies['typescript'] = '^6.0.3';
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 

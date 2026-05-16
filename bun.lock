@@ -36,7 +36,7 @@
     },
     "packages/cli": {
       "name": "@xera-ai/cli",
-      "version": "0.3.2",
+      "version": "0.9.6",
       "bin": {
         "xera": "./bin/xera",
       },
@@ -50,14 +50,15 @@
     },
     "packages/core": {
       "name": "@xera-ai/core",
-      "version": "0.5.0",
+      "version": "0.9.6",
       "bin": {
         "xera-internal": "./dist/bin/internal.js",
       },
       "dependencies": {
         "@playwright/test": "1.60.0",
-        "@xera-ai/http": "^0.1.0",
-        "@xera-ai/web": "^0.2.0",
+        "@xera-ai/http": "^0.9.6",
+        "@xera-ai/web": "^0.9.6",
+        "dotenv": "^16.0.0",
         "fflate": "0.8.3",
         "yaml": "2.9.0",
         "zod": "4.4.3",
@@ -65,31 +66,31 @@
     },
     "packages/http": {
       "name": "@xera-ai/http",
-      "version": "0.1.0",
+      "version": "0.9.6",
       "dependencies": {
         "@apidevtools/json-schema-ref-parser": "11.7.0",
         "@playwright/test": "1.60.0",
-        "@xera-ai/core": "^0.4.0",
+        "@xera-ai/core": "^0.9.6",
         "yaml": "2.9.0",
         "zod": "4.4.3",
       },
     },
     "packages/prompts": {
       "name": "@xera-ai/prompts",
-      "version": "2.4.0",
+      "version": "0.9.6",
     },
     "packages/skills": {
       "name": "@xera-ai/skills",
-      "version": "0.5.0",
+      "version": "0.9.6",
     },
     "packages/web": {
       "name": "@xera-ai/web",
-      "version": "0.3.0",
+      "version": "0.9.6",
       "dependencies": {
         "@cucumber/gherkin": "39.1.0",
         "@cucumber/messages": "32.3.1",
         "@playwright/test": "1.60.0",
-        "@xera-ai/core": "^0.4.0",
+        "@xera-ai/core": "^0.9.6",
         "fflate": "0.8.3",
       },
     },
@@ -313,7 +314,7 @@
 
     "dir-glob": ["dir-glob@3.0.1", "", { "dependencies": { "path-type": "^4.0.0" } }, "sha512-WkrWp9GR4KXfKGYzOLmTuGVi1UWFfws377n9cc55/tb6DuqyF6pcQ5AbiHEshaDpY9v6oaSr2XCDidGmMwdzIA=="],
 
-    "dotenv": ["dotenv@8.6.0", "", {}, "sha512-IrPdXQsk2BbzvCBGBOTmmSH5SodmqZNt4ERAZDmW4CT+tL8VtvinqywuANaFu4bOMWki16nqf0e4oC0QIaDr/g=="],
+    "dotenv": ["dotenv@16.6.1", "", {}, "sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow=="],
 
     "enquirer": ["enquirer@2.4.1", "", { "dependencies": { "ansi-colors": "^4.1.1", "strip-ansi": "^6.0.1" } }, "sha512-rRqJg/6gd538VHvR3PSrdRBb/1Vy2YfzHqzvbhGIQpDRKIa4FgV/54b5Q1xYSxOOwKvjXweS26E0Q+nAMwp2pQ=="],
 
@@ -496,6 +497,8 @@
     "yaml": ["yaml@2.9.0", "", { "bin": { "yaml": "bin.mjs" } }, "sha512-2AvhNX3mb8zd6Zy7INTtSpl1F15HW6Wnqj0srWlkKLcpYl/gMIMJiyuGq2KeI2YFxUPjdlB+3Lc10seMLtL4cA=="],
 
     "zod": ["zod@4.4.3", "", {}, "sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ=="],
+
+    "@changesets/changelog-github/dotenv": ["dotenv@8.6.0", "", {}, "sha512-IrPdXQsk2BbzvCBGBOTmmSH5SodmqZNt4ERAZDmW4CT+tL8VtvinqywuANaFu4bOMWki16nqf0e4oC0QIaDr/g=="],
 
     "@manypkg/find-root/@types/node": ["@types/node@12.20.55", "", {}, "sha512-J8xLz7q2OFulZ2cyGTLE1TbbZcjpno7FaN6zdJNrgAdrJ+DZzh/uFR6YrTb4C+nXakvud8Q4+rbhoIWlYQbUFQ=="],
 
