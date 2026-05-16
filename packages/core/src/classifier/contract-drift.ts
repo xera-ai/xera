@@ -13,7 +13,10 @@ interface OpenAPIOperation {
 }
 
 export interface OpenAPIDocument {
-  paths: Record<string, Partial<Record<'get' | 'post' | 'put' | 'patch' | 'delete', OpenAPIOperation>>>;
+  paths: Record<
+    string,
+    Partial<Record<'get' | 'post' | 'put' | 'patch' | 'delete', OpenAPIOperation>>
+  >;
 }
 
 export interface ContractDriftCall {

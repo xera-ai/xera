@@ -1,4 +1,4 @@
-import { describe, test, expect } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 import { classifyAuthExpired } from '../../src/classifier/auth-expired';
 import type { HttpCallSummary } from '../../src/classifier/rate-limited';
 
@@ -64,7 +64,9 @@ describe('classifyAuthExpired', () => {
   });
 
   test('returns null when no auth files registered', () => {
-    expect(classifyAuthExpired({ calls: [{ status: 401, method: 'GET', url: '/x' }], authFiles: {} })).toBeNull();
+    expect(
+      classifyAuthExpired({ calls: [{ status: 401, method: 'GET', url: '/x' }], authFiles: {} }),
+    ).toBeNull();
   });
 
   test('detects expiry via file expires_at even without JWT exp', () => {
@@ -72,7 +74,11 @@ describe('classifyAuthExpired', () => {
     const out = classifyAuthExpired({
       calls,
       authFiles: {
-        user: { token: 'opaque-token-no-jwt', type: 'bearer', expires_at: new Date(Date.now() - 1000).toISOString() },
+        user: {
+          token: 'opaque-token-no-jwt',
+          type: 'bearer',
+          expires_at: new Date(Date.now() - 1000).toISOString(),
+        },
       },
     });
     expect(out?.class).toBe('AUTH_EXPIRED');

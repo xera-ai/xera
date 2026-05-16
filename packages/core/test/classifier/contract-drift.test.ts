@@ -1,4 +1,4 @@
-import { describe, test, expect } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 import { classifyContractDrift, type OpenAPIDocument } from '../../src/classifier/contract-drift';
 
 const spec: OpenAPIDocument = {
@@ -18,14 +18,26 @@ const spec: OpenAPIDocument = {
             },
           },
           '201': {
-            content: { 'application/json': { schema: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } } } },
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['id'],
+                  properties: { id: { type: 'string' } },
+                },
+              },
+            },
           },
         },
       },
     },
     '/users/{id}': {
       get: {
-        responses: { '200': { content: { 'application/json': { schema: { type: 'object', required: ['id'] } } } } },
+        responses: {
+          '200': {
+            content: { 'application/json': { schema: { type: 'object', required: ['id'] } } },
+          },
+        },
       },
     },
   },
@@ -91,7 +103,14 @@ describe('classifyContractDrift', () => {
   test('returns null when response matches schema', () => {
     expect(
       classifyContractDrift({
-        calls: [{ method: 'POST', url: '/users', status: 422, respBody: { errors: ['email is required'] } }],
+        calls: [
+          {
+            method: 'POST',
+            url: '/users',
+            status: 422,
+            respBody: { errors: ['email is required'] },
+          },
+        ],
         openapi: spec,
       }),
     ).toBeNull();
@@ -100,7 +119,9 @@ describe('classifyContractDrift', () => {
   test('ignores query string when matching path', () => {
     expect(
       classifyContractDrift({
-        calls: [{ method: 'GET', url: '/users/42?expand=org', status: 200, respBody: { id: '42' } }],
+        calls: [
+          { method: 'GET', url: '/users/42?expand=org', status: 200, respBody: { id: '42' } },
+        ],
         openapi: spec,
       }),
     ).toBeNull();
