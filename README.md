@@ -13,10 +13,12 @@ Backed by a **project knowledge graph** that links every ticket ↔ scenario ↔
 Prereqs: Bun ≥1.1.0, Claude Code, an Atlassian-connected MCP **or** a Jira API token, a web app and/or HTTP API to test.
 
 ```bash
+bun add -g @xera-ai/cli         # install once globally; or use bunx to run without installing
+
 mkdir my-tests && cd my-tests
-bunx @xera-ai/cli init          # interactive: answers shape + ~5 prompts; scaffolds CI workflow
+xera init                       # interactive: answers shape + ~5 prompts; scaffolds CI workflow
 # or fully non-interactive:
-bunx @xera-ai/cli init -y --shape api --pk MYPROJ --ju https://myco.atlassian.net --au https://api.example.com --as bearer
+xera init -y --shape api --pk MYPROJ --ju https://myco.atlassian.net --au https://api.example.com --as bearer
 cp .env.example .env            # fill in credentials
 bun install
 # Web shape only: bunx playwright install chromium
