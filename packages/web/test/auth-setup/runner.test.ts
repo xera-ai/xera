@@ -2,8 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { generateKey } from '@xera-ai/core';
-import { AUTH_KEY_ENV } from '@xera-ai/core';
+import { AUTH_KEY_ENV, generateKey } from '@xera-ai/core';
 import { runAuthSetup } from '../../src/auth-setup/runner';
 
 const definePath = resolve(import.meta.dir, '../../src/auth-setup/define.ts');

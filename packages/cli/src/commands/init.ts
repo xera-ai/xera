@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import * as p from '@clack/prompts';
 import { generateKey } from '@xera-ai/core';
 import pc from 'picocolors';
-import { TEMPLATE_DIR, copyDir, scaffoldFile } from '../scaffold';
+import { copyDir, scaffoldFile, TEMPLATE_DIR } from '../scaffold';
 
 const require = createRequire(import.meta.url);
 
@@ -139,9 +139,9 @@ export async function initCommand(opts: { yes: boolean }): Promise<void> {
   pkg.dependencies['@xera-ai/web'] = '^0.1.6';
   pkg.dependencies['@xera-ai/prompts'] = '^2.1.0';
   pkg.devDependencies = pkg.devDependencies ?? {};
-  pkg.devDependencies['@playwright/test'] = '^1.48.0';
-  pkg.devDependencies['@types/node'] = '^22.0.0';
-  pkg.devDependencies['typescript'] = '^5.6.3';
+  pkg.devDependencies['@playwright/test'] = '^1.60.0';
+  pkg.devDependencies['@types/node'] = '^25.8.0';
+  pkg.devDependencies['typescript'] = '^6.0.3';
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 
   p.outro(

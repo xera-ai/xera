@@ -1,5 +1,8 @@
 {
   "name": "@xera-ai/skills",
   "version": "0.3.0",
-  "files": ["*.md", "version.json"]
+  "files": [
+    "*.md",
+    "version.json"
+  ]
 }

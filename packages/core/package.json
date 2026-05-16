@@ -16,16 +16,22 @@
       "types": "./dist/adapter/types.d.ts"
     }
   },
-  "bin": { "xera-internal": "./dist/bin/internal.js" },
-  "files": ["dist", "src", "bin"],
+  "bin": {
+    "xera-internal": "./dist/bin/internal.js"
+  },
+  "files": [
+    "dist",
+    "src",
+    "bin"
+  ],
   "scripts": {
     "build": "bun build ./src/index.ts ./bin/internal.ts --outdir ./dist --target bun --external @playwright/test --external @xera-ai/web --external zod",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "zod": "3.23.8",
+    "zod": "4.4.3",
     "@xera-ai/web": "^0.1.5",
-    "@playwright/test": "1.48.0",
-    "fflate": "0.8.2"
+    "@playwright/test": "1.60.0",
+    "fflate": "0.8.3"
   }
 }

@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { writeFileSync as wfs } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync as wfs, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { strToU8, zipSync } from 'fflate';

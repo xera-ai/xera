@@ -11,16 +11,19 @@
       "types": "./dist/index.d.ts"
     }
   },
-  "files": ["dist", "src"],
+  "files": [
+    "dist",
+    "src"
+  ],
   "scripts": {
     "build": "bun build ./src/index.ts --outdir ./dist --target bun --external @playwright/test --external @xera-ai/core --external @cucumber/gherkin --external @cucumber/messages --external fflate",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@cucumber/gherkin": "30.0.4",
-    "@cucumber/messages": "27.0.2",
-    "@playwright/test": "1.48.0",
+    "@cucumber/gherkin": "39.1.0",
+    "@cucumber/messages": "32.3.1",
+    "@playwright/test": "1.60.0",
     "@xera-ai/core": "^0.1.5",
-    "fflate": "0.8.2"
+    "fflate": "0.8.3"
   }
 }

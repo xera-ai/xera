@@ -19,12 +19,12 @@ const WebSchema = z
       message: 'baseUrl must have at least one environment',
     }),
     defaultEnv: z.string(),
-    auth: AuthSchema.default({}),
+    auth: AuthSchema.prefault({}),
     testData: z
       .object({
         users: z.record(z.string(), z.object({ fromAuth: z.string() })).default({}),
       })
-      .default({ users: {} }),
+      .prefault({}),
   })
   .refine((w) => w.baseUrl[w.defaultEnv] !== undefined, {
     message: 'defaultEnv must exist in baseUrl map',
@@ -51,9 +51,9 @@ const AISchema = z
         lint: z.number().int().min(0).max(5).default(2),
         validateFeature: z.number().int().min(0).max(5).default(2),
       })
-      .default({}),
+      .prefault({}),
   })
-  .default({});
+  .prefault({});
 
 const ReportingSchema = z
   .object({
@@ -64,10 +64,10 @@ const ReportingSchema = z
         onPass: z.string().nullable().default(null),
         onFail: z.string().nullable().default(null),
       })
-      .default({}),
+      .prefault({}),
     artifactLinks: z.enum(['git', 'local']).default('git'),
   })
-  .default({});
+  .prefault({});
 
 export const XeraConfigSchema = z.object({
   jira: JiraSchema,
