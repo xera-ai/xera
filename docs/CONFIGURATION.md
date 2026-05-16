@@ -130,3 +130,21 @@ export default defineConfig({
 - `.xera/graph/events/<yyyy-mm>/*.jsonl` — committed event log, one file per skill invocation
 - `.xera/graph/snapshot.json` — gitignored, regenerable in < 1s
 - `.xera/cost-log.jsonl` — gitignored, per-machine LLM cost log
+
+### TEST_OUTDATED classifier (v0.6.1+)
+
+The TEST_OUTDATED classifier overrides the existing 4-bucket classification when the graph indicates a recent ticket has modified the scenario's SUT area and an LLM judges the failure is intentional.
+
+```typescript
+// xera.config.ts
+export default defineConfig({
+  testOutdated: {
+    threshold: 0.7,  // confidence required to override; 0.0 disables, 1.0 requires perfect signal
+  },
+  report: {
+    testOutdatedNotify: 'jira-subtask',  // 'jira-subtask' | 'comment' | 'console-only'
+  },
+});
+```
+
+When `testOutdated.threshold = 0`, the bucket is effectively disabled.
