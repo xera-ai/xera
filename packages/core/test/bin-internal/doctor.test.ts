@@ -1,8 +1,21 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { doctorCmd } from '../../src/bin-internal/doctor';
+
+async function runDoctor(root: string): Promise<{ stdout: string; exit: number }> {
+  const lines: string[] = [];
+  const origLog = console.log;
+  console.log = (...a: unknown[]) => lines.push(a.join(' '));
+  try {
+    const exit = await doctorCmd([], { cwd: root });
+    return { stdout: lines.join('\n'), exit };
+  } finally {
+    console.log = origLog;
+  }
+}
 
 function seedGoodRepo(root: string): void {
   // 3 valid eval fixtures
@@ -175,6 +188,37 @@ describe('doctor', () => {
     } finally {
       console.error = orig;
     }
+  });
+
+  test('doctor prints cost summary when cost-log.jsonl exists', async () => {
+    const costLog = join(cwd, '.xera/cost-log.jsonl');
+    mkdirSync(dirname(costLog), { recursive: true });
+    seedGoodRepo(cwd);
+    writeFileSync(
+      costLog,
+      JSON.stringify({
+        ts: new Date().toISOString(),
+        skill: 'xera-fetch',
+        prompt: 'extract-areas',
+        tokens_in: 100,
+        tokens_out: 50,
+        model: 'm',
+        cost_estimate_usd: 0.05,
+      }) + '\n',
+    );
+    const { stdout, exit } = await runDoctor(cwd);
+    expect(exit).toBe(0);
+    expect(stdout).toContain('LLM cost');
+    expect(stdout).toContain('0.05');
+  });
+
+  test('doctor warns when .xera/<TICKET> dirs exist but no graph events', async () => {
+    seedGoodRepo(cwd);
+    // create a ticket directory but no graph events
+    mkdirSync(join(cwd, '.xera/PROJ-123'), { recursive: true });
+    const { stdout, exit } = await runDoctor(cwd);
+    expect(exit).toBe(0);
+    expect(stdout).toMatch(/backfill/i);
   });
 
   test('exits 1 when xera:verify-prompts script is missing from root package.json', async () => {
