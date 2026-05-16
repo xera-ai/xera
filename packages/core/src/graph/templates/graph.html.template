@@ -7,29 +7,35 @@
 </head>
 <body>
   <header id="topbar">
-    <div class="title">xera graph</div>
-    <div class="stats">{{STATS}}</div>
-    <div class="legend">
-      <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>Ticket</div>
-      <div class="legend-item"><div class="legend-square" style="background:#10b981"></div>Scenario</div>
-      <div class="legend-item"><div class="legend-diamond" style="background:#f59e0b"></div>POM</div>
+    <div class="topbar-brand">
+      <div class="logo"></div>
+      <span class="title">xera graph</span>
     </div>
-    <div class="filters">
-      <input type="text" id="search" placeholder="search…" />
-      <label><input type="checkbox" id="filter-pass" checked> pass</label>
-      <label><input type="checkbox" id="filter-fail" checked> fail</label>
-      <label><input type="checkbox" id="filter-p0" checked> P0</label>
-      <button id="reset">reset</button>
+    <div id="stats-bar"></div>
+    <div class="topbar-controls">
+      <input type="text" id="search" placeholder="search nodes…" autocomplete="off" />
+      <div class="filter-group">
+        <label id="label-pass"><input type="checkbox" id="filter-pass" checked /><span class="indicator" style="background:#3fb950"></span>pass</label>
+        <label id="label-fail"><input type="checkbox" id="filter-fail" checked /><span class="indicator" style="background:#f85149"></span>fail</label>
+        <label id="label-p0"><input type="checkbox" id="filter-p0" checked /><span class="indicator" style="background:#e3b341"></span>P0</label>
+      </div>
+      <button id="reset-btn">fit</button>
     </div>
   </header>
+  <div id="progress-wrap"><div id="progress-bar"></div></div>
   <main id="canvas"></main>
   <aside id="sidepanel" class="hidden">
-    <h3 id="sp-title"></h3>
-    <div id="sp-group" class="sp-group"></div>
-    <p id="sp-desc"></p>
-    <div id="sp-actions"></div>
+    <div class="sp-header">
+      <div id="sp-group" class="sp-group-badge"></div>
+      <p id="sp-title" class="sp-title"></p>
+    </div>
+    <div id="sp-desc" class="sp-desc"></div>
+    <div id="sp-actions" class="sp-actions"></div>
   </aside>
-  <footer id="footer">generated {{GENERATED_AT}} · click a node to inspect · scroll to zoom · drag to pan</footer>
+  <footer id="footer">
+    generated {{GENERATED_AT}}
+    <span>· scroll to zoom · drag to pan · click to inspect</span>
+  </footer>
   <script>{{VIS_NETWORK_JS}}</script>
   <script>window.__GRAPH__ = {{GRAPH_DATA}};</script>
   <script>{{INTERACTION_JS}}</script>
