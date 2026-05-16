@@ -211,7 +211,7 @@ Web trace is large and binary-ish (Playwright `.zip` with screenshots, DOM dumps
 
 Normalizer:
 1. Reads `http-trace.jsonl`.
-2. Scrubs request/response headers and bodies through the shared `packages/web/src/trace-normalizer/scrub-rules.ts` (the rules module is portable; we may relocate it to `@xera-ai/core` in this PR if that's cleaner — TBD during implementation, not a design decision here).
+2. Scrubs request/response headers and bodies through the shared `@xera-ai/core` scrub-rules module (relocated from `packages/web/src/trace-normalizer/scrub-rules.ts` as part of this PR — see §13.1).
 3. Generates a reproducible `curl` per call (with scrubbed Authorization).
 4. Emits `normalized.json` matching the existing schema where applicable (per-scenario outcome, failure attached to scenario), plus an `http.calls` array carrying the per-call detail used by classifier + Jira post.
 
@@ -416,7 +416,7 @@ Existing `packages/core/src/auth/refresh.ts` already handles "ttl ± refreshBuff
 OpenAPI is **optional context** — the doctor warns but never blocks when missing. Most teams don't maintain OpenAPI; making it required would kill adoption.
 
 When configured (`http.spec: './openapi.yaml'` or URL):
-- Loader parses YAML/JSON, dereferences `$ref` (we vendor `@apidevtools/json-schema-ref-parser` or equivalent — final dep choice during implementation).
+- Loader parses YAML/JSON, dereferences `$ref` using `@apidevtools/json-schema-ref-parser` (focused tool; we don't need full Swagger validation, just deref).
 - Public API: `findOperation(method, pathTemplate)` → returns operation object with parameters, requestBody schema, responses schema.
 - Used by:
   - **Skill `xera-script`** when reading the prompt context — the skill passes the relevant operation schema into the prompt JSON for `script-from-feature-http.md`.
@@ -806,15 +806,35 @@ No runtime feature flag; v0.7.0 is a clean minor bump on top of v0.6.4.
 
 ---
 
-## 13. Open questions
+## 13. Resolved decisions
 
-These do NOT block writing the spec but should be resolved during plan-write or implementation:
+These were discussed during brainstorm and locked before plan-write:
 
-1. **Does `scrub-rules.ts` move to `@xera-ai/core` so both adapters import it from one place, or stay in `@xera-ai/web` and have `@xera-ai/http` depend on web?** Recommendation: move to core during this PR; the rules module is genuinely shared infrastructure.
-2. **OpenAPI dependency choice.** `@apidevtools/json-schema-ref-parser` vs `swagger-parser` vs hand-rolled $ref resolver. Recommendation: `@apidevtools/json-schema-ref-parser` (well-maintained, smaller surface than swagger-parser, focuses just on the parse-and-deref problem).
-3. **Should the unique-data-per-run pattern be enforced or just suggested in the prompt?** Recommendation: suggested (the prompt is instruction, not validation). If users see real-world collisions we can add a lint rule in v0.7.1.
-4. **`adapters: ['web', 'http']` ordering.** Does the array order matter for default-adapter pick when `meta.json.adapter` is absent? Recommendation: first element wins.
-5. **Sample HTTP ticket: against what?** A bundled mock running on localhost (smooth init experience, but extra process to start) or against the user's `baseUrl` (real, but might require auth that doesn't exist yet)? Recommendation: bundled local mock for the init smoke test, then `init --upgrade --remove-samples` once user is ready.
+### 13.1 `scrub-rules` lives in `@xera-ai/core`
+
+Move `packages/web/src/trace-normalizer/scrub-rules.ts` → `packages/core/src/scrub/rules.ts` as part of this PR. Both web and http trace normalizers import from core. Web's existing tests for scrubbing move alongside (test paths under `packages/core/test/scrub/`). The rules module is genuinely shared infrastructure; web "owning" it was incidental.
+
+Adversarial tests for relaxation (per CLAUDE.md reflex) move with the module. No rule changes in v0.7 — pure relocation.
+
+### 13.2 OpenAPI dependency: `@apidevtools/json-schema-ref-parser`
+
+Pinned dep in `packages/http/package.json`. We need $ref dereferencing only, not full Swagger validation. `swagger-parser` is built on this one and adds validator code we don't need; hand-rolled would re-implement circular-ref handling and `$id` resolution — wasted effort.
+
+### 13.3 Unique-data-per-run: suggested in prompt, not enforced
+
+`script-from-feature-http.md` instructs the LLM to use `process.env.XERA_RUN_ID` as a suffix in identifying fields for POST-creation scenarios. **Not** enforced by lint. Some tests legitimately need static identifiers (verifying exact-record behavior, idempotency tests). If users hit real-world collisions, v0.7.1 can add a lint rule then — YAGNI now.
+
+### 13.4 `adapters` array ordering: first element wins as default
+
+When `meta.json.adapter` is absent, the runner picks `config.adapters[0]`. Web-only and http-only projects have a single-element array so this is unambiguous. Mixed projects pick the more common adapter first (`init` wizard offers "Which adapter should new tickets default to?" question).
+
+Skills that auto-create tickets (rare; mostly user-driven) write `meta.json.adapter` explicitly using this same default rule.
+
+### 13.5 Sample HTTP ticket runs against bundled mock
+
+`init --shape api|mixed` scaffolds `sample/SAMPLE-HTTP-001/` whose `playwright.config.ts` points at `http://localhost:<port>` and starts `fixtures/mock-api/`-equivalent (a small Bun.serve script in `scripts/sample-mock.ts`) via `webServer` config. This makes the first-time-run experience zero-friction: `bun run xera:auth-setup && /xera-run SAMPLE-HTTP-001` works without the user's backend being up.
+
+When QA is ready to point at their real backend: edit `xera.config.ts.http.baseUrl` and remove the `webServer` block in `playwright.config.ts`. The wizard's "next steps" output mentions this.
 
 ---
 
