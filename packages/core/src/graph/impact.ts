@@ -1,4 +1,4 @@
-import type { EdgeKind, Priority } from './types';
+import type { EdgeKind, Priority, Snapshot, TicketNode } from './types';
 
 export interface ImpactEdge {
   kind: EdgeKind;
@@ -63,4 +63,114 @@ export function riskScore(scenario: ImpactScenario, daysSinceLastPass: number): 
   const confW = firstEdge?.confidence !== undefined ? firstEdge.confidence * 2 : 0;
   const decay = daysSinceLastPass * 0.1;
   return pri + edgeW + confW - decay;
+}
+
+const PRIORITY_RANK: Record<Priority, number> = { p0: 3, p1: 2, p2: 1 };
+
+function daysSince(ts: string | undefined): number {
+  if (!ts) return 0;
+  const ms = Date.now() - Date.parse(ts);
+  return ms < 0 ? 0 : ms / (86400 * 1000);
+}
+
+export function walkImpact(graph: Snapshot, target: TicketNode, opts: ImpactOpts): ImpactScenario[] {
+  const result: ImpactScenario[] = [];
+  const seen = new Set<string>();
+
+  // Areas the target modifies
+  const targetAreas = new Set(target.modifiesAreas);
+
+  // POMs covering any of those areas
+  const pomIds = graph.edges
+    .filter((e) => e.kind === 'covers' && targetAreas.has(e.to))
+    .map((e) => e.from);
+
+  // Scenarios using any of those POMs (depth 1 — direct collision)
+  const directScenarios = graph.edges
+    .filter((e) => e.kind === 'uses' && pomIds.includes(e.to))
+    .map((e) => e.from);
+
+  for (const scenarioId of directScenarios) {
+    if (seen.has(scenarioId)) continue;
+    const scenario = graph.scenarios[scenarioId];
+    if (!scenario) continue;
+    if (scenario.ticketId === target.id) continue; // exclude own scenarios
+
+    const usingPom = graph.edges.find((e) => e.kind === 'uses' && e.from === scenarioId);
+    const modifyEdge = graph.edges.find((e) => e.kind === 'modifies' && e.from === target.id && targetAreas.has(e.to));
+    const edgePath: ImpactEdge[] = [];
+    if (modifyEdge) edgePath.push({ kind: 'modifies', from: modifyEdge.from, to: modifyEdge.to });
+    if (usingPom) edgePath.push({ kind: 'uses', from: usingPom.from, to: usingPom.to });
+
+    seen.add(scenarioId);
+    const impact: ImpactScenario = {
+      scenarioId, ticketId: scenario.ticketId, name: scenario.name,
+      priority: scenario.priority, edgePath, riskScore: 0,
+    };
+    impact.riskScore = riskScore(impact, daysSince(graph.latest_failures[scenarioId]?.ts));
+    result.push(impact);
+  }
+
+  // Depth >= 2: jira-linked tickets contribute their scenarios
+  if (opts.depth >= 2) {
+    const linked = graph.edges
+      .filter((e) => e.kind === 'jira-linked' && e.from === target.id)
+      .map((e) => ({ to: e.to, source: e.source }));
+    for (const link of linked) {
+      const sceneIds = graph.edges
+        .filter((e) => e.kind === 'tests' && e.from === link.to)
+        .map((e) => e.to);
+      for (const scenarioId of sceneIds) {
+        if (seen.has(scenarioId)) continue;
+        const scenario = graph.scenarios[scenarioId];
+        if (!scenario || scenario.ticketId === target.id) continue;
+        seen.add(scenarioId);
+        const edge: ImpactEdge = { kind: 'jira-linked', from: target.id, to: link.to };
+        if (link.source !== undefined) edge.source = link.source;
+        const impact: ImpactScenario = {
+          scenarioId, ticketId: scenario.ticketId, name: scenario.name,
+          priority: scenario.priority, edgePath: [edge], riskScore: 0,
+        };
+        impact.riskScore = riskScore(impact, daysSince(graph.latest_failures[scenarioId]?.ts));
+        result.push(impact);
+      }
+    }
+  }
+
+  // Depth >= 3: similar tickets contribute their scenarios
+  if (opts.depth >= 3) {
+    const similar = graph.edges
+      .filter((e) => e.kind === 'similar' && e.from === target.id)
+      .map((e) => ({ to: e.to, confidence: e.confidence }));
+    for (const link of similar) {
+      const sceneIds = graph.edges
+        .filter((e) => e.kind === 'tests' && e.from === link.to)
+        .map((e) => e.to);
+      for (const scenarioId of sceneIds) {
+        if (seen.has(scenarioId)) continue;
+        const scenario = graph.scenarios[scenarioId];
+        if (!scenario || scenario.ticketId === target.id) continue;
+        seen.add(scenarioId);
+        const edge: ImpactEdge = { kind: 'similar', from: target.id, to: link.to };
+        if (link.confidence !== undefined) edge.confidence = link.confidence;
+        const impact: ImpactScenario = {
+          scenarioId, ticketId: scenario.ticketId, name: scenario.name,
+          priority: scenario.priority, edgePath: [edge], riskScore: 0,
+        };
+        impact.riskScore = riskScore(impact, daysSince(graph.latest_failures[scenarioId]?.ts));
+        result.push(impact);
+      }
+    }
+  }
+
+  // Filter by min-priority
+  let filtered = result;
+  if (opts.minPriority) {
+    const min = PRIORITY_RANK[opts.minPriority];
+    filtered = filtered.filter((s) => PRIORITY_RANK[s.priority] >= min);
+  }
+
+  // Sort by riskScore descending
+  filtered.sort((a, b) => b.riskScore - a.riskScore);
+  return filtered;
 }
