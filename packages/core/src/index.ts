@@ -17,3 +17,4 @@ export * from './jira/retry';
 export * from './jira/types';
 export * from './lock/file-lock';
 export * from './logging/ndjson-logger';
+export * from './scrub';
