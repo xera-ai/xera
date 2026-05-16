@@ -48,6 +48,24 @@ export default defineConfig({
       },
     },
   },
+  // v0.7 — http adapter (optional; at least one of web/http required)
+  http: {
+    baseUrl: {
+      dev:     'https://api.dev.example.com',
+      staging: 'https://api.staging.example.com',
+    },
+    defaultEnv: 'dev',
+    spec: './openapi.yaml',          // path or URL; optional (enables CONTRACT_DRIFT)
+    auth: {
+      strategy: 'bearer',            // 'bearer' | 'apiKey' | 'basic' | 'oauth-cc' | 'custom' | 'none'
+      ttl: '8h',
+      refreshBuffer: '30m',
+      roles: {
+        user:  { tokenEnv: 'USER_BEARER_TOKEN' },
+        admin: { tokenEnv: 'ADMIN_BEARER_TOKEN' },
+      },
+    },
+  },
   ai: {
     livePageSnapshot: true,
     confidenceThreshold: 'medium',
@@ -91,8 +109,16 @@ export default defineConfig({
 - `transition`: optional Jira status transitions on pass/fail. Default disabled.
 - `artifactLinks`: where Jira links should point. `git` (committed paths in repo) or `local` (filesystem).
 
+### `http` (v0.7+)
+- `baseUrl`: map of environment name → URL for the API target. Must include `defaultEnv`.
+- `defaultEnv`: which environment xera targets by default.
+- `spec`: optional path or URL to an OpenAPI 3 document. When set, AI generation uses the schema to derive request bodies and the classifier emits `CONTRACT_DRIFT` on schema mismatches. When unset, xera still works — schema-derived edge cases and `CONTRACT_DRIFT` detection are disabled (doctor warns).
+- `auth.strategy`: which preset to apply. `bearer` reads `tokenEnv` and prefixes `Authorization: Bearer ...`. `apiKey` reads `tokenEnv` and attaches `X-API-Key`. `basic` base64-encodes `userEnv:passEnv`. `oauth-cc` performs an OAuth client_credentials handshake against `tokenUrl`. `custom` defers to the body of your `defineHttpAuthSetup` function (e.g. a login endpoint that returns a session token). `none` disables auth.
+- `auth.ttl` / `auth.refreshBuffer`: same semantics as `web.auth`.
+- `auth.roles.<name>`: per-role env-var references. Fields used depend on strategy: `tokenEnv` (bearer / apiKey), `userEnv`+`passEnv` (basic), `tokenUrl`+`clientIdEnv`+`clientSecretEnv`+optional `scope` (oauth-cc).
+
 ### `adapters`
-- Array of adapter ids to enable. v0.1 supports only `['web']`.
+- Array of adapter ids to enable. `['web']`, `['http']`, or `['web', 'http']` (mixed). At least one of the corresponding config blocks must be present. The first element is the default adapter for new tickets when `meta.json.adapter` is absent.
 
 ## Environment variables
 

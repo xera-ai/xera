@@ -66,7 +66,41 @@ bunx xera init --update
 # Restart Claude Code to refresh skill discovery.
 ```
 
-## 10. `XERA_AUTH_KEY mismatch — cannot decrypt`
+## 10. `Auth file not found for role 'X'` (v0.7+ http adapter)
+
+The runtime helper `newAuthedContext` couldn't find `.xera/.auth/http/<role>.json`. Run pre-authentication:
+
+```bash
+bun run xera:auth-setup --role X
+```
+
+Or `bun run xera:auth-setup` to set up every role at once.
+
+## 11. `Auth file expired for role 'X'` (v0.7+ http adapter)
+
+Token aged past `http.auth.ttl`. xera does NOT auto-refresh at run time (avoids surprise side effects). Re-run:
+
+```bash
+bun run xera:auth-setup --role X
+```
+
+## 12. `CONTRACT_DRIFT detected` (v0.7+)
+
+The captured response doesn't match the OpenAPI schema for that endpoint. Two common causes:
+
+- **Backend changed legitimately** — update `openapi.yaml` (and re-generate test assertions) to match.
+- **Bug in backend** — the spec is correct; the server diverged. File a bug.
+
+The classifier is deterministic — it diffs your `http.spec` against the captured `respBody`. If you're confident the spec is stale, ignore the bucket and regenerate via `/xera-script <TICKET>`. v0.9 will add auto-PR healing.
+
+## 13. `OpenAPI spec not configured` warning
+
+Soft warning when `http.spec` is unset. CONTRACT_DRIFT detection and schema-derived edge cases are disabled, but xera still generates tests from the Jira story alone. To enable richer http coverage:
+
+- Ask backend dev to export an OpenAPI spec (Spring/FastAPI/NestJS auto-generate them).
+- Point `http.spec` at the path or URL in `xera.config.ts`.
+
+## 14. `XERA_AUTH_KEY mismatch — cannot decrypt`
 
 You either regenerated the key in `.env` or deleted `.env`. The auth state cache is unreadable. Fix:
 
