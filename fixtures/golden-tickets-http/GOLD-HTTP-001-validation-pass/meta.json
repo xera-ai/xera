@@ -1,0 +1,5 @@
+{
+  "ticket": "GOLD-HTTP-001",
+  "adapter": "http",
+  "title": "Validation passes — POST /users with bad email returns 422"
+}

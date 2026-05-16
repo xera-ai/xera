@@ -1,0 +1,5 @@
+{
+  "ticket": "GOLD-HTTP-002",
+  "adapter": "http",
+  "title": "Real bug — POST /users returns 500 instead of 422 on bad email"
+}

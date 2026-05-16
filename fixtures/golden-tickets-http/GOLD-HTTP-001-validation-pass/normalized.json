@@ -1,0 +1,15 @@
+{
+  "runId": "gold-001",
+  "outcome": "PASS",
+  "scenarios": [{ "name": "reject bad email", "outcome": "PASS" }],
+  "http": {
+    "calls": [
+      {
+        "method": "POST",
+        "url": "/users",
+        "status": 422,
+        "respBody": { "errors": ["email must be valid"] }
+      }
+    ]
+  }
+}

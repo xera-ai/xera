@@ -1,0 +1,5 @@
+{
+  "ticket": "GOLD-HTTP-004",
+  "adapter": "http",
+  "title": "Rate limited — backend returned HTTP 429"
+}

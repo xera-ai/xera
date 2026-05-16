@@ -1,0 +1,21 @@
+{
+  "runId": "gold-005",
+  "outcome": "FAIL",
+  "scenarios": [
+    {
+      "name": "list users",
+      "outcome": "FAIL",
+      "failure": { "errorMessage": "expected 200, got 401" }
+    }
+  ],
+  "http": {
+    "calls": [
+      {
+        "method": "GET",
+        "url": "/users/1",
+        "status": 401,
+        "respBody": { "error": "Unauthorized" }
+      }
+    ]
+  }
+}

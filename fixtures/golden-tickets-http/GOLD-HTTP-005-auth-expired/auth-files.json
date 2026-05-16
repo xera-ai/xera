@@ -1,0 +1,8 @@
+{
+  "user": {
+    "_note": "Token's JWT exp claim is intentionally in the past (2020-01-01); expires_at is also stale to trigger AUTH_EXPIRED.",
+    "token": "eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjE1Nzc4MzY4MDB9.fake-sig",
+    "type": "bearer",
+    "expires_at": "2020-01-01T00:00:00.000Z"
+  }
+}

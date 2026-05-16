@@ -1,0 +1,5 @@
+{
+  "ticket": "GOLD-HTTP-003",
+  "adapter": "http",
+  "title": "Contract drift — response field renamed from `errors` to `validation_errors`"
+}

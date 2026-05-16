@@ -1,0 +1,21 @@
+{
+  "runId": "gold-002",
+  "outcome": "FAIL",
+  "scenarios": [
+    {
+      "name": "reject bad email",
+      "outcome": "FAIL",
+      "failure": { "errorMessage": "expected 422, got 500" }
+    }
+  ],
+  "http": {
+    "calls": [
+      {
+        "method": "POST",
+        "url": "/users",
+        "status": 500,
+        "respBody": { "error": "Internal server error" }
+      }
+    ]
+  }
+}
