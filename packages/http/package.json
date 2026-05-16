@@ -1,0 +1,32 @@
+{
+  "name": "@xera-ai/http",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./runtime": {
+      "bun": "./src/runtime/index.ts",
+      "import": "./dist/runtime/index.js",
+      "types": "./dist/runtime/index.d.ts"
+    }
+  },
+  "files": ["dist", "src"],
+  "scripts": {
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun --external @playwright/test --external @xera-ai/core --external @apidevtools/json-schema-ref-parser --external yaml",
+    "build:runtime": "bun build ./src/runtime/index.ts --outdir ./dist/runtime --target bun --external @playwright/test --external @xera-ai/core",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@apidevtools/json-schema-ref-parser": "11.7.0",
+    "@playwright/test": "1.60.0",
+    "@xera-ai/core": "^0.4.0",
+    "yaml": "2.9.0",
+    "zod": "4.4.3"
+  }
+}
