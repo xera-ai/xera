@@ -4,12 +4,12 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { doctorCmd } from '../../src/bin-internal/doctor';
 
-async function runDoctor(root: string): Promise<{ stdout: string; exit: number }> {
+async function runDoctor(root: string, argv: string[] = []): Promise<{ stdout: string; exit: number }> {
   const lines: string[] = [];
   const origLog = console.log;
   console.log = (...a: unknown[]) => lines.push(a.join(' '));
   try {
-    const exit = await doctorCmd([], { cwd: root });
+    const exit = await doctorCmd(argv, { cwd: root });
     return { stdout: lines.join('\n'), exit };
   } finally {
     console.log = origLog;
@@ -224,6 +224,23 @@ describe('doctor', () => {
     // create a ticket directory but no graph events
     mkdirSync(join(cwd, '.xera/PROJ-123'), { recursive: true });
     const { stdout, exit } = await runDoctor(cwd);
+    expect(exit).toBe(0);
+    expect(stdout).toMatch(/backfill/i);
+  });
+
+  test('doctor --auto-enrich runs enrichment for unbackfilled tickets', async () => {
+    seedGoodRepo(cwd);
+    // create a ticket directory with no graph events so it appears unbackfilled
+    mkdirSync(join(cwd, '.xera/PROJ-123'), { recursive: true });
+    const { stdout, exit } = await runDoctor(cwd, ['--auto-enrich']);
+    expect(exit).toBe(0);
+    expect(stdout).toMatch(/auto-enrich|enrichment/i);
+  });
+
+  test('doctor without --auto-enrich shows backfill suggestion (existing behavior)', async () => {
+    seedGoodRepo(cwd);
+    mkdirSync(join(cwd, '.xera/PROJ-456'), { recursive: true });
+    const { stdout, exit } = await runDoctor(cwd, []);
     expect(exit).toBe(0);
     expect(stdout).toMatch(/backfill/i);
   });

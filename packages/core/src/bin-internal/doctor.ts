@@ -117,8 +117,9 @@ function checkRootScripts(repoRoot: string): CheckResult[] {
   return missing.map((s) => ({ ok: false, message: `root package.json missing script: ${s}` }));
 }
 
-export async function doctorCmd(_argv: string[], opts: DoctorOpts = {}): Promise<number> {
+export async function doctorCmd(argv: string[], opts: DoctorOpts = {}): Promise<number> {
   const repoRoot = opts.cwd ?? process.cwd();
+  const autoEnrich = argv.includes('--auto-enrich');
   const results: CheckResult[] = [
     ...checkGoldenEvalDir(repoRoot),
     ...checkRubricPrompt(repoRoot),
@@ -156,6 +157,17 @@ export async function doctorCmd(_argv: string[], opts: DoctorOpts = {}): Promise
         console.log(`  These won't participate in v0.6.1+ features (TEST_OUTDATED, /xera-impact).`);
         console.log(`  Run: bun run xera:graph-backfill`);
         console.log(`  (Use --dry-run to preview.)`);
+        if (autoEnrich) {
+          console.log('[doctor] --auto-enrich: running backfill for unbackfilled tickets...');
+          // Lazy import to avoid circular deps
+          const { graphBackfillCmd } = await import('./graph-backfill');
+          const exitCode = await graphBackfillCmd([]);
+          if (exitCode === 0) {
+            console.log(`[doctor] auto-enrich: backfilled ${unbackfilled.length} tickets`);
+          } else {
+            console.error('[doctor] auto-enrich: backfill failed');
+          }
+        }
       }
     }
   }
