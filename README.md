@@ -2,6 +2,8 @@
 
 AI-native test framework for QA teams — fetch a Jira ticket, generate Gherkin + Playwright spec, run the test, diagnose the failure, and post results back to Jira. Driven entirely by Claude Code skills.
 
+**v0.8:** [Release pipeline](AGENTS.md#workspace-deps) is now fully automated and unified. All six packages move in lockstep at a single version (currently `0.8.0`) via a [changesets](https://github.com/changesets/changesets) `fixed` group; PR titles in conventional-commits form auto-generate changesets; merging to `main` opens a "Version Packages" PR; merging that publishes every package to npm with per-package git tags — zero manual `bun publish`, zero manual tags.
+
 **v0.7:** [HTTP API testing](docs/ARCHITECTURE.md#packages) is now first-class. A new `@xera-ai/http` adapter sibles the web adapter — QA teams can scaffold api-only or mixed projects (`bunx @xera-ai/cli init --shape api|mixed`), pre-authenticate via `bun run xera:auth-setup`, and the classifier deterministically detects `CONTRACT_DRIFT` / `RATE_LIMITED` / `AUTH_EXPIRED` against captured HTTP traces.
 
 Backed by a **project knowledge graph** that links every ticket ↔ scenario ↔ POM ↔ SUT area, so xera can tell you when a test failure is actually an outdated assertion (not a real bug), what scenarios a ticket might break before you merge, and visualize the whole graph as a single self-contained HTML viewer.
@@ -76,8 +78,8 @@ See [the design spec](docs/superpowers/specs/2026-05-14-xera-core-web-design.md)
 | v0.5 | ✅ shipped | Self-healing selector drift (auto-fix POM locators) |
 | v0.6 | ✅ shipped | Project Knowledge Graph (graph foundation · TEST_OUTDATED classifier · `/xera-impact` skill · HTML viewer + CI artifact · QA polish) |
 | v0.7 | ✅ shipped | **HTTP API adapter** (`@xera-ai/http`) · init `--shape web\|api\|mixed` · pre-auth pattern (`xera:auth-setup`) · 3 new classifier buckets (`CONTRACT_DRIFT`, `RATE_LIMITED`, `AUTH_EXPIRED`) · web prompt knows `page.request` |
-| v0.8 | planned | `xera-feature --from-spec openapi.yaml` (generate tickets from spec) · auto-detect adapter from story |
-| v0.9 | planned | `CONTRACT_DRIFT` on web traces (network ↔ OpenAPI matching) · self-heal auto-PR |
+| v0.8 | ✅ shipped | **Release infra overhaul** — all six packages unified at a single version via changesets `fixed` group · auto-changeset workflow infers bumps from PR titles · `xera-automation` GitHub App so bot-pushed commits trigger CI · changeset-bot + branch protection on `main` · tag-triggered `bun publish` retired in favour of `release.yml` |
+| v0.9 | planned | `xera-feature --from-spec openapi.yaml` (generate tickets from spec) · auto-detect adapter from story · `CONTRACT_DRIFT` on web traces (network ↔ OpenAPI matching) · self-heal auto-PR |
 | v1.0 | planned | Cross-adapter graph linkage (endpoint as first-class graph node) · live dashboard |
 | v1.x | planned | Messaging adapters (Kafka, AMQP, WebSocket) · GraphQL · gRPC |
 | v2.0 | planned | Optional SaaS backend (only if multi-org demand) |

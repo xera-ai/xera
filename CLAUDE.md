@@ -93,7 +93,7 @@ A frequent source of confusion when editing in this repo:
 - **Prompts** (`packages/prompts/*.md`) tell the session LLM **how to generate or diagnose**: rules for Gherkin output, selector strategy, classifier decision tree, etc. They are prompt templates with their own version line.
 - A skill that needs AI generation **points at** a prompt template — the session LLM reads the prompt's frontmatter + body and follows it in the *same* session. **The prompt is data the skill points at, not a separate sub-agent.** Do not refactor a skill to "spawn" a prompt as an agent; that's wrong.
 
-Copy text **verbatim** from the implementation plans under `docs/superpowers/plans/`. Don't paraphrase, condense, or add commentary outside frontmatter. Bump `version.json` and the relevant package version when a prompt changes shape.
+Copy text **verbatim** from the implementation plans under `docs/superpowers/plans/`. Don't paraphrase, condense, or add commentary outside frontmatter. When a prompt's *shape* changes (frontmatter, output format), bump `version.json` in `packages/prompts/` — the package version itself is handled by changesets (all six packages bump in lockstep via the `fixed` group; see [AGENTS.md § Workspace deps](AGENTS.md#workspace-deps)).
 
 ## Vendored superpowers under `.claude/`
 
@@ -151,7 +151,7 @@ These show up repeatedly; internalize them before touching code.
 - **`bun:test`, not vitest.** Import from `'bun:test'`. Tests mirror `src/` paths under `packages/<pkg>/test/`.
 - **Restore `process.cwd()` in `afterEach`** if a test calls `process.chdir(...)`. `fixtures/golden-tickets/` resolution depends on cwd; leaks cascade.
 - **Skill `.md` is user-facing copy.** Match implementation plans word for word. Don't "improve the wording."
-- **Workspace deps use explicit caret semver**, not `workspace:*`. Bump the caret in siblings when you bump a package version. See `AGENTS.md § Workspace deps` for why.
+- **Workspace deps use explicit caret semver**, not `workspace:*`. All six packages share one `fixed`-group version — changesets bumps them in lockstep, so don't hand-edit individual `version` fields or sibling carets; let the Version Packages PR own it. See `AGENTS.md § Workspace deps` for why.
 - **Don't weaken security-sensitive files.** `packages/web/src/trace-normalizer/scrub-rules.ts` and `packages/core/src/auth/encrypt.ts` require adversarial tests for relaxation. Adding rules is fine; removing is not.
 - **Don't bypass hash-based drift detection.** `story_hash` / `feature_hash` / `script_hash` / `events_hash` exist so skills can skip work; "always regenerate" defeats the design.
 - **Graph events are commit-friendly via shard-by-session.** One JSONL file per skill invocation; never append into a shared file. Snapshot is gitignored and rebuilt on demand. See `docs/superpowers/specs/2026-05-16-xera-v06-project-knowledge-graph-design.md` §3.6.
