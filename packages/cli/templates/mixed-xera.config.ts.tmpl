@@ -17,7 +17,7 @@ export default defineConfig({
       strategy: 'storageState',
       setupScript: './shared/auth-setup.ts',
       roles: {
-        {{#each roles}}{{this}}: { envEmail: '{{upper this}}_EMAIL', envPassword: '{{upper this}}_PASSWORD' },
+        {{#each roles}}{{this}}: { envEmail: 'TEST_{{upper this}}_EMAIL', envPassword: 'TEST_{{upper this}}_PWD' },
         {{/each}}
       },
     },{{/if}}
