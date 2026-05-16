@@ -15,15 +15,28 @@ In other words: when you edit this repo you are writing the prompts, skills, and
 ```
 packages/
   core/      @xera-ai/core      config, paths, hashing, lock, log, Jira client,
-                                classifier, auth state, xera-internal binary
-    src/bin-internal/           subcommands invoked by skills via `bun run xera:*`
-                                (fetch, validate-feature, typecheck, lint, exec,
-                                 normalize, report, post, status, unlock, promote)
+                                classifier (5 buckets incl. TEST_OUTDATED),
+                                auth state, graph module, xera-internal binary
+    src/bin-internal/           19 subcommands invoked by skills via `bun run xera:*`
+                                v0.1: fetch, validate-feature, typecheck, lint,
+                                      exec (supports --grep), normalize, report,
+                                      post, status, unlock, promote
+                                v0.2: eval-prepare, eval-deterministic, eval-report
+                                v0.5: heal-prepare
+                                v0.6: graph-record, graph-snapshot, graph-query,
+                                      graph-backfill, graph-enrich, graph-render,
+                                      impact-prepare, disputes
+                                universal: verify-prompts, doctor (--auto-enrich)
     src/adapter/types.ts        TestAdapter interface — extension point
-    src/classifier/             4-bucket failure classifier (adapter-agnostic)
+    src/classifier/             5-bucket classifier (REAL_BUG, TEST_BUG,
+                                SELECTOR_DRIFT, FLAKY, TEST_OUTDATED, PASS)
+    src/graph/                  v0.6 project knowledge graph data layer
+                                (types, schema, store, ulid, paths, similarity,
+                                 enrich, classify, traverse, impact, render, cost
+                                 + templates/ for HTML viewer)
     src/auth/                   AES-256-GCM encryption for storageState
     src/jira/                   REST + MCP backends behind one client
-  web/       @xera-ai/web       Playwright adapter
+  web/       @xera-ai/web       Playwright adapter (--grep support since v0.6.4)
     src/executor/               run Playwright + JSON reporter
     src/generator/              selector rules, lint, pom-scan, gherkin-validate
     src/trace-normalizer/       parse + scrub Playwright traces (security-sensitive)
@@ -31,25 +44,35 @@ packages/
   cli/       @xera-ai/cli       public `xera` CLI: only `init` and `doctor`
     src/commands/               init, init-update, doctor
     templates/                  scaffold templates (xera.config, playwright.config,
-                                tsconfig, env.example, auth-setup, sample/)
-  skills/    @xera-ai/skills    Claude Code skill .md files (7 user-facing skills)
-  prompts/   @xera-ai/prompts   versioned LLM prompt templates
-                                (diagnose-failure, feature-from-story, script-from-feature)
+                                tsconfig, env.example, auth-setup, sample/,
+                                xera-graph.yml — CI viewer workflow)
+  skills/    @xera-ai/skills    Claude Code skill .md files (8 user-facing skills:
+                                xera-run, xera-fetch, xera-feature, xera-script,
+                                xera-exec, xera-report, xera-impact, xera-promote)
+  prompts/   @xera-ai/prompts   versioned LLM prompt templates (7 templates:
+                                diagnose-failure, feature-from-story,
+                                script-from-feature, heal-locator, extract-areas,
+                                similarity-match, classify-outdated)
 fixtures/
   sample-app/                   Next.js login+dashboard target for integration tests
   mock-jira/                    Bun.serve mock Jira (deterministic tickets)
   golden-tickets/               classifier fixtures (cwd-sensitive — see AGENTS.md)
+  golden-eval/                  /xera-eval rubric fixtures (v0.2 + EVAL-007/008/009)
+  golden-graph/                 snapshot/dedup/corrupt + TEST_OUTDATED scenarios
+  golden-impact/                impact-prepare BFS scenarios (depth-1/2/empty)
 docs/
-  ARCHITECTURE.md               condensed overview
-  CONFIGURATION.md              user-facing config reference
-  TROUBLESHOOTING.md            top-10 issues
-  superpowers/specs/            design spec (authoritative)
+  ARCHITECTURE.md               condensed overview (refreshed for v0.6)
+  CONFIGURATION.md              user-facing config reference (graph + cost + autoImpact)
+  TROUBLESHOOTING.md            top issues (incl. graph snapshot, viewer perf, disputes)
+  superpowers/specs/            design specs — authoritative
+                                (v0.1 core-web, v0.2 eval, v0.3 prompt-injection,
+                                 v0.5 self-heal, v0.6 project-knowledge-graph)
   superpowers/plans/            implementation plans + POSTMORTEM.md
 .claude/
   skills/                       vendored superpowers skills (use via Skill tool)
   commands/                     vendored superpowers commands (brainstorm,
                                 write-plan, execute-plan)
-.github/workflows/              ci.yml + nightly-e2e.yml
+.github/workflows/              ci.yml (+ graph-viewer job) + nightly-e2e.yml + publish.yml
 ```
 
 ## Skills vs prompts boundary
@@ -70,7 +93,7 @@ Do **not** confuse these with the `/xera-*` end-user skills in `packages/skills/
 
 ## `/xera-*` skills inside this repo
 
-Most `/xera-*` skills (`/xera-run`, `/xera-fetch`, `/xera-feature`, `/xera-script`, `/xera-exec`, `/xera-report`, `/xera-promote`) expect a consumer project layout: a top-level `xera.config.ts`, a `.xera/<TICKET>/` artifact directory, generated POMs, etc. This monorepo does not have any of that, so running them here will fail or silently no-op.
+Most `/xera-*` skills (`/xera-run`, `/xera-fetch`, `/xera-feature`, `/xera-script`, `/xera-exec`, `/xera-report`, `/xera-impact`, `/xera-promote`) expect a consumer project layout: a top-level `xera.config.ts`, a `.xera/<TICKET>/` artifact directory, generated POMs, `.xera/graph/events/` history, etc. This monorepo does not have any of that, so running them here will fail or silently no-op.
 
 To exercise them end-to-end, scaffold a throwaway project:
 
@@ -120,7 +143,10 @@ These show up repeatedly; internalize them before touching code.
 - **Skill `.md` is user-facing copy.** Match implementation plans word for word. Don't "improve the wording."
 - **Workspace deps use explicit caret semver**, not `workspace:*`. Bump the caret in siblings when you bump a package version. See `AGENTS.md § Workspace deps` for why.
 - **Don't weaken security-sensitive files.** `packages/web/src/trace-normalizer/scrub-rules.ts` and `packages/core/src/auth/encrypt.ts` require adversarial tests for relaxation. Adding rules is fine; removing is not.
-- **Don't bypass hash-based drift detection.** `story_hash` / `feature_hash` / `script_hash` exist so skills can skip work; "always regenerate" defeats the design.
+- **Don't bypass hash-based drift detection.** `story_hash` / `feature_hash` / `script_hash` / `events_hash` exist so skills can skip work; "always regenerate" defeats the design.
+- **Graph events are commit-friendly via shard-by-session.** One JSONL file per skill invocation; never append into a shared file. Snapshot is gitignored and rebuilt on demand. See `docs/superpowers/specs/2026-05-16-xera-v06-project-knowledge-graph-design.md` §3.6.
+- **Graph subcommands MUST stay deterministic.** AI work (`similarity-match.md`, `classify-outdated.md`, `extract-areas.md`) happens skill-side — skill writes the LLM output to a JSON file (e.g. `enrichment-input.json`, `outdated-decisions.json`), then `xera-internal graph-*` reads and validates that file. No Claude shell-out from any binary.
+- **Vendored `vis-network.min.js` is excluded from biome via `biome.json`.** Don't reformat or modify the vendored bundle directly. To upgrade, replace the file + the `LICENSE-vis-network.txt` alongside it.
 
 ## Commit / PR etiquette (Claude-specific)
 
