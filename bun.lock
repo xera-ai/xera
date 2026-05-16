@@ -31,47 +31,47 @@
     },
     "packages/cli": {
       "name": "@xera-ai/cli",
-      "version": "0.1.14",
+      "version": "0.2.0",
       "bin": {
         "xera": "./bin/xera",
       },
       "dependencies": {
         "@clack/prompts": "1.4.0",
-        "@xera-ai/core": "^0.3.0",
-        "@xera-ai/skills": "^0.3.0",
+        "@xera-ai/core": "^0.4.0",
+        "@xera-ai/skills": "^0.3.1",
         "cac": "7.0.0",
         "picocolors": "1.1.1",
       },
     },
     "packages/core": {
       "name": "@xera-ai/core",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "bin": {
         "xera-internal": "./dist/bin/internal.js",
       },
       "dependencies": {
         "@playwright/test": "1.60.0",
-        "@xera-ai/web": "^0.1.5",
+        "@xera-ai/web": "^0.2.0",
         "fflate": "0.8.3",
         "zod": "4.4.3",
       },
     },
     "packages/prompts": {
       "name": "@xera-ai/prompts",
-      "version": "2.1.0",
+      "version": "2.1.1",
     },
     "packages/skills": {
       "name": "@xera-ai/skills",
-      "version": "0.3.0",
+      "version": "0.3.1",
     },
     "packages/web": {
       "name": "@xera-ai/web",
-      "version": "0.1.7",
+      "version": "0.2.0",
       "dependencies": {
         "@cucumber/gherkin": "39.1.0",
         "@cucumber/messages": "32.3.1",
         "@playwright/test": "1.60.0",
-        "@xera-ai/core": "^0.1.5",
+        "@xera-ai/core": "^0.4.0",
         "fflate": "0.8.3",
       },
     },
@@ -255,7 +255,7 @@
 
     "streamsearch": ["streamsearch@1.1.0", "", {}, "sha512-Mcc5wHehp9aXz1ax6bZUyY5afg9u2rv5cqQI3mRrYkGC8rW2hM02jWuwjtL++LS5qinSyhj2QfLyNsuc+VsExg=="],
 
-    "styled-jsx": ["styled-jsx@5.1.6", "", { "dependencies": { "client-only": "0.0.1" }, "peerDependencies": { "@babel/core": "*", "babel-plugin-macros": "*", "react": ">= 16.8.0 || 17.x.x || ^18.0.0-0 || ^19.0.0-0" }, "optionalPeers": ["@babel/core", "babel-plugin-macros"] }, "sha512-qSVyDTeMotdvQYoHWLNGwRFJHC+i+ZvdBRYosOFgC+Wg1vx4frN2/RG/NA7SYqqvKNLf39P2LSRA2pu6n0XYZA=="],
+    "styled-jsx": ["styled-jsx@5.1.6", "", { "dependencies": { "client-only": "0.0.1" }, "peerDependencies": { "react": ">= 16.8.0 || 17.x.x || ^18.0.0-0 || ^19.0.0-0" } }, "sha512-qSVyDTeMotdvQYoHWLNGwRFJHC+i+ZvdBRYosOFgC+Wg1vx4frN2/RG/NA7SYqqvKNLf39P2LSRA2pu6n0XYZA=="],
 
     "tslib": ["tslib@2.8.1", "", {}, "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="],
 
@@ -265,18 +265,6 @@
 
     "zod": ["zod@4.4.3", "", {}, "sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ=="],
 
-    "@xera-ai/web/@xera-ai/core": ["@xera-ai/core@0.1.7", "", { "dependencies": { "@playwright/test": "1.48.0", "@xera-ai/web": "^0.1.5", "zod": "3.23.8" }, "bin": { "xera-internal": "dist/bin/internal.js" } }, "sha512-Y+4MoePW0NNPBeB0lWS7N+d9GAupfvwKzrU+Z0jlwx24BWMZX+fFuPzjoDYGZqe3k0bxk7c4JOwGXb7LzioW/g=="],
-
     "@xera-fixtures/sample-app/typescript": ["typescript@5.6.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-hjcS1mhfuyi4WW8IWtjP7brDrG2cuDZukyrYrSauoXGNgx0S7zceP07adYkJycEr56BOUTNPzbInooiN3fn1qw=="],
-
-    "postcss/picocolors": ["picocolors@1.1.0", "", {}, "sha512-TQ92mBOW0l3LeMeyLV6mzy/kWr8lkd/hp3mTg7wYK7zJhuBStmGMBG0BdeDZS/dZx1IukaX6Bk11zcln25o1Aw=="],
-
-    "@xera-ai/web/@xera-ai/core/@playwright/test": ["@playwright/test@1.48.0", "", { "dependencies": { "playwright": "1.48.0" }, "bin": { "playwright": "cli.js" } }, "sha512-W5lhqPUVPqhtc/ySvZI5Q8X2ztBOUgZ8LbAFy0JQgrXZs2xaILrUcNO3rQjwbLPfGK13+rZsDa1FpG+tqYkT5w=="],
-
-    "@xera-ai/web/@xera-ai/core/zod": ["zod@3.23.8", "", {}, "sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g=="],
-
-    "@xera-ai/web/@xera-ai/core/@playwright/test/playwright": ["playwright@1.48.0", "", { "dependencies": { "playwright-core": "1.48.0" }, "optionalDependencies": { "fsevents": "2.3.2" }, "bin": { "playwright": "cli.js" } }, "sha512-qPqFaMEHuY/ug8o0uteYJSRfMGFikhUysk8ZvAtfKmUK3kc/6oNl/y3EczF8OFGYIi/Ex2HspMfzYArk6+XQSA=="],
-
-    "@xera-ai/web/@xera-ai/core/@playwright/test/playwright/playwright-core": ["playwright-core@1.48.0", "", { "bin": { "playwright-core": "cli.js" } }, "sha512-RBvzjM9rdpP7UUFrQzRwR8L/xR4HyC1QXMzGYTbf1vjw25/ya9NRAVnXi/0fvFopjebvyPzsmoK58xxeEOaVvA=="],
   }
 }
