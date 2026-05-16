@@ -1,5 +1,15 @@
 # @xera-ai/core
 
+## 0.9.2
+
+### Patch Changes
+
+- [#47](https://github.com/xera-ai/xera/pull/47) [`71cd48e`](https://github.com/xera-ai/xera/commit/71cd48ec88aa52d7a66c50ff1cc10cc8d23a6f71) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - replace hardcoded version strings with dynamic reads (auto-generated from [#47](https://github.com/xera-ai/xera/issues/47))
+
+- Updated dependencies []:
+  - @xera-ai/web@0.9.2
+  - @xera-ai/http@0.9.2
+
 ## 0.9.1
 
 ### Patch Changes
