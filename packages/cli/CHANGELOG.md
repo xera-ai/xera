@@ -1,5 +1,15 @@
 # @xera-ai/cli
 
+## 0.9.6
+
+### Patch Changes
+
+- [#55](https://github.com/xera-ai/xera/pull/55) [`097add0`](https://github.com/xera-ai/xera/commit/097add0eefd042d5bef864167a3dec115291ea9b) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - remove SAMPLE-HTTP-001 http sample from xera init scaffold
+
+- Updated dependencies []:
+  - @xera-ai/core@0.9.6
+  - @xera-ai/skills@0.9.6
+
 ## 0.9.5
 
 ### Patch Changes
