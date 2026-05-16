@@ -8,6 +8,7 @@ import { graphBackfillCmd } from './graph-backfill';
 import { graphEnrichCmd } from './graph-enrich';
 import { graphQueryCmd } from './graph-query';
 import { graphRecordCmd } from './graph-record';
+import { graphRenderCmd } from './graph-render';
 import { graphSnapshotCmd } from './graph-snapshot';
 import { healPrepareCmd } from './heal-prepare';
 import { impactPrepareCmd } from './impact-prepare';
@@ -31,6 +32,7 @@ const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
   fetch: fetchCmd,
   'graph-backfill': graphBackfillCmd,
   'graph-enrich': graphEnrichCmd,
+  'graph-render': graphRenderCmd,
   'graph-query': graphQueryCmd,
   'graph-record': graphRecordCmd,
   'graph-snapshot': graphSnapshotCmd,

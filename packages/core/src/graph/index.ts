@@ -26,6 +26,8 @@ export {
   walkImpact,
 } from './impact';
 export { currentYyyyMm, graphPaths } from './paths';
+export type { GraphStats, RenderHtmlInput, RenderOpts, VisEdge, VisNode } from './render';
+export { renderHtml, transformForVisNetwork } from './render';
 export { EventSchema, safeParseEvent } from './schema';
 export { buildSimilarityPrompt } from './similarity';
 export {

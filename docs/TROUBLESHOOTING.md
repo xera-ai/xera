@@ -134,3 +134,20 @@ If `/xera-impact` returns no scenarios even though there should be coverage:
 1. Run `xera doctor` to confirm the graph is up-to-date
 2. Run `bun run xera:graph-query --ticket <TICKET>` to verify the ticket has `modifies` edges
 3. If the ticket has no `modifies` edges, re-fetch: `/xera-fetch <TICKET>` (the v0.6.0 `extract-areas.md` prompt populates them at fetch time)
+
+### Viewer too slow / blank
+
+If `.xera/graph.html` opens but renders slowly or appears blank:
+
+1. Check graph size: `bun run xera:graph-query --format text | head` — if you have > 500 nodes, the renderer auto-switches to ticket-only mode.
+2. Filter the view: `bun run xera:graph-render --since 30d` or `--ticket <SOME_ID>` to narrow the rendered subset.
+3. Check browser console for errors (vis-network may fail to initialize on very old browsers; Chrome/Firefox/Safari from the past 3 years all work).
+
+### Viewer artifact not appearing on PRs
+
+Verify the workflow file was scaffolded:
+```bash
+ls .github/workflows/xera-graph.yml
+```
+
+If missing, run `bunx @xera-ai/cli init --update` to refresh the scaffold (v0.6.3+).

@@ -1,4 +1,11 @@
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import * as p from '@clack/prompts';
@@ -18,10 +25,27 @@ export async function initUpdateCommand(_opts: { yes: boolean }): Promise<void> 
   }
   const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
   pkg.dependencies = pkg.dependencies ?? {};
-  pkg.dependencies['@xera-ai/core'] = '^0.4.2';
+  pkg.dependencies['@xera-ai/core'] = '^0.4.3';
   pkg.dependencies['@xera-ai/web'] = '^0.2.0';
   pkg.dependencies['@xera-ai/prompts'] = '^2.3.0';
+  pkg.scripts = pkg.scripts ?? {};
+  pkg.scripts['xera:graph-snapshot'] = 'xera-internal graph-snapshot';
+  pkg.scripts['xera:graph-render'] = 'xera-internal graph-render';
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
+
+  // Scaffold GitHub Actions viewer workflow (v0.6.3+)
+  const wfDir = join(cwd, '.github/workflows');
+  mkdirSync(wfDir, { recursive: true });
+  try {
+    const cliPkgPath = require.resolve('@xera-ai/cli/package.json');
+    const cliTplPath = join(cliPkgPath, '..', 'templates/xera-graph.yml.template');
+    copyFileSync(cliTplPath, join(wfDir, 'xera-graph.yml'));
+    p.log.info('scaffolded .github/workflows/xera-graph.yml');
+  } catch (_e) {
+    // CLI templates not resolvable in this environment; skip workflow scaffold.
+    // Users can re-run `xera init` to get it.
+    p.log.warn('skipped xera-graph.yml scaffold (re-run `xera init` to create it)');
+  }
 
   // Refresh skills with 3-way diff
   const skillsSrc = require.resolve('@xera-ai/skills/package.json');
