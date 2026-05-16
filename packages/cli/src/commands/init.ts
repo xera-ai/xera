@@ -88,7 +88,10 @@ export async function initCommand(opts: { yes: boolean; shape?: ProjectShape }):
                 initialValue: true,
               }),
             roles: () =>
-              p.text({ message: 'Test user roles (comma-separated)', initialValue: 'admin,regular' }),
+              p.text({
+                message: 'Test user roles (comma-separated)',
+                initialValue: 'admin,regular',
+              }),
           },
           {
             onCancel: () => {
@@ -159,7 +162,10 @@ export async function initCommand(opts: { yes: boolean; shape?: ProjectShape }):
     stagingUrl: webAnswers?.stagingUrl ?? '',
     authEnabled: !!webAnswers?.authEnabled,
     roles: webAnswers
-      ? webAnswers.roles.split(',').map((s: string) => s.trim()).filter(Boolean)
+      ? webAnswers.roles
+          .split(',')
+          .map((s: string) => s.trim())
+          .filter(Boolean)
       : [],
 
     // http-only fields:
@@ -167,7 +173,10 @@ export async function initCommand(opts: { yes: boolean; shape?: ProjectShape }):
     openapiPath: httpAnswers?.openapiPath ?? '',
     authStrategy: (httpAnswers?.authStrategy as string | undefined) ?? 'none',
     httpRoles: httpAnswers
-      ? (httpAnswers.httpRoles as string).split(',').map((s: string) => s.trim()).filter(Boolean)
+      ? (httpAnswers.httpRoles as string)
+          .split(',')
+          .map((s: string) => s.trim())
+          .filter(Boolean)
       : [],
 
     authKey: generateKey(),
@@ -183,8 +192,7 @@ export async function initCommand(opts: { yes: boolean; shape?: ProjectShape }):
   scaffoldFile(join(cwd, 'xera.config.ts'), configTmpl, vars);
 
   // playwright.config.ts — api uses http-only template (no browser)
-  const pwTmpl =
-    shape === 'api' ? 'http-playwright.config.ts.tmpl' : 'playwright.config.ts.tmpl';
+  const pwTmpl = shape === 'api' ? 'http-playwright.config.ts.tmpl' : 'playwright.config.ts.tmpl';
   scaffoldFile(join(cwd, 'playwright.config.ts'), pwTmpl, vars);
 
   scaffoldFile(join(cwd, 'tsconfig.json'), 'tsconfig.json.tmpl', vars);

@@ -1,4 +1,4 @@
-import { test, expect, type APIRequestContext } from '@playwright/test';
+import { type APIRequestContext, expect, test } from '@playwright/test';
 import { newAuthedContext } from '@xera-ai/http/runtime';
 
 test.describe('POST /users validation', () => {
@@ -6,7 +6,9 @@ test.describe('POST /users validation', () => {
   test.beforeAll(async ({ playwright }) => {
     api = await newAuthedContext(playwright, 'user');
   });
-  test.afterAll(async () => { await api.dispose(); });
+  test.afterAll(async () => {
+    await api.dispose();
+  });
 
   test('Reject malformed email', async () => {
     const res = await api.post('/users', { data: { email: 'not-an-email' } });
