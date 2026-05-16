@@ -24,7 +24,10 @@ export async function graphBackfillCmd(argv: string[]): Promise<number> {
   const dryRun = argv.includes('--dry-run');
   const repoRoot = process.cwd();
   const xeraDir = join(repoRoot, '.xera');
-  if (!existsSync(xeraDir)) { console.log('[backfill] no .xera/ directory'); return 0; }
+  if (!existsSync(xeraDir)) {
+    console.log('[backfill] no .xera/ directory');
+    return 0;
+  }
   const tickets: string[] = [];
   for (const entry of readdirSync(xeraDir, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;

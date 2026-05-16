@@ -1,11 +1,24 @@
-import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
 import { createHash } from 'node:crypto';
-import { graphPaths, currentYyyyMm } from './paths';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  writeFileSync,
+} from 'node:fs';
+import { dirname } from 'node:path';
+import { currentYyyyMm, graphPaths } from './paths';
 import { safeParseEvent } from './schema';
 import { SCHEMA_VERSION } from './types';
 import type {
-  Event, EdgeRecord, FailureNode, PomNode, ScenarioNode, Snapshot, TicketNode,
+  EdgeRecord,
+  Event,
+  FailureNode,
+  PomNode,
+  ScenarioNode,
+  Snapshot,
+  TicketNode,
 } from './types';
 
 export interface AppendOptions {
@@ -22,8 +35,8 @@ export function appendEvents(repoRoot: string, events: Event[], opts: AppendOpti
   mkdirSync(monthDir, { recursive: true });
   const ulid = events[0]!.event_id;
   const finalPath = paths.eventFile(ulid, opts.skill, opts.ticketId, yyyyMm);
-  const tmpPath = finalPath + '.tmp';
-  const body = events.map((e) => JSON.stringify(e)).join('\n') + '\n';
+  const tmpPath = `${finalPath}.tmp`;
+  const body = `${events.map((e) => JSON.stringify(e)).join('\n')}\n`;
   writeFileSync(tmpPath, body);
   renameSync(tmpPath, finalPath);
   return finalPath;
@@ -51,10 +64,17 @@ export function loadAllEvents(repoRoot: string): Event[] {
       const lines = readFileSync(file, 'utf8').split('\n').filter(Boolean);
       for (const line of lines) {
         let parsed: unknown;
-        try { parsed = JSON.parse(line); }
-        catch { console.warn(`[graph.store] skip-line bad-json ${file}`); continue; }
+        try {
+          parsed = JSON.parse(line);
+        } catch {
+          console.warn(`[graph.store] skip-line bad-json ${file}`);
+          continue;
+        }
         const r = safeParseEvent(parsed);
-        if (!r.success) { console.warn(`[graph.store] skip-line invalid ${file}`); continue; }
+        if (!r.success) {
+          console.warn(`[graph.store] skip-line invalid ${file}`);
+          continue;
+        }
         events.push(r.data);
       }
     } catch (e) {
@@ -68,7 +88,7 @@ export function loadAllEvents(repoRoot: string): Event[] {
 export function computeEventsHash(events: Event[]): string {
   const h = createHash('sha256');
   for (const e of events) h.update(e.event_id);
-  return 'sha256:' + h.digest('hex');
+  return `sha256:${h.digest('hex')}`;
 }
 
 export function deriveSnapshot(events: Event[]): Snapshot {
@@ -93,29 +113,44 @@ export function deriveSnapshot(events: Event[]): Snapshot {
         for (const a of e.payload.modifiesAreas) areas[a] = { id: a };
         for (const link of e.payload.jiraLinks) {
           edges.push({
-            kind: 'jira-linked', from: e.payload.ticketId, to: link.ticketId,
-            source: `jira:${link.relation}`, discoveredAt: e.ts,
+            kind: 'jira-linked',
+            from: e.payload.ticketId,
+            to: link.ticketId,
+            source: `jira:${link.relation}`,
+            discoveredAt: e.ts,
           });
         }
         break;
       case 'ticket.enriched':
-        if (tickets[e.payload.ticketId]) tickets[e.payload.ticketId]!.enrichedAt = e.payload.enrichedAt;
+        if (tickets[e.payload.ticketId])
+          tickets[e.payload.ticketId]!.enrichedAt = e.payload.enrichedAt;
         break;
       case 'scenario.generated':
         scenarios[e.payload.scenarioId] = {
-          id: e.payload.scenarioId, ticketId: e.payload.ticketId, name: e.payload.name,
-          gherkin: e.payload.gherkin, priority: e.payload.priority,
-          featureHash: e.payload.featureHash, generatedAt: e.payload.generatedAt,
+          id: e.payload.scenarioId,
+          ticketId: e.payload.ticketId,
+          name: e.payload.name,
+          gherkin: e.payload.gherkin,
+          priority: e.payload.priority,
+          featureHash: e.payload.featureHash,
+          generatedAt: e.payload.generatedAt,
         };
         edges.push({
-          kind: 'tests', from: e.payload.ticketId, to: e.payload.scenarioId,
-          source: 'xera-script', discoveredAt: e.ts,
+          kind: 'tests',
+          from: e.payload.ticketId,
+          to: e.payload.scenarioId,
+          source: 'xera-script',
+          discoveredAt: e.ts,
         });
         break;
       case 'pom.generated':
         poms[e.payload.pomId] = {
-          id: e.payload.pomId, ticketId: e.payload.ticketId, filePath: e.payload.filePath,
-          route: e.payload.route, locators: e.payload.locators, scope: e.payload.scope,
+          id: e.payload.pomId,
+          ticketId: e.payload.ticketId,
+          filePath: e.payload.filePath,
+          route: e.payload.route,
+          locators: e.payload.locators,
+          scope: e.payload.scope,
         };
         break;
       case 'pom.promoted':
@@ -128,7 +163,8 @@ export function deriveSnapshot(events: Event[]): Snapshot {
         if (e.payload.status === 'fail') {
           const fail: FailureNode = {
             id: `${e.payload.runId}:${e.payload.scenarioId}`,
-            scenarioId: e.payload.scenarioId, runId: e.payload.runId,
+            scenarioId: e.payload.scenarioId,
+            runId: e.payload.runId,
             ts: e.ts,
           };
           if (e.payload.traceId) fail.traceId = e.payload.traceId;
@@ -139,15 +175,19 @@ export function deriveSnapshot(events: Event[]): Snapshot {
         break;
       case 'edge.discovered': {
         const ed: EdgeRecord = {
-          kind: e.payload.kind, from: e.payload.from, to: e.payload.to,
-          source: e.payload.source, discoveredAt: e.ts,
+          kind: e.payload.kind,
+          from: e.payload.from,
+          to: e.payload.to,
+          source: e.payload.source,
+          discoveredAt: e.ts,
         };
         if (e.payload.confidence !== undefined) ed.confidence = e.payload.confidence;
         edges.push(ed);
         break;
       }
       // run.classified and classification.disputed: not materialized in v0.6.0 snapshot
-      default: break;
+      default:
+        break;
     }
   }
 
@@ -156,14 +196,19 @@ export function deriveSnapshot(events: Event[]): Snapshot {
     generated_at: new Date().toISOString(),
     event_count: events.length,
     events_hash: computeEventsHash(events),
-    tickets, scenarios, poms, areas, edges, latest_failures: latestFailures,
+    tickets,
+    scenarios,
+    poms,
+    areas,
+    edges,
+    latest_failures: latestFailures,
   };
 }
 
 export function writeSnapshot(repoRoot: string, snap: Snapshot): void {
   const paths = graphPaths(repoRoot);
   mkdirSync(dirname(paths.snapshotFile), { recursive: true });
-  const tmp = paths.snapshotFile + '.tmp';
+  const tmp = `${paths.snapshotFile}.tmp`;
   writeFileSync(tmp, JSON.stringify(snap, null, 2));
   renameSync(tmp, paths.snapshotFile);
 }
@@ -171,8 +216,11 @@ export function writeSnapshot(repoRoot: string, snap: Snapshot): void {
 export function loadSnapshot(repoRoot: string): Snapshot | null {
   const paths = graphPaths(repoRoot);
   if (!existsSync(paths.snapshotFile)) return null;
-  try { return JSON.parse(readFileSync(paths.snapshotFile, 'utf8')) as Snapshot; }
-  catch { return null; }
+  try {
+    return JSON.parse(readFileSync(paths.snapshotFile, 'utf8')) as Snapshot;
+  } catch {
+    return null;
+  }
 }
 
 export function isSnapshotStale(repoRoot: string): boolean {

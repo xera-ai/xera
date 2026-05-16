@@ -1,9 +1,9 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Stage } from '../eval/types';
-import { verifyPrompts } from './verify-prompts';
 import { summarizeCost } from '../graph/cost';
 import { loadAllEvents } from '../graph/store';
+import { verifyPrompts } from './verify-prompts';
 
 export interface DoctorOpts {
   cwd?: string;
@@ -134,7 +134,8 @@ export async function doctorCmd(_argv: string[], opts: DoctorOpts = {}): Promise
     console.log(`  Total calls: ${cost.totalCalls}`);
     console.log(`  Estimated:   $${cost.totalUsd.toFixed(2)} USD`);
     const top = Object.entries(cost.bySkill).sort((a, b) => b[1].usd - a[1].usd)[0];
-    if (top) console.log(`  Top skill:   ${top[0]} (${top[1].calls} calls, $${top[1].usd.toFixed(2)})`);
+    if (top)
+      console.log(`  Top skill:   ${top[0]} (${top[1].calls} calls, $${top[1].usd.toFixed(2)})`);
   }
 
   // Backfill detection
@@ -152,9 +153,7 @@ export async function doctorCmd(_argv: string[], opts: DoctorOpts = {}): Promise
       if (unbackfilled.length > 0) {
         console.log('');
         console.log(`⚠ Graph: ${unbackfilled.length} ticket(s) not yet in graph.`);
-        console.log(
-          `  These won't participate in v0.6.1+ features (TEST_OUTDATED, /xera-impact).`,
-        );
+        console.log(`  These won't participate in v0.6.1+ features (TEST_OUTDATED, /xera-impact).`);
         console.log(`  Run: bun run xera:graph-backfill`);
         console.log(`  (Use --dry-run to preview.)`);
       }

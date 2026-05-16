@@ -1,24 +1,44 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
-import { join, basename } from 'node:path';
+import { basename, join } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import { appendEvents } from '../graph/store';
-import { ulid } from '../graph/ulid';
 import { SCHEMA_VERSION } from '../graph/types';
 import type {
-  EdgeDiscoveredPayload, Event, PomPromotedPayload,
-  RunClassifiedPayload, RunCompletedPayload,
+  EdgeDiscoveredPayload,
+  Event,
+  PomPromotedPayload,
+  RunClassifiedPayload,
+  RunCompletedPayload,
   TicketFetchedPayload,
 } from '../graph/types';
+import { ulid } from '../graph/ulid';
 
-function nowIso(): string { return new Date().toISOString(); }
-function sha1(s: string): string { return createHash('sha1').update(s).digest('hex'); }
+function nowIso(): string {
+  return new Date().toISOString();
+}
+function sha1(s: string): string {
+  return createHash('sha1').update(s).digest('hex');
+}
 function scenarioId(ticket: string, name: string): string {
   return sha1(`${ticket}:${name.trim().toLowerCase().replace(/\s+/g, ' ')}`);
 }
-function pomId(filePath: string): string { return sha1(basename(filePath)); }
-function makeEvent<T extends Event['type']>(actor: string, type: T, payload: Extract<Event, { type: T }>['payload']): Event {
-  return { event_id: ulid(), schema_version: SCHEMA_VERSION, ts: nowIso(), actor, type, payload } as Event;
+function pomId(filePath: string): string {
+  return sha1(basename(filePath));
+}
+function makeEvent<T extends Event['type']>(
+  actor: string,
+  type: T,
+  payload: Extract<Event, { type: T }>['payload'],
+): Event {
+  return {
+    event_id: ulid(),
+    schema_version: SCHEMA_VERSION,
+    ts: nowIso(),
+    actor,
+    type,
+    payload,
+  } as Event;
 }
 
 interface StoryFrontmatter {
@@ -26,7 +46,10 @@ interface StoryFrontmatter {
   summary: string;
   storyHash: string;
   acceptanceCriteria?: string[];
-  linked_issues?: Array<{ ticketId: string; relation: 'blocks' | 'duplicates' | 'relates' | 'supersedes' }>;
+  linked_issues?: Array<{
+    ticketId: string;
+    relation: 'blocks' | 'duplicates' | 'relates' | 'supersedes';
+  }>;
 }
 
 function readStoryFrontmatter(repoRoot: string, ticket: string): StoryFrontmatter | null {
@@ -41,13 +64,19 @@ function readStoryFrontmatter(repoRoot: string, ticket: string): StoryFrontmatte
 function readGraphInput(repoRoot: string, ticket: string): { modifiesAreas: string[] } {
   const path = join(repoRoot, '.xera', ticket, 'graph-input.json');
   if (!existsSync(path)) return { modifiesAreas: [] };
-  try { return JSON.parse(readFileSync(path, 'utf8')); }
-  catch { return { modifiesAreas: [] }; }
+  try {
+    return JSON.parse(readFileSync(path, 'utf8'));
+  } catch {
+    return { modifiesAreas: [] };
+  }
 }
 
 export async function recordFetch(repoRoot: string, ticket: string): Promise<number> {
   const fm = readStoryFrontmatter(repoRoot, ticket);
-  if (!fm) { console.error(`[graph-record fetch] story.md not found for ${ticket}`); return 1; }
+  if (!fm) {
+    console.error(`[graph-record fetch] story.md not found for ${ticket}`);
+    return 1;
+  }
   const { modifiesAreas } = readGraphInput(repoRoot, ticket);
   const events: Event[] = [];
   const fetchedPayload: TicketFetchedPayload = {
@@ -61,13 +90,19 @@ export async function recordFetch(repoRoot: string, ticket: string): Promise<num
   events.push(makeEvent('xera-fetch', 'ticket.fetched', fetchedPayload));
   for (const link of fm.linked_issues ?? []) {
     const p: EdgeDiscoveredPayload = {
-      kind: 'jira-linked', from: fm.ticketId, to: link.ticketId, source: `jira:${link.relation}`,
+      kind: 'jira-linked',
+      from: fm.ticketId,
+      to: link.ticketId,
+      source: `jira:${link.relation}`,
     };
     events.push(makeEvent('xera-fetch', 'edge.discovered', p));
   }
   for (const area of modifiesAreas) {
     const p: EdgeDiscoveredPayload = {
-      kind: 'modifies', from: fm.ticketId, to: area, source: 'extract-areas',
+      kind: 'modifies',
+      from: fm.ticketId,
+      to: area,
+      source: 'extract-areas',
     };
     events.push(makeEvent('xera-fetch', 'edge.discovered', p));
   }
@@ -82,15 +117,21 @@ async function recordScript(repoRoot: string, ticket: string): Promise<number> {
 
 async function recordExec(repoRoot: string, ticket: string, runId: string): Promise<number> {
   const reporterPath = join(repoRoot, '.xera', ticket, 'runs', runId, 'reporter.json');
-  if (!existsSync(reporterPath)) { console.error(`[graph-record exec] reporter.json missing`); return 1; }
+  if (!existsSync(reporterPath)) {
+    console.error(`[graph-record exec] reporter.json missing`);
+    return 1;
+  }
   const data = JSON.parse(readFileSync(reporterPath, 'utf8')) as {
     scenarios: Array<{ name: string; status: 'pass' | 'fail'; runtime: number; traceId?: string }>;
   };
   const events: Event[] = [];
   for (const s of data.scenarios) {
     const p: RunCompletedPayload = {
-      scenarioId: scenarioId(ticket, s.name), ticketId: ticket, runId,
-      status: s.status, runtime: s.runtime,
+      scenarioId: scenarioId(ticket, s.name),
+      ticketId: ticket,
+      runId,
+      status: s.status,
+      runtime: s.runtime,
     };
     if (s.traceId) p.traceId = s.traceId;
     events.push(makeEvent('xera-exec', 'run.completed', p));
@@ -101,14 +142,18 @@ async function recordExec(repoRoot: string, ticket: string, runId: string): Prom
 
 async function recordClassify(repoRoot: string, ticket: string, runId: string): Promise<number> {
   const classifyPath = join(repoRoot, '.xera', ticket, 'runs', runId, 'classifier-output.json');
-  if (!existsSync(classifyPath)) { console.error(`[graph-record classify] classifier-output.json missing`); return 1; }
+  if (!existsSync(classifyPath)) {
+    console.error(`[graph-record classify] classifier-output.json missing`);
+    return 1;
+  }
   const data = JSON.parse(readFileSync(classifyPath, 'utf8')) as {
     scenarios: Array<{ name: string; class: string; confidence: 'low' | 'medium' | 'high' }>;
   };
   const events: Event[] = [];
   for (const s of data.scenarios) {
     const p: RunClassifiedPayload = {
-      scenarioId: scenarioId(ticket, s.name), runId,
+      scenarioId: scenarioId(ticket, s.name),
+      runId,
       classification: s.class as RunClassifiedPayload['classification'],
       confidence: s.confidence,
     };
@@ -122,7 +167,10 @@ async function recordPromote(repoRoot: string, args: Map<string, string>): Promi
   const from = args.get('--from');
   const to = args.get('--to');
   const pomIdArg = args.get('--pom-id');
-  if (!from || !to) { console.error(`[graph-record promote] --from and --to required`); return 1; }
+  if (!from || !to) {
+    console.error(`[graph-record promote] --from and --to required`);
+    return 1;
+  }
   const id = pomIdArg ?? pomId(from);
   const p: PomPromotedPayload = { pomId: id, fromPath: from, toPath: to };
   const e = makeEvent('xera-promote', 'pom.promoted', p);
@@ -143,37 +191,53 @@ function parseFlags(args: string[]): Map<string, string> {
 
 export async function graphRecordCmd(argv: string[]): Promise<number> {
   const [action, ...rest] = argv;
-  if (!action) { console.error(`Usage: xera-internal graph-record <fetch|script|exec|classify|promote> [args]`); return 1; }
+  if (!action) {
+    console.error(`Usage: xera-internal graph-record <fetch|script|exec|classify|promote> [args]`);
+    return 1;
+  }
   const repoRoot = process.cwd();
   switch (action) {
     case 'fetch': {
       const ticket = rest[0];
-      if (!ticket) { console.error('ticket required'); return 1; }
+      if (!ticket) {
+        console.error('ticket required');
+        return 1;
+      }
       return recordFetch(repoRoot, ticket);
     }
     case 'script': {
       const ticket = rest[0];
-      if (!ticket) { console.error('ticket required'); return 1; }
+      if (!ticket) {
+        console.error('ticket required');
+        return 1;
+      }
       return recordScript(repoRoot, ticket);
     }
     case 'exec': {
       const ticket = rest[0];
       const flags = parseFlags(rest);
       const runId = flags.get('--run-id');
-      if (!ticket || !runId) { console.error('ticket + --run-id required'); return 1; }
+      if (!ticket || !runId) {
+        console.error('ticket + --run-id required');
+        return 1;
+      }
       return recordExec(repoRoot, ticket, runId);
     }
     case 'classify': {
       const ticket = rest[0];
       const flags = parseFlags(rest);
       const runId = flags.get('--run-id');
-      if (!ticket || !runId) { console.error('ticket + --run-id required'); return 1; }
+      if (!ticket || !runId) {
+        console.error('ticket + --run-id required');
+        return 1;
+      }
       return recordClassify(repoRoot, ticket, runId);
     }
     case 'promote': {
       return recordPromote(repoRoot, parseFlags(rest));
     }
     default:
-      console.error(`Unknown action: ${action}`); return 1;
+      console.error(`Unknown action: ${action}`);
+      return 1;
   }
 }

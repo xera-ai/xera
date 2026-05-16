@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
 import { tmpdir } from 'node:os';
+import { dirname } from 'node:path';
 import { join } from 'node:path';
 import { doctorCmd } from '../../src/bin-internal/doctor';
 
@@ -196,7 +196,7 @@ describe('doctor', () => {
     seedGoodRepo(cwd);
     writeFileSync(
       costLog,
-      JSON.stringify({
+      `${JSON.stringify({
         ts: new Date().toISOString(),
         skill: 'xera-fetch',
         prompt: 'extract-areas',
@@ -204,7 +204,7 @@ describe('doctor', () => {
         tokens_out: 50,
         model: 'm',
         cost_estimate_usd: 0.05,
-      }) + '\n',
+      })}\n`,
     );
     const { stdout, exit } = await runDoctor(cwd);
     expect(exit).toBe(0);

@@ -5,7 +5,9 @@ function filterByTicket(snap: Snapshot, ticket: string): Snapshot {
   const out: Snapshot = {
     ...snap,
     tickets: snap.tickets[ticket] ? { [ticket]: snap.tickets[ticket]! } : {},
-    scenarios: Object.fromEntries(Object.entries(snap.scenarios).filter(([, s]) => s.ticketId === ticket)),
+    scenarios: Object.fromEntries(
+      Object.entries(snap.scenarios).filter(([, s]) => s.ticketId === ticket),
+    ),
     poms: Object.fromEntries(Object.entries(snap.poms).filter(([, p]) => p.ticketId === ticket)),
     edges: snap.edges.filter((e) => e.from === ticket || e.to === ticket),
   };
@@ -26,7 +28,8 @@ function renderText(snap: Snapshot): string {
 }
 
 export async function graphQueryCmd(argv: string[]): Promise<number> {
-  let ticket: string | undefined; let format: 'text' | 'json' = 'text';
+  let ticket: string | undefined;
+  let format: 'text' | 'json' = 'text';
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--ticket') ticket = argv[++i];
     else if (argv[i] === '--format') format = argv[++i] as 'text' | 'json';

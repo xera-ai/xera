@@ -24,7 +24,7 @@ export function logLlmCall(repoRoot: string, call: LlmCallLog): void {
     model: call.model,
     cost_estimate_usd: call.costUsd,
   };
-  appendFileSync(paths.costLog, JSON.stringify(record) + '\n');
+  appendFileSync(paths.costLog, `${JSON.stringify(record)}\n`);
 }
 
 export interface CostSummary {
@@ -42,11 +42,16 @@ export function summarizeCost(repoRoot: string, daysBack: number): CostSummary {
   for (const line of readFileSync(paths.costLog, 'utf8').split('\n')) {
     if (!line.trim()) continue;
     let row: { ts: string; skill: string; cost_estimate_usd: number };
-    try { row = JSON.parse(line); } catch { continue; }
+    try {
+      row = JSON.parse(line);
+    } catch {
+      continue;
+    }
     if (Date.parse(row.ts) < cutoff) continue;
     result.totalCalls++;
     result.totalUsd += row.cost_estimate_usd;
-    const s = (result.bySkill[row.skill] ??= { calls: 0, usd: 0 });
+    if (!result.bySkill[row.skill]) result.bySkill[row.skill] = { calls: 0, usd: 0 };
+    const s = result.bySkill[row.skill]!;
     s.calls++;
     s.usd += row.cost_estimate_usd;
   }

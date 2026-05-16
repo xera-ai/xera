@@ -7,7 +7,10 @@ export async function graphSnapshotCmd(argv: string[]): Promise<number> {
   const stale = isSnapshotStale(repoRoot);
   if (check) {
     if (!stale) return 0;
-    if (noRebuild) { console.error('[graph-snapshot] stale'); return 1; }
+    if (noRebuild) {
+      console.error('[graph-snapshot] stale');
+      return 1;
+    }
     // fall through to rebuild
   }
   const events = loadAllEvents(repoRoot);
