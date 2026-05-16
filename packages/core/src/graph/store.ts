@@ -185,7 +185,14 @@ export function deriveSnapshot(events: Event[]): Snapshot {
         edges.push(ed);
         break;
       }
-      // run.classified and classification.disputed: not materialized in v0.6.0 snapshot
+      case 'classification.disputed': {
+        const existing = latestFailures[e.payload.scenarioId];
+        if (existing && existing.runId === e.payload.runId) {
+          existing.disputed = true;
+        }
+        break;
+      }
+      // run.classified: not materialized in snapshot
       default:
         break;
     }
