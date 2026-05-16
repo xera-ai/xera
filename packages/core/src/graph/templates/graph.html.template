@@ -9,6 +9,11 @@
   <header id="topbar">
     <div class="title">xera graph</div>
     <div class="stats">{{STATS}}</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>Ticket</div>
+      <div class="legend-item"><div class="legend-square" style="background:#10b981"></div>Scenario</div>
+      <div class="legend-item"><div class="legend-diamond" style="background:#f59e0b"></div>POM</div>
+    </div>
     <div class="filters">
       <input type="text" id="search" placeholder="search…" />
       <label><input type="checkbox" id="filter-pass" checked> pass</label>
@@ -20,10 +25,11 @@
   <main id="canvas"></main>
   <aside id="sidepanel" class="hidden">
     <h3 id="sp-title"></h3>
+    <div id="sp-group" class="sp-group"></div>
     <p id="sp-desc"></p>
     <div id="sp-actions"></div>
   </aside>
-  <footer id="footer">generated {{GENERATED_AT}} · double-click a node to open · right-click for options</footer>
+  <footer id="footer">generated {{GENERATED_AT}} · click a node to inspect · scroll to zoom · drag to pan</footer>
   <script>{{VIS_NETWORK_JS}}</script>
   <script>window.__GRAPH__ = {{GRAPH_DATA}};</script>
   <script>{{INTERACTION_JS}}</script>
