@@ -1,8 +1,8 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import type { ImpactOpts, ImpactReport } from '../graph/impact';
 import { renderImpactMarkdown, walkImpact } from '../graph/impact';
 import { deriveSnapshot, loadAllEvents } from '../graph/store';
-import type { ImpactOpts, ImpactReport } from '../graph/impact';
 import type { Priority } from '../graph/types';
 
 function parseDepth(s: string | undefined): 1 | 2 | 3 {
@@ -19,7 +19,9 @@ function parseMinPriority(s: string | undefined): Priority | undefined {
 export async function impactPrepareCmd(argv: string[]): Promise<number> {
   const ticket = argv[0];
   if (!ticket || ticket.startsWith('--')) {
-    console.error('[impact-prepare] usage: impact-prepare <TICKET> [--depth 1|2|3] [--min-priority p0|p1|p2] [--quiet]');
+    console.error(
+      '[impact-prepare] usage: impact-prepare <TICKET> [--depth 1|2|3] [--min-priority p0|p1|p2] [--quiet]',
+    );
     return 1;
   }
 

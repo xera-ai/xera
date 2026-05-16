@@ -1,7 +1,13 @@
 import { describe, expect, test } from 'bun:test';
-import { riskScore, walkImpact, renderImpactMarkdown } from '../../src/graph/impact';
-import type { ImpactScenario, ImpactReport } from '../../src/graph/impact';
-import type { Snapshot, TicketNode, ScenarioNode, PomNode, EdgeRecord } from '../../src/graph/types';
+import type { ImpactReport, ImpactScenario } from '../../src/graph/impact';
+import { renderImpactMarkdown, riskScore, walkImpact } from '../../src/graph/impact';
+import type {
+  EdgeRecord,
+  PomNode,
+  ScenarioNode,
+  Snapshot,
+  TicketNode,
+} from '../../src/graph/types';
 
 function mkImpact(overrides: Partial<ImpactScenario> = {}): ImpactScenario {
   return {
@@ -65,49 +71,129 @@ describe('riskScore', () => {
 function mkGraph(): Snapshot {
   const tickets: Record<string, TicketNode> = {
     'ABC-100': {
-      id: 'ABC-100', summary: 'login feature', ac: ['User can sign in'],
-      storyHash: 'h1', modifiesAreas: ['login'], fetchedAt: '2026-05-10T00:00:00Z',
+      id: 'ABC-100',
+      summary: 'login feature',
+      ac: ['User can sign in'],
+      storyHash: 'h1',
+      modifiesAreas: ['login'],
+      fetchedAt: '2026-05-10T00:00:00Z',
     },
     'ABC-145': {
-      id: 'ABC-145', summary: 'reset password', ac: ['User can reset password'],
-      storyHash: 'h2', modifiesAreas: ['login'], fetchedAt: '2026-05-11T00:00:00Z',
+      id: 'ABC-145',
+      summary: 'reset password',
+      ac: ['User can reset password'],
+      storyHash: 'h2',
+      modifiesAreas: ['login'],
+      fetchedAt: '2026-05-11T00:00:00Z',
     },
     'ABC-200': {
-      id: 'ABC-200', summary: 'rename Sign in button', ac: ['Button label = Log in'],
-      storyHash: 'h3', modifiesAreas: ['login'], fetchedAt: '2026-05-15T00:00:00Z',
+      id: 'ABC-200',
+      summary: 'rename Sign in button',
+      ac: ['Button label = Log in'],
+      storyHash: 'h3',
+      modifiesAreas: ['login'],
+      fetchedAt: '2026-05-15T00:00:00Z',
     },
   };
   const scenarios: Record<string, ScenarioNode> = {
     'sc-100': {
-      id: 'sc-100', ticketId: 'ABC-100', name: 'user signs in', gherkin: 'g',
-      priority: 'p0', featureHash: 'f1', generatedAt: '2026-05-10T00:00:00Z',
+      id: 'sc-100',
+      ticketId: 'ABC-100',
+      name: 'user signs in',
+      gherkin: 'g',
+      priority: 'p0',
+      featureHash: 'f1',
+      generatedAt: '2026-05-10T00:00:00Z',
     },
     'sc-145': {
-      id: 'sc-145', ticketId: 'ABC-145', name: 'user resets password', gherkin: 'g',
-      priority: 'p0', featureHash: 'f2', generatedAt: '2026-05-11T00:00:00Z',
+      id: 'sc-145',
+      ticketId: 'ABC-145',
+      name: 'user resets password',
+      gherkin: 'g',
+      priority: 'p0',
+      featureHash: 'f2',
+      generatedAt: '2026-05-11T00:00:00Z',
     },
   };
   const poms: Record<string, PomNode> = {
     'pom-login': {
-      id: 'pom-login', ticketId: 'ABC-100', filePath: 'login.ts', route: '/login',
-      locators: [], scope: 'shared',
+      id: 'pom-login',
+      ticketId: 'ABC-100',
+      filePath: 'login.ts',
+      route: '/login',
+      locators: [],
+      scope: 'shared',
     },
   };
   const edges: EdgeRecord[] = [
-    { kind: 'tests', from: 'ABC-100', to: 'sc-100', source: 'xera-script', discoveredAt: '2026-05-10T00:00:00Z' },
-    { kind: 'tests', from: 'ABC-145', to: 'sc-145', source: 'xera-script', discoveredAt: '2026-05-11T00:00:00Z' },
-    { kind: 'uses', from: 'sc-100', to: 'pom-login', source: 'xera-script', discoveredAt: '2026-05-10T00:00:00Z' },
-    { kind: 'uses', from: 'sc-145', to: 'pom-login', source: 'xera-script', discoveredAt: '2026-05-11T00:00:00Z' },
-    { kind: 'covers', from: 'pom-login', to: 'login', source: 'xera-script', discoveredAt: '2026-05-10T00:00:00Z' },
-    { kind: 'modifies', from: 'ABC-100', to: 'login', source: 'extract-areas', discoveredAt: '2026-05-10T00:00:00Z' },
-    { kind: 'modifies', from: 'ABC-145', to: 'login', source: 'extract-areas', discoveredAt: '2026-05-11T00:00:00Z' },
-    { kind: 'modifies', from: 'ABC-200', to: 'login', source: 'extract-areas', discoveredAt: '2026-05-15T00:00:00Z' },
+    {
+      kind: 'tests',
+      from: 'ABC-100',
+      to: 'sc-100',
+      source: 'xera-script',
+      discoveredAt: '2026-05-10T00:00:00Z',
+    },
+    {
+      kind: 'tests',
+      from: 'ABC-145',
+      to: 'sc-145',
+      source: 'xera-script',
+      discoveredAt: '2026-05-11T00:00:00Z',
+    },
+    {
+      kind: 'uses',
+      from: 'sc-100',
+      to: 'pom-login',
+      source: 'xera-script',
+      discoveredAt: '2026-05-10T00:00:00Z',
+    },
+    {
+      kind: 'uses',
+      from: 'sc-145',
+      to: 'pom-login',
+      source: 'xera-script',
+      discoveredAt: '2026-05-11T00:00:00Z',
+    },
+    {
+      kind: 'covers',
+      from: 'pom-login',
+      to: 'login',
+      source: 'xera-script',
+      discoveredAt: '2026-05-10T00:00:00Z',
+    },
+    {
+      kind: 'modifies',
+      from: 'ABC-100',
+      to: 'login',
+      source: 'extract-areas',
+      discoveredAt: '2026-05-10T00:00:00Z',
+    },
+    {
+      kind: 'modifies',
+      from: 'ABC-145',
+      to: 'login',
+      source: 'extract-areas',
+      discoveredAt: '2026-05-11T00:00:00Z',
+    },
+    {
+      kind: 'modifies',
+      from: 'ABC-200',
+      to: 'login',
+      source: 'extract-areas',
+      discoveredAt: '2026-05-15T00:00:00Z',
+    },
   ];
   return {
-    schema_version: 1, generated_at: '2026-05-15T00:00:00Z',
-    event_count: edges.length, events_hash: 'sha256:test',
-    tickets, scenarios, poms, areas: { login: { id: 'login' } },
-    edges, latest_failures: {},
+    schema_version: 1,
+    generated_at: '2026-05-15T00:00:00Z',
+    event_count: edges.length,
+    events_hash: 'sha256:test',
+    tickets,
+    scenarios,
+    poms,
+    areas: { login: { id: 'login' } },
+    edges,
+    latest_failures: {},
   };
 }
 
@@ -134,8 +220,11 @@ describe('walkImpact', () => {
     const graph = mkGraph();
     // Add a jira-linked edge: ABC-200 -> ABC-145 (blocks)
     graph.edges.push({
-      kind: 'jira-linked', from: 'ABC-200', to: 'ABC-145',
-      source: 'jira:blocks', discoveredAt: '2026-05-15T00:00:00Z',
+      kind: 'jira-linked',
+      from: 'ABC-200',
+      to: 'ABC-145',
+      source: 'jira:blocks',
+      discoveredAt: '2026-05-15T00:00:00Z',
     });
     const target = graph.tickets['ABC-200']!;
     const depth1 = walkImpact(graph, target, { depth: 1 });
@@ -180,12 +269,28 @@ describe('renderImpactMarkdown', () => {
       modifiedAreas: ['login'],
       generatedAt: '2026-05-16T08:00:00Z',
       scenarios: [
-        { scenarioId: 'sc-1', ticketId: 'ABC-100', name: 'user signs in', priority: 'p0',
-          edgePath: [{ kind: 'modifies', from: 'ABC-200', to: 'login' }, { kind: 'uses', from: 'sc-1', to: 'pom-login' }],
-          riskScore: 8.5 },
-        { scenarioId: 'sc-2', ticketId: 'ABC-145', name: 'user resets password', priority: 'p1',
-          edgePath: [{ kind: 'modifies', from: 'ABC-200', to: 'login' }, { kind: 'uses', from: 'sc-2', to: 'pom-login' }],
-          riskScore: 5.2 },
+        {
+          scenarioId: 'sc-1',
+          ticketId: 'ABC-100',
+          name: 'user signs in',
+          priority: 'p0',
+          edgePath: [
+            { kind: 'modifies', from: 'ABC-200', to: 'login' },
+            { kind: 'uses', from: 'sc-1', to: 'pom-login' },
+          ],
+          riskScore: 8.5,
+        },
+        {
+          scenarioId: 'sc-2',
+          ticketId: 'ABC-145',
+          name: 'user resets password',
+          priority: 'p1',
+          edgePath: [
+            { kind: 'modifies', from: 'ABC-200', to: 'login' },
+            { kind: 'uses', from: 'sc-2', to: 'pom-login' },
+          ],
+          riskScore: 5.2,
+        },
       ],
     };
     const md = renderImpactMarkdown(report);
@@ -201,8 +306,10 @@ describe('renderImpactMarkdown', () => {
 
   test('shows empty state when no scenarios impacted', () => {
     const md = renderImpactMarkdown({
-      targetTicket: 'ABC-200', modifiedAreas: ['new-feature'],
-      generatedAt: '2026-05-16T08:00:00Z', scenarios: [],
+      targetTicket: 'ABC-200',
+      modifiedAreas: ['new-feature'],
+      generatedAt: '2026-05-16T08:00:00Z',
+      scenarios: [],
     });
     expect(md).toContain('# Impact Analysis — ABC-200');
     expect(md).toMatch(/no prior scenarios/i);

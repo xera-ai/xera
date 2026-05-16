@@ -14,6 +14,17 @@ export type { CostSummary, LlmCallLog } from './cost';
 export { logLlmCall, summarizeCost } from './cost';
 export type { EnrichOptions, EnrichResult } from './enrich';
 export { enrichTicket } from './enrich';
+export type {
+  ImpactEdge,
+  ImpactOpts,
+  ImpactReport,
+  ImpactScenario,
+} from './impact';
+export {
+  renderImpactMarkdown,
+  riskScore,
+  walkImpact,
+} from './impact';
 export { currentYyyyMm, graphPaths } from './paths';
 export { EventSchema, safeParseEvent } from './schema';
 export { buildSimilarityPrompt } from './similarity';
@@ -28,14 +39,3 @@ export {
 } from './store';
 export * from './types';
 export { ulid } from './ulid';
-export {
-  riskScore,
-  walkImpact,
-  renderImpactMarkdown,
-} from './impact';
-export type {
-  ImpactEdge,
-  ImpactOpts,
-  ImpactReport,
-  ImpactScenario,
-} from './impact';

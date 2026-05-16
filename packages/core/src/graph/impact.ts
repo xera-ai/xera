@@ -10,7 +10,7 @@ export interface ImpactEdge {
 
 export interface ImpactScenario {
   scenarioId: string;
-  ticketId: string;        // owner of the scenario (NOT the impact target)
+  ticketId: string; // owner of the scenario (NOT the impact target)
   name: string;
   priority: Priority;
   edgePath: ImpactEdge[];
@@ -33,9 +33,9 @@ export interface ImpactReport {
 const PRIORITY_WEIGHT: Record<Priority, number> = { p0: 3, p1: 2, p2: 1 };
 
 const EDGE_WEIGHT_FIXED: Partial<Record<EdgeKind, number>> = {
-  modifies: 5,           // direct collision via SUT area
-  uses: 4,               // shared POM
-  covers: 4,             // shared POM (alt path)
+  modifies: 5, // direct collision via SUT area
+  uses: 4, // shared POM
+  covers: 4, // shared POM (alt path)
   // 'jira-linked' weight is dynamic — see jiraRelationWeight
 };
 
@@ -73,7 +73,11 @@ function daysSince(ts: string | undefined): number {
   return ms < 0 ? 0 : ms / (86400 * 1000);
 }
 
-export function walkImpact(graph: Snapshot, target: TicketNode, opts: ImpactOpts): ImpactScenario[] {
+export function walkImpact(
+  graph: Snapshot,
+  target: TicketNode,
+  opts: ImpactOpts,
+): ImpactScenario[] {
   const result: ImpactScenario[] = [];
   const seen = new Set<string>();
 
@@ -97,15 +101,21 @@ export function walkImpact(graph: Snapshot, target: TicketNode, opts: ImpactOpts
     if (scenario.ticketId === target.id) continue; // exclude own scenarios
 
     const usingPom = graph.edges.find((e) => e.kind === 'uses' && e.from === scenarioId);
-    const modifyEdge = graph.edges.find((e) => e.kind === 'modifies' && e.from === target.id && targetAreas.has(e.to));
+    const modifyEdge = graph.edges.find(
+      (e) => e.kind === 'modifies' && e.from === target.id && targetAreas.has(e.to),
+    );
     const edgePath: ImpactEdge[] = [];
     if (modifyEdge) edgePath.push({ kind: 'modifies', from: modifyEdge.from, to: modifyEdge.to });
     if (usingPom) edgePath.push({ kind: 'uses', from: usingPom.from, to: usingPom.to });
 
     seen.add(scenarioId);
     const impact: ImpactScenario = {
-      scenarioId, ticketId: scenario.ticketId, name: scenario.name,
-      priority: scenario.priority, edgePath, riskScore: 0,
+      scenarioId,
+      ticketId: scenario.ticketId,
+      name: scenario.name,
+      priority: scenario.priority,
+      edgePath,
+      riskScore: 0,
     };
     impact.riskScore = riskScore(impact, daysSince(graph.latest_failures[scenarioId]?.ts));
     result.push(impact);
@@ -128,8 +138,12 @@ export function walkImpact(graph: Snapshot, target: TicketNode, opts: ImpactOpts
         const edge: ImpactEdge = { kind: 'jira-linked', from: target.id, to: link.to };
         if (link.source !== undefined) edge.source = link.source;
         const impact: ImpactScenario = {
-          scenarioId, ticketId: scenario.ticketId, name: scenario.name,
-          priority: scenario.priority, edgePath: [edge], riskScore: 0,
+          scenarioId,
+          ticketId: scenario.ticketId,
+          name: scenario.name,
+          priority: scenario.priority,
+          edgePath: [edge],
+          riskScore: 0,
         };
         impact.riskScore = riskScore(impact, daysSince(graph.latest_failures[scenarioId]?.ts));
         result.push(impact);
@@ -154,8 +168,12 @@ export function walkImpact(graph: Snapshot, target: TicketNode, opts: ImpactOpts
         const edge: ImpactEdge = { kind: 'similar', from: target.id, to: link.to };
         if (link.confidence !== undefined) edge.confidence = link.confidence;
         const impact: ImpactScenario = {
-          scenarioId, ticketId: scenario.ticketId, name: scenario.name,
-          priority: scenario.priority, edgePath: [edge], riskScore: 0,
+          scenarioId,
+          ticketId: scenario.ticketId,
+          name: scenario.name,
+          priority: scenario.priority,
+          edgePath: [edge],
+          riskScore: 0,
         };
         impact.riskScore = riskScore(impact, daysSince(graph.latest_failures[scenarioId]?.ts));
         result.push(impact);
@@ -202,10 +220,16 @@ export function renderImpactMarkdown(report: ImpactReport): string {
     return lines.join('\n');
   }
 
-  const bySeverity = { high: [] as ImpactScenario[], medium: [] as ImpactScenario[], low: [] as ImpactScenario[] };
+  const bySeverity = {
+    high: [] as ImpactScenario[],
+    medium: [] as ImpactScenario[],
+    low: [] as ImpactScenario[],
+  };
   for (const s of report.scenarios) bySeverity[bucket(s.riskScore)].push(s);
 
-  lines.push(`**Total impacted:** ${report.scenarios.length} scenarios (${bySeverity.high.length} high · ${bySeverity.medium.length} medium · ${bySeverity.low.length} low)`);
+  lines.push(
+    `**Total impacted:** ${report.scenarios.length} scenarios (${bySeverity.high.length} high · ${bySeverity.medium.length} medium · ${bySeverity.low.length} low)`,
+  );
   lines.push('');
 
   for (const [name, scenarios] of [
@@ -217,7 +241,9 @@ export function renderImpactMarkdown(report: ImpactReport): string {
     lines.push(`## ${name}`);
     lines.push('');
     for (const s of scenarios) {
-      lines.push(`### ${s.ticketId} / "${s.name}" [${s.priority.toUpperCase()}]   score ${s.riskScore.toFixed(1)}`);
+      lines.push(
+        `### ${s.ticketId} / "${s.name}" [${s.priority.toUpperCase()}]   score ${s.riskScore.toFixed(1)}`,
+      );
       lines.push(`- Edge: ${fmtEdgePath(s.edgePath)}`);
       if (s.lastPassedAt) lines.push(`- Last passed: ${s.lastPassedAt}`);
       lines.push('');
@@ -225,9 +251,11 @@ export function renderImpactMarkdown(report: ImpactReport): string {
   }
 
   lines.push('## Re-run commands');
-  lines.push('- All:        `bun run xera:exec --from-impact ' + report.targetTicket + '`');
-  lines.push('- P0 only:    `bun run xera:exec --from-impact ' + report.targetTicket + ' --min-priority p0`');
-  lines.push('- Select:     `bun run xera:exec --from-impact ' + report.targetTicket + ' --select`');
+  lines.push(`- All:        \`bun run xera:exec --from-impact ${report.targetTicket}\``);
+  lines.push(
+    `- P0 only:    \`bun run xera:exec --from-impact ${report.targetTicket} --min-priority p0\``,
+  );
+  lines.push(`- Select:     \`bun run xera:exec --from-impact ${report.targetTicket} --select\``);
   lines.push('');
 
   return lines.join('\n');

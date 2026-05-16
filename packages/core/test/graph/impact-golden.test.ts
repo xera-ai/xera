@@ -25,7 +25,9 @@ describe('impact golden fixtures', () => {
         expect(targetTicket).toBeDefined();
         const result = walkImpact(graph, targetTicket, { depth });
         const ids = result.map((s) => s.scenarioId).sort();
-        const expected = JSON.parse(readFileSync(join(tmp, 'expected-impact.json'), 'utf8')) as { scenarios: string[] };
+        const expected = JSON.parse(readFileSync(join(tmp, 'expected-impact.json'), 'utf8')) as {
+          scenarios: string[];
+        };
         expect(ids).toEqual(expected.scenarios.sort());
       } finally {
         rmSync(tmp, { recursive: true, force: true });
