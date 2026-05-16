@@ -58,7 +58,12 @@ export async function execCmd(argv: string[]): Promise<number> {
         runId,
         env,
       });
-      log.log({ step: 'exec.complete', runId, outcome: result.outcome, elapsedMs: Date.now() - t0 });
+      log.log({
+        step: 'exec.complete',
+        runId,
+        outcome: result.outcome,
+        elapsedMs: Date.now() - t0,
+      });
       console.log(`[xera:exec] runId=${runId} outcome=${result.outcome}`);
       // Exit 3 means "test failed" (expected vs infra error); lock released in finally
       return result.outcome === 'PASS' ? 0 : 3;

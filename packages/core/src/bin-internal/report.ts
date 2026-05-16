@@ -1,12 +1,12 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { readMeta } from '../artifact/meta';
+import { resolveArtifactPaths } from '../artifact/paths';
 import { readAuthState } from '../auth/state';
-import { classifyAuthExpired, type AuthFileSummary } from '../classifier/auth-expired';
+import { aggregateScenarios } from '../classifier/aggregate';
+import { type AuthFileSummary, classifyAuthExpired } from '../classifier/auth-expired';
 import { classifyContractDrift } from '../classifier/contract-drift';
 import { classifyRateLimited } from '../classifier/rate-limited';
-import { resolveArtifactPaths } from '../artifact/paths';
-import { aggregateScenarios } from '../classifier/aggregate';
 import type { ScenarioClassification } from '../classifier/types';
 import { loadConfig } from '../config/load';
 import type { OutdatedDecision } from '../graph/classify';
