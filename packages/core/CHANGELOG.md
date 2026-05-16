@@ -1,5 +1,15 @@
 # @xera-ai/core
 
+## 0.9.7
+
+### Patch Changes
+
+- [#60](https://github.com/xera-ai/xera/pull/60) [`a0ac08f`](https://github.com/xera-ai/xera/commit/a0ac08fcc897e599a203c7b385a474b2ff3e4160) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - load dotenv at xera-internal entry point so all subcommands have env vars; revert dotenv from playwright.config.ts templates
+
+- Updated dependencies []:
+  - @xera-ai/web@0.9.7
+  - @xera-ai/http@0.9.7
+
 ## 0.9.6
 
 ### Patch Changes
