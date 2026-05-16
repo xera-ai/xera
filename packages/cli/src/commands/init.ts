@@ -49,6 +49,16 @@ async function prompt<T>(
 
 export async function initCommand(opts: InitOptions): Promise<void> {
   const cwd = process.cwd();
+
+  // Non-TTY without --yes: prompts will hang — bail early with guidance
+  if (!process.stdin.isTTY && !opts.yes) {
+    console.error(pc.red('\n  error: stdin is not a TTY — interactive prompts cannot run.\n'));
+    console.error(`  Pass ${pc.cyan('-y / --yes')} and use flags to run non-interactively:\n`);
+    console.error(`    xera init -y --shape web --pk MYPROJ --ju https://myco.atlassian.net\n`);
+    console.error(`  Run ${pc.cyan('xera init --help')} to see all available flags.\n`);
+    process.exit(1);
+  }
+
   p.intro(pc.cyan('xera — project setup'));
 
   // Determine shape first

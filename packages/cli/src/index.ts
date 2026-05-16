@@ -15,6 +15,47 @@ const VERSION = (require('../package.json') as { version: string }).version;
 
 const VALID_SHAPES: ProjectShape[] = ['web', 'api', 'mixed'];
 const VALID_AUTH_STRATEGIES: HttpAuthStrategy[] = ['bearer', 'apiKey', 'basic', 'oauth-cc', 'none'];
+const KNOWN_COMMANDS = ['init', 'doctor'];
+
+function levenshtein(a: string, b: string): number {
+  const m = a.length;
+  const n = b.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
+    Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)),
+  );
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i]![j]! =
+        a[i - 1] === b[j - 1]
+          ? dp[i - 1]![j - 1]!
+          : 1 + Math.min(dp[i - 1]![j]!, dp[i]![j - 1]!, dp[i - 1]![j - 1]!);
+    }
+  }
+  return dp[m]![n]!;
+}
+
+function didYouMean(input: string): string | undefined {
+  let best: string | undefined;
+  let bestDist = Number.POSITIVE_INFINITY;
+  for (const cmd of KNOWN_COMMANDS) {
+    const d = levenshtein(input.toLowerCase(), cmd);
+    if (d < bestDist) {
+      bestDist = d;
+      best = cmd;
+    }
+  }
+  return bestDist <= 3 ? best : undefined;
+}
+
+function unknownCommand(input: string): never {
+  console.error(pc.red(`\n  error: Unknown command '${input}'\n`));
+  const suggestion = didYouMean(input);
+  if (suggestion) {
+    console.error(`  Did you mean ${pc.cyan(suggestion)}?\n`);
+  }
+  console.error(`  Run ${pc.cyan('xera --help')} to see available commands.\n`);
+  process.exit(1);
+}
 
 export default async function main(): Promise<void> {
   const cli = cac('xera');
@@ -77,7 +118,9 @@ export default async function main(): Promise<void> {
         const initOpts: InitOptions = { yes: !!opts.yes };
         if (opts.shape !== undefined) {
           if (!(VALID_SHAPES as string[]).includes(opts.shape)) {
-            console.error(pc.red(`[xera] --shape must be one of: ${VALID_SHAPES.join(', ')}`));
+            console.error(
+              pc.red(`\n  error: --shape must be one of: ${VALID_SHAPES.join(', ')}\n`),
+            );
             process.exit(1);
           }
           initOpts.shape = opts.shape as ProjectShape;
@@ -85,7 +128,9 @@ export default async function main(): Promise<void> {
         if (opts.authStrategy !== undefined) {
           if (!(VALID_AUTH_STRATEGIES as string[]).includes(opts.authStrategy)) {
             console.error(
-              pc.red(`[xera] --auth-strategy must be one of: ${VALID_AUTH_STRATEGIES.join(', ')}`),
+              pc.red(
+                `\n  error: --auth-strategy must be one of: ${VALID_AUTH_STRATEGIES.join(', ')}\n`,
+              ),
             );
             process.exit(1);
           }
@@ -115,11 +160,25 @@ export default async function main(): Promise<void> {
       process.exit(exit);
     });
 
+  const rawArgs = process.argv.slice(2);
+
+  // No args → show help
+  if (rawArgs.length === 0) {
+    cli.outputHelp();
+    process.exit(0);
+  }
+
+  // Unknown command detection (first arg is not a flag and not a known command)
+  const firstArg = rawArgs[0]!;
+  if (!firstArg.startsWith('-') && !KNOWN_COMMANDS.includes(firstArg)) {
+    unknownCommand(firstArg);
+  }
+
   try {
     cli.parse(process.argv, { run: false });
     await cli.runMatchedCommand();
   } catch (e) {
-    console.error(pc.red(`[xera] ${(e as Error).message}`));
+    console.error(pc.red(`\n  error: ${(e as Error).message}\n`));
     process.exit(1);
   }
 }
