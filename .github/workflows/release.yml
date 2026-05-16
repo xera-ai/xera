@@ -97,18 +97,16 @@ jobs:
           # Extract the latest changelog section from cli (representative for all packages)
           NOTES=$(awk '/^## /{count++; if(count==2) exit} count==1{print}' packages/cli/CHANGELOG.md | tail -n +2)
 
+          # Write notes to a temp file to avoid YAML/shell quoting issues with multi-line strings
+          {
+            printf '## Packages\n\n'
+            printf 'All packages updated to `%s`:\n' "$VERSION"
+            printf '- `@xera-ai/cli`\n- `@xera-ai/core`\n- `@xera-ai/web`\n'
+            printf '- `@xera-ai/http`\n- `@xera-ai/prompts`\n- `@xera-ai/skills`\n'
+            printf '\n## Changes\n\n'
+            printf '%s\n' "$NOTES"
+          } > /tmp/release-notes.md
+
           gh release create "$TAG" \
             --title "xera v${VERSION}" \
-            --notes "## Packages
-
-All packages updated to \`${VERSION}\`:
-- \`@xera-ai/cli\`
-- \`@xera-ai/core\`
-- \`@xera-ai/web\`
-- \`@xera-ai/http\`
-- \`@xera-ai/prompts\`
-- \`@xera-ai/skills\`
-
-## Changes
-
-${NOTES}"
+            --notes-file /tmp/release-notes.md
