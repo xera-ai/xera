@@ -44,13 +44,13 @@ body {
 }
 
 .topbar-brand .logo::after {
-  content: '';
+  content: "";
   display: block;
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: white;
-  opacity: .9;
+  opacity: 0.9;
 }
 
 .topbar-brand .title {
@@ -79,7 +79,9 @@ body {
   border-radius: 20px;
   padding: 2px 9px;
   line-height: 1.6;
-  transition: color .15s, border-color .15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
 }
 
 .stat-chip .dot {
@@ -106,7 +108,9 @@ body {
   width: 160px;
   font-size: 12px;
   outline: none;
-  transition: border-color .15s, box-shadow .15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234b5563' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: 10px center;
@@ -114,7 +118,7 @@ body {
 
 #search:focus {
   border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59,130,246,.15);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
 }
 
 #search::placeholder {
@@ -140,7 +144,9 @@ body {
   color: #4b5563;
   padding: 2px 7px;
   border-radius: 4px;
-  transition: background .1s, color .1s;
+  transition:
+    background 0.1s,
+    color 0.1s;
   user-select: none;
 }
 
@@ -173,7 +179,10 @@ body {
   cursor: pointer;
   font-size: 11px;
   font-weight: 500;
-  transition: background .15s, color .15s, border-color .15s;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
   white-space: nowrap;
 }
 
@@ -208,8 +217,8 @@ body {
   height: 100%;
   width: 0%;
   background: linear-gradient(90deg, #3b82f6, #6366f1);
-  transition: width .1s linear;
-  box-shadow: 0 0 6px rgba(99,102,241,.6);
+  transition: width 0.1s linear;
+  box-shadow: 0 0 6px rgba(99, 102, 241, 0.6);
 }
 
 /* ─── Side panel ──────────────────────────────────── */
@@ -220,7 +229,7 @@ body {
   color: #e2e8f0;
   display: flex;
   flex-direction: column;
-  transition: opacity .2s;
+  transition: opacity 0.2s;
 }
 
 #sidepanel.hidden {
@@ -245,10 +254,26 @@ body {
   margin-bottom: 8px;
 }
 
-.sp-group-badge.ticket  { background: rgba(59,130,246,.15); color: #60a5fa; border: 1px solid rgba(59,130,246,.25); }
-.sp-group-badge.scenario { background: rgba(16,185,129,.12); color: #34d399; border: 1px solid rgba(16,185,129,.2); }
-.sp-group-badge.scenario-fail { background: rgba(239,68,68,.12); color: #f87171; border: 1px solid rgba(239,68,68,.2); }
-.sp-group-badge.pom { background: rgba(245,158,11,.12); color: #fbbf24; border: 1px solid rgba(245,158,11,.2); }
+.sp-group-badge.ticket {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+.sp-group-badge.scenario {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+.sp-group-badge.scenario-fail {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+.sp-group-badge.pom {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
 
 .sp-title {
   font-size: 14px;
@@ -281,16 +306,18 @@ body {
   font-weight: 500;
   cursor: pointer;
   width: 100%;
-  transition: opacity .15s, transform .1s;
+  transition:
+    opacity 0.15s,
+    transform 0.1s;
   letter-spacing: 0.01em;
 }
 
 .sp-actions button:hover {
-  opacity: .9;
+  opacity: 0.9;
 }
 
 .sp-actions button:active {
-  transform: scale(.98);
+  transform: scale(0.98);
 }
 
 .sp-actions button.copied {

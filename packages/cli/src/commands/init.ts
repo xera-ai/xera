@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import * as p from '@clack/prompts';
 import { generateKey } from '@xera-ai/core';
 import pc from 'picocolors';
-import { copyDir, scaffoldFile, TEMPLATE_DIR } from '../scaffold';
+import { copyDir, scaffoldFile } from '../scaffold';
 
 const require = createRequire(import.meta.url);
 const CLI_VERSION = (require('../package.json') as { version: string }).version;
