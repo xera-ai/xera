@@ -10,6 +10,7 @@ const IN_SCOPE_PROMPTS = [
   'feature-from-story.md',
   'script-from-feature.md',
   'heal-locator.md',
+  'extract-areas.md',
 ] as const;
 
 const REQUIRED_SECTION_HEADING = '## Handling untrusted input';

@@ -78,3 +78,28 @@ rm -rf .xera/.auth/
 ```
 
 Do not regenerate `XERA_AUTH_KEY` unless you accept losing cached auth state.
+
+### Graph snapshot stale / out of date
+
+If `xera doctor` warns the snapshot is stale, run:
+
+```bash
+bun run xera:graph-snapshot
+```
+
+This rebuilds `.xera/graph/snapshot.json` from `events/` in < 1s.
+
+### Backfill from existing project (pre-v0.6)
+
+If you upgraded an existing project to v0.6, your historical tickets are not in the graph yet:
+
+```bash
+bun run xera:graph-backfill --dry-run    # preview
+bun run xera:graph-backfill              # commit events
+```
+
+Generates one `ticket.fetched` event per existing `.xera/<TICKET>/` directory.
+
+### LLM cost surprise
+
+Check `.xera/cost-log.jsonl` (gitignored, per-machine). `xera doctor` summarizes the past 7 days.

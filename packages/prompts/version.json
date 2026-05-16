@@ -1,1 +1,10 @@
-{ "prompts": "2.1.0" }
+{
+  "prompts": "2.2.0",
+  "templates": [
+    "diagnose-failure.md",
+    "feature-from-story.md",
+    "script-from-feature.md",
+    "heal-locator.md",
+    "extract-areas.md"
+  ]
+}

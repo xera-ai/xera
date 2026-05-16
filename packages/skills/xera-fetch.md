@@ -32,4 +32,20 @@ If the user did not provide a ticket key, ask: "Which Jira ticket key?" and wait
    - First 200 chars of story
    - Whether AC was found in a separate field
 
-5. Suggest next step: "Generate Gherkin? Run `/xera-feature {{TICKET}}` or run the full pipeline with `/xera-run {{TICKET}}`."
+5. Extract modified areas (v0.6 graph foundation):
+
+   After `story.md` is written, follow the `extract-areas.md` prompt template (located at `packages/prompts/extract-areas.md` in the xera install). The prompt instructs you to read the just-fetched ticket's `summary` and `ac` (from `story.md` frontmatter) and output JSON of the form `{ "modifiesAreas": ["slug", ...] }`.
+
+   Write that JSON to `.xera/<TICKET>/graph-input.json`.
+
+6. Record graph events:
+
+   Run:
+
+   ```bash
+   bun run xera:graph-record fetch <TICKET>
+   ```
+
+   This is non-fatal: if it exits non-zero, log a warning *"Graph event not recorded — run `xera doctor` to rebuild"* but continue. Do not block the fetch flow on this.
+
+7. Suggest next step: "Generate Gherkin? Run `/xera-feature {{TICKET}}` or run the full pipeline with `/xera-run {{TICKET}}`."

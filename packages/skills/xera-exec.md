@@ -16,3 +16,13 @@ The user invoked `/xera-exec <TICKET>`. If no key, ask.
 3. Read the latest run directory: `.xera/{{TICKET}}/runs/<latest>/`. Tell the user the runId.
 
 4. Suggest: "Diagnose this run with `/xera-report {{TICKET}}`."
+
+## Step 5 — Record graph events (v0.6)
+
+After Playwright reporter writes `runs/<RUN_ID>/reporter.json`:
+
+```bash
+bun run xera:graph-record exec <TICKET> --run-id <RUN_ID>
+```
+
+Non-fatal.

@@ -55,8 +55,8 @@ See [the design spec](docs/superpowers/specs/2026-05-14-xera-core-web-design.md)
 | v0.2 | CI mode; self-healing auto-fix; AI gen evaluation harness |
 | v0.3 | API adapter |
 | v0.5 | Mobile adapter |
-| v0.6 | Performance adapter |
-| v0.7 | Security adapter |
+| v0.6 | Project Knowledge Graph (TEST_OUTDATED bucket, /xera-impact, viewer) |
+| v0.7 | Mobile adapter |
 | v1.0 | Read-only static dashboard |
 | v2.0 | Optional SaaS backend (only if multi-org demand) |
 

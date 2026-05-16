@@ -1,0 +1,1 @@
+{"event_id":"01KRQA9BT9NJA1GPCMKSWZAT5B","schema_version":1,"ts":"2026-05-16T09:01:00Z","actor":"xera-fetch","type":"ticket.fetched","payload":{"ticketId":"ABC-1","summary":"Login page — QA engineer B","ac":["User sees login form"],"jiraLinks":[],"storyHash":"hash-b","modifiesAreas":["login"]}}

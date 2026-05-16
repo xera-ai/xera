@@ -44,3 +44,13 @@ The user invoked `/xera-script <TICKET>`. If no key, ask.
 
 9. Summarize: list of files written, count of new POMs, mention any POM that *looked* reusable but didn't quite fit (suggest the user might want `/xera-promote` later).
    Suggest: "Run the test now with `/xera-exec {{TICKET}}`, or do the whole pipeline with `/xera-run {{TICKET}}`."
+
+## Step 10 — Record graph events (v0.6)
+
+Run:
+
+```bash
+bun run xera:graph-record script <TICKET>
+```
+
+Non-fatal as in `/xera-fetch`.

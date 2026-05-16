@@ -108,3 +108,25 @@ XERA_ENV=staging             # optional override
 ## `xera doctor`
 
 Validates everything above and prints what is missing. Run after any config change.
+
+## Graph (v0.6+)
+
+The project knowledge graph stores event-sourced records under `.xera/graph/events/`. Configuration:
+
+```typescript
+// xera.config.ts
+export default defineConfig({
+  graph: {
+    redactionRules: 'default',  // 'default' | 'strict' | 'off' — applies to ticket text in events
+  },
+  cost: {
+    dailyCapUsd: 5,  // soft warning threshold; doctor flags when exceeded
+  },
+});
+```
+
+### Files
+
+- `.xera/graph/events/<yyyy-mm>/*.jsonl` — committed event log, one file per skill invocation
+- `.xera/graph/snapshot.json` — gitignored, regenerable in < 1s
+- `.xera/cost-log.jsonl` — gitignored, per-machine LLM cost log

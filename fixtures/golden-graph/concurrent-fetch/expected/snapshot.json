@@ -1,0 +1,13 @@
+{
+  "tickets": {
+    "ABC-1": {
+      "id": "ABC-1",
+      "summary": "Login page — QA engineer B",
+      "ac": ["User sees login form"],
+      "storyHash": "hash-b",
+      "modifiesAreas": ["login"],
+      "fetchedAt": "2026-05-16T09:01:00Z"
+    }
+  },
+  "scenarios": {}
+}

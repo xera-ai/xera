@@ -1,0 +1,13 @@
+{
+  "tickets": {
+    "ABC-1": {
+      "id": "ABC-1",
+      "summary": "Login page loads correctly",
+      "ac": ["User can log in with valid credentials"],
+      "storyHash": "abc123",
+      "modifiesAreas": ["login"],
+      "fetchedAt": "2026-05-16T08:00:00Z"
+    }
+  },
+  "scenarios": {}
+}

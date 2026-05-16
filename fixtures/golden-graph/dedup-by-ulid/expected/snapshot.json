@@ -1,0 +1,13 @@
+{
+  "tickets": {
+    "ABC-1": {
+      "id": "ABC-1",
+      "summary": "new",
+      "ac": [],
+      "storyHash": "hash-new",
+      "modifiesAreas": [],
+      "fetchedAt": "2026-05-16T08:20:00Z"
+    }
+  },
+  "scenarios": {}
+}

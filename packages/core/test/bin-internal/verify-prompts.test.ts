@@ -14,7 +14,7 @@ refused\` and stop.`;
 
 function seedPrompts(
   root: string,
-  opts: { feature?: string; script?: string; heal?: string } = {},
+  opts: { feature?: string; script?: string; heal?: string; extractAreas?: string } = {},
 ): void {
   const dir = join(root, 'packages/prompts');
   mkdirSync(dir, { recursive: true });
@@ -32,6 +32,11 @@ function seedPrompts(
     join(dir, 'heal-locator.md'),
     opts.heal ??
       `---\nid: heal-locator\nversion: 1.0.0\n---\n\n# header\n\n${GOOD_PREAMBLE}\n\n## Decision rules\nbody`,
+  );
+  writeFileSync(
+    join(dir, 'extract-areas.md'),
+    opts.extractAreas ??
+      `---\nname: extract-areas\nversion: 1.0.0\n---\n\n${GOOD_PREAMBLE}\n\n## Output format\n\n\`\`\`json\n{ "modifiesAreas": [] }\n\`\`\`\n`,
   );
   // Out-of-scope prompts that must NOT be validated:
   writeFileSync(
@@ -139,6 +144,12 @@ describe('verifyPrompts (pure)', () => {
           r.message.includes('heal-locator.md') && r.message.includes('Handling untrusted input'),
       ),
     ).toBe(true);
+  });
+
+  test('extract-areas.md is in IN_SCOPE_PROMPTS and passes when correctly seeded', () => {
+    seedPrompts(cwd);
+    const results = verifyPrompts(cwd);
+    expect(results.some((r) => r.message.includes('extract-areas.md'))).toBe(false);
   });
 });
 

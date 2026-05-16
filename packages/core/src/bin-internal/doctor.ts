@@ -1,6 +1,8 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Stage } from '../eval/types';
+import { summarizeCost } from '../graph/cost';
+import { loadAllEvents } from '../graph/store';
 import { verifyPrompts } from './verify-prompts';
 
 export interface DoctorOpts {
@@ -124,6 +126,40 @@ export async function doctorCmd(_argv: string[], opts: DoctorOpts = {}): Promise
     ...checkPromptInjectionPreamble(repoRoot),
     ...checkRootScripts(repoRoot),
   ];
+  // Cost summary (past 7 days)
+  const cost = summarizeCost(repoRoot, 7);
+  if (cost.totalCalls > 0) {
+    console.log('');
+    console.log('LLM cost (past 7 days):');
+    console.log(`  Total calls: ${cost.totalCalls}`);
+    console.log(`  Estimated:   $${cost.totalUsd.toFixed(2)} USD`);
+    const top = Object.entries(cost.bySkill).sort((a, b) => b[1].usd - a[1].usd)[0];
+    if (top)
+      console.log(`  Top skill:   ${top[0]} (${top[1].calls} calls, $${top[1].usd.toFixed(2)})`);
+  }
+
+  // Backfill detection
+  const xeraDir = join(repoRoot, '.xera');
+  if (existsSync(xeraDir)) {
+    const ticketDirs = readdirSync(xeraDir, { withFileTypes: true }).filter(
+      (e) => e.isDirectory() && /^[A-Z]+-\d+$/.test(e.name),
+    );
+    if (ticketDirs.length > 0) {
+      const events = loadAllEvents(repoRoot);
+      const fetchedTickets = new Set(
+        events.filter((e) => e.type === 'ticket.fetched').map((e) => e.payload.ticketId),
+      );
+      const unbackfilled = ticketDirs.map((d) => d.name).filter((t) => !fetchedTickets.has(t));
+      if (unbackfilled.length > 0) {
+        console.log('');
+        console.log(`⚠ Graph: ${unbackfilled.length} ticket(s) not yet in graph.`);
+        console.log(`  These won't participate in v0.6.1+ features (TEST_OUTDATED, /xera-impact).`);
+        console.log(`  Run: bun run xera:graph-backfill`);
+        console.log(`  (Use --dry-run to preview.)`);
+      }
+    }
+  }
+
   if (results.length === 0) {
     console.log('[xera:doctor] ok');
     return 0;
