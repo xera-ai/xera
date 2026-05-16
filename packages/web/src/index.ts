@@ -27,3 +27,4 @@ export * from './trace-normalizer/normalize';
 export * from './trace-normalizer/parse';
 export * from './trace-normalizer/scrub';
 export * from './trace-normalizer/unzip';
+// e2e test of auto-changeset workflow — safe to revert
