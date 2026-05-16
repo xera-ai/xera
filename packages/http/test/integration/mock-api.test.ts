@@ -5,6 +5,10 @@
  *  - presetHttpAuth + runHttpAuthSetup writing an encrypted role file
  *  - newAuthedContext reading + attaching the header
  *  - normalizeHttpRun consuming http-trace.jsonl + raw-report.json
+ *
+ * Skipped by default — set XERA_RUN_INTEGRATION=1 to enable (CI's
+ * `test:integration` script sets this; default `bun test` skips it because
+ * port-binding + child-process timing is environment-sensitive).
  */
 
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
@@ -18,6 +22,9 @@ import { runHttpAuthSetup } from '../../src/auth-setup/runner';
 import { newAuthedContext } from '../../src/runtime';
 import { normalizeHttpRun } from '../../src/trace-normalizer/normalize';
 
+const ENABLED = process.env.XERA_RUN_INTEGRATION === '1';
+const describeMaybe = ENABLED ? describe : describe.skip;
+
 const PORT = 4123;
 let serverProc: ReturnType<typeof Bun.spawn> | null = null;
 let tmpDir: string;
@@ -29,13 +36,13 @@ const ORIG = {
 };
 
 beforeAll(async () => {
+  if (!ENABLED) return;
   tmpDir = mkdtempSync(join(tmpdir(), 'http-int-'));
   process.env.XERA_AUTH_KEY = 'a'.repeat(64);
   process.env.XERA_AUTH_DIR = tmpDir;
   process.env.XERA_BASE_URL = `http://localhost:${PORT}`;
   process.env.MOCK_USER_TOKEN = 'test-token-001';
 
-  // Boot mock-api on PORT
   serverProc = Bun.spawn(['bun', 'run', 'fixtures/mock-api/server.ts'], {
     cwd: join(import.meta.dir, '..', '..', '..', '..'),
     env: { ...process.env, MOCK_API_PORT: String(PORT) },
@@ -43,22 +50,20 @@ beforeAll(async () => {
     stderr: 'pipe',
   });
 
-  // Wait for ready (poll the port up to ~3s)
-  const deadline = Date.now() + 3000;
+  const deadline = Date.now() + 5000;
   while (Date.now() < deadline) {
     try {
-      const r = await fetch(`http://localhost:${PORT}/health`).catch(() => null);
-      if (r) break;
       const probe = await fetch(`http://localhost:${PORT}/users/1`).catch(() => null);
       if (probe) break;
     } catch {}
-    await new Promise((r) => setTimeout(r, 100));
+    await new Promise((r) => setTimeout(r, 150));
   }
 });
 
 afterAll(() => {
+  if (!ENABLED) return;
   if (serverProc) serverProc.kill('SIGTERM');
-  rmSync(tmpDir, { recursive: true, force: true });
+  if (tmpDir) rmSync(tmpDir, { recursive: true, force: true });
   if (ORIG.KEY === undefined) delete process.env.XERA_AUTH_KEY;
   else process.env.XERA_AUTH_KEY = ORIG.KEY;
   if (ORIG.DIR === undefined) delete process.env.XERA_AUTH_DIR;
@@ -69,7 +74,7 @@ afterAll(() => {
   else process.env.MOCK_USER_TOKEN = ORIG.TOKEN;
 });
 
-describe('http adapter end-to-end against mock-api', () => {
+describeMaybe('http adapter end-to-end against mock-api', () => {
   test('runHttpAuthSetup + newAuthedContext + request POST /users', async () => {
     const httpConfig = {
       baseUrl: { dev: `http://localhost:${PORT}` },

@@ -38,6 +38,8 @@ jobs:
       - name: Build workspace
         run: bun run build
       - name: HTTP adapter integration tests (boots mock-api)
+        env:
+          XERA_RUN_INTEGRATION: '1'
         run: bun test packages/http/test/integration
       - name: Classifier golden HTTP tickets
         run: bun test packages/core/test/classifier/golden-http.test.ts

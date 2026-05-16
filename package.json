@@ -15,7 +15,7 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "test": "bun test packages/core packages/web packages/http",
-    "test:integration": "bun test packages/cli/test/integration packages/http/test/integration",
+    "test:integration": "XERA_RUN_INTEGRATION=1 bun test packages/cli/test/integration packages/http/test/integration",
     "typecheck": "bun run --filter '*' typecheck",
     "xera:doctor": "xera-internal doctor",
     "xera:eval-deterministic": "xera-internal eval-deterministic",
