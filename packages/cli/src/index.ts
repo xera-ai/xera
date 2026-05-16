@@ -1,10 +1,12 @@
+import { createRequire } from 'node:module';
 import { cac } from 'cac';
 import pc from 'picocolors';
 import { doctorCommand } from './commands/doctor';
 import { initCommand, type ProjectShape } from './commands/init';
 import { initUpdateCommand } from './commands/init-update';
 
-const VERSION = '0.1.0';
+const require = createRequire(import.meta.url);
+const VERSION = (require('../package.json') as { version: string }).version;
 
 const VALID_SHAPES: ProjectShape[] = ['web', 'api', 'mixed'];
 

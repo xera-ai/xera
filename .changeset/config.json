@@ -2,7 +2,16 @@
   "$schema": "https://unpkg.com/@changesets/config@3.1.4/schema.json",
   "changelog": ["@changesets/changelog-github", { "repo": "xera-ai/xera" }],
   "commit": false,
-  "fixed": [],
+  "fixed": [
+    [
+      "@xera-ai/cli",
+      "@xera-ai/core",
+      "@xera-ai/web",
+      "@xera-ai/http",
+      "@xera-ai/prompts",
+      "@xera-ai/skills"
+    ]
+  ],
   "linked": [],
   "access": "public",
   "baseBranch": "main",
