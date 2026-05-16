@@ -1,4 +1,4 @@
-import { describe, test, expect } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 import { generateHttpPlaywrightConfig } from '../../src/executor/playwright-config';
 
 describe('generateHttpPlaywrightConfig', () => {
@@ -13,7 +13,7 @@ describe('generateHttpPlaywrightConfig', () => {
     expect(cfg).not.toContain('browserName');
     expect(cfg).toContain('reporter');
     expect(cfg).toContain("'/abs/ticket'"); // dirname of spec
-    expect(cfg).toContain("'spec.ts'");      // basename
+    expect(cfg).toContain("'spec.ts'"); // basename
     expect(cfg).toContain('https://api.x.com');
     expect(cfg).toContain('projects');
   });

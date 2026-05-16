@@ -1,14 +1,18 @@
-import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { attachTraceRecorder } from '../../src/executor/trace-recorder';
 
 let tmp: string;
-beforeEach(() => { tmp = mkdtempSync(join(tmpdir(), 'http-trace-')); });
+beforeEach(() => {
+  tmp = mkdtempSync(join(tmpdir(), 'http-trace-'));
+});
 afterEach(() => rmSync(tmp, { recursive: true, force: true }));
 
-function fakeCtx(impl: { post?: Function; get?: Function }) {
+type FakeMethod = (...args: unknown[]) => unknown;
+
+function fakeCtx(impl: { post?: FakeMethod; get?: FakeMethod }) {
   return {
     post: impl.post ?? (async () => fakeRes(200, '{}')),
     get: impl.get ?? (async () => fakeRes(200, '{}')),
@@ -31,7 +35,10 @@ describe('attachTraceRecorder', () => {
     const traceFile = join(tmp, 'http-trace.jsonl');
     const ctx = fakeCtx({});
     const wrapped = attachTraceRecorder(ctx, { traceFile, scenario: 'demo' });
-    await wrapped.post('/users', { data: { email: 'a@b.com' }, headers: { Authorization: 'Bearer secret' } });
+    await wrapped.post('/users', {
+      data: { email: 'a@b.com' },
+      headers: { Authorization: 'Bearer secret' },
+    });
     await wrapped.get('/users/1');
     expect(existsSync(traceFile)).toBe(true);
     const lines = readFileSync(traceFile, 'utf8').trim().split('\n');

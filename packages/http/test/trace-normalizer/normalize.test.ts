@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -35,7 +35,9 @@ describe('normalizeHttpRun', () => {
             specs: [
               {
                 title: 'reject malformed',
-                tests: [{ results: [{ status: 'failed', error: { message: 'expected 200, got 422' } }] }],
+                tests: [
+                  { results: [{ status: 'failed', error: { message: 'expected 200, got 422' } }] },
+                ],
               },
             ],
           },
@@ -83,7 +85,9 @@ describe('normalizeHttpRun', () => {
   test('handles missing trace file (empty calls)', async () => {
     writeFileSync(
       join(dir, 'raw-report.json'),
-      JSON.stringify({ suites: [{ specs: [{ title: 'x', tests: [{ results: [{ status: 'passed' }] }] }] }] }),
+      JSON.stringify({
+        suites: [{ specs: [{ title: 'x', tests: [{ results: [{ status: 'passed' }] }] }] }],
+      }),
     );
     const out = await normalizeHttpRun({ runId: 'RUN-3', runDir: dir });
     expect(out.http.calls).toEqual([]);

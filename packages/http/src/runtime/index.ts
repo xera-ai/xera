@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import type { APIRequestContext, request as pwRequestNs } from '@playwright/test';
 import { readAuthState } from '@xera-ai/core';
+import { attachTraceRecorder } from '../executor/trace-recorder';
 
 const DEFAULT_AUTH_DIR = '.xera/.auth';
 
@@ -62,5 +63,13 @@ export async function newAuthedContext(
       origins: [],
     };
   }
-  return playwright.request.newContext(opts);
+  const ctx = await playwright.request.newContext(opts);
+  const traceFile = process.env.XERA_HTTP_TRACE;
+  if (traceFile) {
+    return attachTraceRecorder(ctx, {
+      traceFile,
+      scenario: process.env.XERA_CURRENT_SCENARIO ?? 'unknown',
+    });
+  }
+  return ctx;
 }
