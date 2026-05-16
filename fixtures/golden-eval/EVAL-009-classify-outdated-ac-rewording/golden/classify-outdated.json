@@ -1,0 +1,7 @@
+{
+  "classification": "BUG",
+  "confidence": 0.85,
+  "evidence": {
+    "reasoning": "Candidate AC reworded but does not match the actual broken behavior"
+  }
+}
