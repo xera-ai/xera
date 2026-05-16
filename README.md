@@ -14,7 +14,9 @@ Prereqs: Bun ≥1.1.0, Claude Code, an Atlassian-connected MCP **or** a Jira API
 
 ```bash
 mkdir my-tests && cd my-tests
-bunx @xera-ai/cli init          # answers shape (web/api/mixed) + ~5 prompts; scaffolds CI workflow
+bunx @xera-ai/cli init          # interactive: answers shape + ~5 prompts; scaffolds CI workflow
+# or fully non-interactive:
+bunx @xera-ai/cli init -y --shape api --pk MYPROJ --ju https://myco.atlassian.net --au https://api.example.com --as bearer
 cp .env.example .env            # fill in credentials
 bun install
 # Web shape only: bunx playwright install chromium
