@@ -1,4 +1,8 @@
+import { config } from 'dotenv';
 import { defineConfig, devices } from '@playwright/test';
+
+config({ path: '.env.local' });
+config();
 
 // baseURL is set by xera-internal exec via the XERA_BASE_URL env var so it
 // always reflects the env declared in xera.config.ts (override with XERA_ENV).
