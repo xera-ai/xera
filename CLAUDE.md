@@ -6,7 +6,7 @@ Claude Code follows the agent instructions in [`AGENTS.md`](AGENTS.md) — **rea
 
 ## What this repo is (read this once)
 
-xera is the **framework that ships Claude Code skills** (`/xera-run`, `/xera-fetch`, `/xera-feature`, `/xera-script`, `/xera-exec`, `/xera-report`, `/xera-promote`) plus the deterministic plumbing those skills call into. The end user is a QA engineer running `bunx xera init` in their own project, then driving Playwright tests from a Claude Code session.
+xera is the **framework that ships Claude Code skills** (`/xera-run`, `/xera-fetch`, `/xera-feature`, `/xera-script`, `/xera-exec`, `/xera-report`, `/xera-impact`, `/xera-promote`, `/xera-eval`) plus the deterministic plumbing those skills call into. The end user is a QA engineer running `bunx @xera-ai/cli init` in their own project, then driving Playwright/HTTP tests from a Claude Code session.
 
 In other words: when you edit this repo you are writing the prompts, skills, and helper binaries that an *end user's* Claude Code session will execute. Treat skill `.md` and prompt `.md` content as user-facing LLM instructions, not as internal docs.
 
@@ -15,9 +15,10 @@ In other words: when you edit this repo you are writing the prompts, skills, and
 ```
 packages/
   core/      @xera-ai/core      config, paths, hashing, lock, log, Jira client,
-                                classifier (5 buckets incl. TEST_OUTDATED),
+                                classifier (8 buckets incl. TEST_OUTDATED +
+                                CONTRACT_DRIFT/RATE_LIMITED/AUTH_EXPIRED),
                                 auth state, graph module, xera-internal binary
-    src/bin-internal/           19 subcommands invoked by skills via `bun run xera:*`
+    src/bin-internal/           26 subcommands invoked by skills via `bun run xera:*`
                                 v0.1: fetch, validate-feature, typecheck, lint,
                                       exec (supports --grep), normalize, report,
                                       post, status, unlock, promote
@@ -26,10 +27,12 @@ packages/
                                 v0.6: graph-record, graph-snapshot, graph-query,
                                       graph-backfill, graph-enrich, graph-render,
                                       impact-prepare, disputes
+                                v0.7: auth-setup
                                 universal: verify-prompts, doctor (--auto-enrich)
     src/adapter/types.ts        TestAdapter interface — extension point
-    src/classifier/             5-bucket classifier (REAL_BUG, TEST_BUG,
-                                SELECTOR_DRIFT, FLAKY, TEST_OUTDATED, PASS)
+    src/classifier/             8-bucket classifier (REAL_BUG, TEST_BUG,
+                                SELECTOR_DRIFT, FLAKY, TEST_OUTDATED, PASS,
+                                CONTRACT_DRIFT, RATE_LIMITED, AUTH_EXPIRED)
     src/graph/                  v0.6 project knowledge graph data layer
                                 (types, schema, store, ulid, paths, similarity,
                                  enrich, classify, traverse, impact, render, cost
@@ -41,18 +44,24 @@ packages/
     src/generator/              selector rules, lint, pom-scan, gherkin-validate
     src/trace-normalizer/       parse + scrub Playwright traces (security-sensitive)
     src/auth-setup/             defineAuthSetup + role runner
-  cli/       @xera-ai/cli       public `xera` CLI: only `init` and `doctor`
+  http/      @xera-ai/http      HTTP API adapter (v0.7+, no browser)
+    src/executor/               HTTP request runner + JSON reporter
+    src/auth/                   defineHttpAuthSetup, presetHttpAuth, newAuthedContext
+    src/openapi/                OpenAPI loader for CONTRACT_DRIFT detection
+  cli/       @xera-ai/cli       public `xera` CLI: only `init` (--shape web|api|mixed) and `doctor`
     src/commands/               init, init-update, doctor
     templates/                  scaffold templates (xera.config, playwright.config,
                                 tsconfig, env.example, auth-setup, sample/,
                                 xera-graph.yml — CI viewer workflow)
-  skills/    @xera-ai/skills    Claude Code skill .md files (8 user-facing skills:
+  skills/    @xera-ai/skills    Claude Code skill .md files (9 skills:
                                 xera-run, xera-fetch, xera-feature, xera-script,
-                                xera-exec, xera-report, xera-impact, xera-promote)
-  prompts/   @xera-ai/prompts   versioned LLM prompt templates (7 templates:
+                                xera-exec, xera-report, xera-impact, xera-promote,
+                                xera-eval [maintainer-only])
+  prompts/   @xera-ai/prompts   versioned LLM prompt templates (9 templates:
                                 diagnose-failure, feature-from-story,
-                                script-from-feature, heal-locator, extract-areas,
-                                similarity-match, classify-outdated)
+                                script-from-feature-web, script-from-feature-http,
+                                heal-locator, extract-areas, similarity-match,
+                                classify-outdated, eval-rubric)
 fixtures/
   sample-app/                   Next.js login+dashboard target for integration tests
   mock-jira/                    Bun.serve mock Jira (deterministic tickets)
@@ -66,7 +75,8 @@ docs/
   TROUBLESHOOTING.md            top issues (incl. graph snapshot, viewer perf, disputes)
   superpowers/specs/            design specs — authoritative
                                 (v0.1 core-web, v0.2 eval, v0.3 prompt-injection,
-                                 v0.5 self-heal, v0.6 project-knowledge-graph)
+                                 v0.5 self-heal, v0.6 project-knowledge-graph,
+                                 v0.7 http-adapter)
   superpowers/plans/            implementation plans + POSTMORTEM.md
 .claude/
   skills/                       vendored superpowers skills (use via Skill tool)
@@ -93,7 +103,7 @@ Do **not** confuse these with the `/xera-*` end-user skills in `packages/skills/
 
 ## `/xera-*` skills inside this repo
 
-Most `/xera-*` skills (`/xera-run`, `/xera-fetch`, `/xera-feature`, `/xera-script`, `/xera-exec`, `/xera-report`, `/xera-impact`, `/xera-promote`) expect a consumer project layout: a top-level `xera.config.ts`, a `.xera/<TICKET>/` artifact directory, generated POMs, `.xera/graph/events/` history, etc. This monorepo does not have any of that, so running them here will fail or silently no-op.
+Most `/xera-*` skills (`/xera-run`, `/xera-fetch`, `/xera-feature`, `/xera-script`, `/xera-exec`, `/xera-report`, `/xera-impact`, `/xera-promote`) expect a consumer project layout (with `xera.config.ts`, `.xera/` artifacts, etc.): a top-level `xera.config.ts`, a `.xera/<TICKET>/` artifact directory, generated POMs, `.xera/graph/events/` history, etc. This monorepo does not have any of that, so running them here will fail or silently no-op.
 
 To exercise them end-to-end, scaffold a throwaway project:
 
@@ -152,7 +162,7 @@ These show up repeatedly; internalize them before touching code.
 
 - Commit messages follow `<scope>: <summary>` (see `AGENTS.md § Commit conventions`). Keep them small and focused.
 - **Never include the model identifier in commits, PR titles/bodies, or code comments.** Keep model identity in chat replies only.
-- Only commit when the user explicitly asks. Only push to the branch designated by the session's task instructions (currently `claude/add-claude-documentation-gMM4u`).
+- Only commit when the user explicitly asks. Only push to the branch designated by the session's task instructions.
 - Do not create a PR unless the user explicitly asks for one.
 - Don't use destructive git operations (`reset --hard`, `push --force`, branch deletion, `--no-verify`) without explicit user instruction.
 
