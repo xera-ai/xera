@@ -15,4 +15,24 @@ describe('buildPlaywrightArgs', () => {
     expect(args).toContain('--trace=on');
     expect(args).toContain('--config=/r/.xera/JIRA-1/playwright.config.ts');
   });
+
+  test('emits --grep flag when grep field is provided', () => {
+    const args = buildPlaywrightArgs({
+      specPath: '/r/.xera/JIRA-1/spec.ts',
+      outputDir: '/r/.xera/JIRA-1/runs/2026-05-14T10-30',
+      configPath: '/r/.xera/JIRA-1/playwright.config.ts',
+      grep: 'should login successfully',
+    });
+    expect(args).toContain('--grep');
+    expect(args).toContain('should login successfully');
+  });
+
+  test('omits --grep flag when grep field is not provided', () => {
+    const args = buildPlaywrightArgs({
+      specPath: '/r/.xera/JIRA-1/spec.ts',
+      outputDir: '/r/.xera/JIRA-1/runs/2026-05-14T10-30',
+      configPath: '/r/.xera/JIRA-1/playwright.config.ts',
+    });
+    expect(args).not.toContain('--grep');
+  });
 });

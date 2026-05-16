@@ -2,10 +2,11 @@ export interface PlaywrightArgsInput {
   specPath: string;
   outputDir: string;
   configPath: string;
+  grep?: string;
 }
 
 export function buildPlaywrightArgs(input: PlaywrightArgsInput): string[] {
-  return [
+  const args = [
     'test',
     input.specPath,
     `--config=${input.configPath}`,
@@ -13,4 +14,8 @@ export function buildPlaywrightArgs(input: PlaywrightArgsInput): string[] {
     `--output=${input.outputDir}`,
     '--trace=on',
   ];
+  if (input.grep) {
+    args.push('--grep', input.grep);
+  }
+  return args;
 }

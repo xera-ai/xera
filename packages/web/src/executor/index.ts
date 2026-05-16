@@ -10,6 +10,7 @@ export interface RunPlaywrightInput {
   specPath: string;
   configPath: string;
   outputDir: string;
+  grep?: string;
   env?: NodeJS.ProcessEnv;
   spawn?: SpawnFn;
 }
@@ -31,6 +32,7 @@ export async function runPlaywright(input: RunPlaywrightInput): Promise<RunPlayw
     specPath: input.specPath,
     configPath: input.configPath,
     outputDir: input.outputDir,
+    ...(input.grep && { grep: input.grep }),
   });
   const spawn = input.spawn ?? defaultSpawn;
   const { exitCode } = await spawn('npx', ['playwright', ...args], {
