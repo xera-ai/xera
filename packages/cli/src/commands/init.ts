@@ -85,6 +85,9 @@ export async function initCommand(opts: { yes: boolean }): Promise<void> {
     scaffoldFile(join(cwd, 'shared/auth-setup.ts'), 'auth-setup.ts.tmpl', vars);
   }
 
+  // Scaffold GitHub Actions viewer workflow (v0.6.3+)
+  scaffoldFile(join(cwd, '.github/workflows/xera-graph.yml'), 'xera-graph.yml.template', vars);
+
   // .gitignore additions
   const gitignorePath = join(cwd, '.gitignore');
   const gitignoreAdditions = [
@@ -136,6 +139,8 @@ export async function initCommand(opts: { yes: boolean }): Promise<void> {
   pkg.scripts['xera:status'] = 'xera-internal status';
   pkg.scripts['xera:unlock'] = 'xera-internal unlock';
   pkg.scripts['xera:promote'] = 'xera-internal promote';
+  pkg.scripts['xera:graph-snapshot'] = 'xera-internal graph-snapshot';
+  pkg.scripts['xera:graph-render'] = 'xera-internal graph-render';
   pkg.dependencies = pkg.dependencies ?? {};
   pkg.dependencies['@xera-ai/core'] = '^0.4.2';
   pkg.dependencies['@xera-ai/web'] = '^0.2.0';
