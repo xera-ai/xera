@@ -1,0 +1,5 @@
+{
+  "id": "impact-depth-1",
+  "summary": "depth-1 modifies/uses path",
+  "expectation": "2 scenarios via uses-shared-POM"
+}

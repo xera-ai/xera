@@ -1,0 +1,5 @@
+{
+  "id": "impact-depth-2",
+  "summary": "depth-2 adds jira-linked ticket scenario",
+  "expectation": "depth=2 returns 3 scenarios (sc-100, sc-145 via POM path + sc-178 via jira-linked)"
+}

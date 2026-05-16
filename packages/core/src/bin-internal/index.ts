@@ -10,6 +10,7 @@ import { graphQueryCmd } from './graph-query';
 import { graphRecordCmd } from './graph-record';
 import { graphSnapshotCmd } from './graph-snapshot';
 import { healPrepareCmd } from './heal-prepare';
+import { impactPrepareCmd } from './impact-prepare';
 import { lintCmd } from './lint';
 import { normalizeCmd } from './normalize';
 import { postCmd } from './post';
@@ -34,6 +35,7 @@ const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
   'graph-record': graphRecordCmd,
   'graph-snapshot': graphSnapshotCmd,
   'heal-prepare': healPrepareCmd,
+  'impact-prepare': impactPrepareCmd,
   lint: lintCmd,
   normalize: normalizeCmd,
   post: postCmd,

@@ -1,0 +1,5 @@
+{
+  "id": "impact-empty",
+  "summary": "target ticket modifies unconnected area — no overlap with existing POMs",
+  "expectation": "empty scenarios list — no re-run prompt"
+}
