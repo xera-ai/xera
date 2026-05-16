@@ -99,7 +99,9 @@ Tests live at `packages/<pkg>/test/<area>/<name>.test.ts` mirroring `src/`. Use 
 
 ## Workspace deps
 
-The six packages reference each other with **explicit caret semver** (`"@xera-ai/core": "^0.1.4"`), **not** `workspace:*`. This was a deliberate fix after `bun publish`'s `workspace:*` substitution lagged by one lockfile version on first launch. Keep using explicit semver until Bun fixes that.
+The six packages reference each other with **explicit caret semver** (`"@xera-ai/core": "^0.8.0"`), **not** `workspace:*`. This was a deliberate fix after `bun publish`'s `workspace:*` substitution lagged by one lockfile version on first launch. Keep using explicit semver until Bun fixes that.
+
+**All six packages share one version** — `cli`, `core`, `web`, `http`, `prompts`, `skills` move in lockstep via the `fixed` group in `.changeset/config.json`. A patch/minor/major bump declared in any single changeset propagates to all six. "Xera v0.8.1" = every package at `0.8.1`. This trades some npm churn (packages without code changes still get a new published version) for a single unambiguous marketing version.
 
 **Versions are bumped by [changesets](https://github.com/changesets/changesets), not by hand.** Two things take care of changesets automatically; you only intervene if neither fires.
 

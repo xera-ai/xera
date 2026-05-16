@@ -26,10 +26,10 @@ export async function initUpdateCommand(_opts: { yes: boolean }): Promise<void> 
   const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
   pkg.dependencies = pkg.dependencies ?? {};
   // Bump existing entries to latest; only add adapters that were already present
-  pkg.dependencies['@xera-ai/core'] = '^0.5.0';
-  pkg.dependencies['@xera-ai/prompts'] = '^2.4.0';
-  if (pkg.dependencies['@xera-ai/web']) pkg.dependencies['@xera-ai/web'] = '^0.3.0';
-  if (pkg.dependencies['@xera-ai/http']) pkg.dependencies['@xera-ai/http'] = '^0.1.0';
+  pkg.dependencies['@xera-ai/core'] = '^0.8.0';
+  pkg.dependencies['@xera-ai/prompts'] = '^0.8.0';
+  if (pkg.dependencies['@xera-ai/web']) pkg.dependencies['@xera-ai/web'] = '^0.8.0';
+  if (pkg.dependencies['@xera-ai/http']) pkg.dependencies['@xera-ai/http'] = '^0.8.0';
 
   pkg.scripts = pkg.scripts ?? {};
   pkg.scripts['xera:auth-setup'] = 'xera-internal auth-setup';

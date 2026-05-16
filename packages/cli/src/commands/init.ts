@@ -12,7 +12,7 @@ export type ProjectShape = 'web' | 'api' | 'mixed';
 
 export async function initCommand(opts: { yes: boolean; shape?: ProjectShape }): Promise<void> {
   const cwd = process.cwd();
-  p.intro(pc.cyan('xera v0.1.0 — project setup'));
+  p.intro(pc.cyan('xera — project setup'));
 
   // Determine shape first
   const shape: ProjectShape =
@@ -291,10 +291,10 @@ export async function initCommand(opts: { yes: boolean; shape?: ProjectShape }):
   pkg.scripts['xera:disputes'] = 'xera-internal disputes';
 
   pkg.dependencies = pkg.dependencies ?? {};
-  pkg.dependencies['@xera-ai/core'] = '^0.5.0';
-  pkg.dependencies['@xera-ai/prompts'] = '^2.4.0';
-  if (wantsWeb) pkg.dependencies['@xera-ai/web'] = '^0.3.0';
-  if (wantsHttp) pkg.dependencies['@xera-ai/http'] = '^0.1.0';
+  pkg.dependencies['@xera-ai/core'] = '^0.8.0';
+  pkg.dependencies['@xera-ai/prompts'] = '^0.8.0';
+  if (wantsWeb) pkg.dependencies['@xera-ai/web'] = '^0.8.0';
+  if (wantsHttp) pkg.dependencies['@xera-ai/http'] = '^0.8.0';
 
   pkg.devDependencies = pkg.devDependencies ?? {};
   pkg.devDependencies['@playwright/test'] = '^1.60.0';
