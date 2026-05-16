@@ -119,8 +119,7 @@ function checkRootScripts(repoRoot: string): CheckResult[] {
 
 function isXeraMonorepo(repoRoot: string): boolean {
   return (
-    existsSync(join(repoRoot, 'packages/skills')) &&
-    existsSync(join(repoRoot, 'packages/prompts'))
+    existsSync(join(repoRoot, 'packages/skills')) && existsSync(join(repoRoot, 'packages/prompts'))
   );
 }
 
