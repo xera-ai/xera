@@ -1,8 +1,4 @@
-import { config } from 'dotenv';
 import { defineConfig } from '@playwright/test';
-
-config({ path: '.env.local' });
-config();
 
 export default defineConfig({
   testDir: './.xera',
