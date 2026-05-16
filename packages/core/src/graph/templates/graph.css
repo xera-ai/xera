@@ -56,6 +56,8 @@ body {
 #canvas {
   background: #fafbfc;
   position: relative;
+  min-height: 0;
+  overflow: hidden;
 }
 #sidepanel {
   background: #ffffff;

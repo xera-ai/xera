@@ -23,6 +23,8 @@
     },
   );
 
+  network.once('stabilizationIterationsDone', () => network.fit());
+
   var sidepanel = document.getElementById('sidepanel');
   var spTitle = document.getElementById('sp-title');
   var spDesc = document.getElementById('sp-desc');
