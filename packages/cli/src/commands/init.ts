@@ -244,9 +244,6 @@ export async function initCommand(opts: InitOptions): Promise<void> {
   }
 
   // Seed sample tickets by shape
-  if (wantsWeb) {
-    copyDir(join(TEMPLATE_DIR, 'sample/SAMPLE-001'), join(cwd, '.xera/SAMPLE-001'));
-  }
   if (wantsHttp) {
     copyDir(join(TEMPLATE_DIR, 'sample/SAMPLE-HTTP-001'), join(cwd, '.xera/SAMPLE-HTTP-001'));
   }
@@ -324,17 +321,17 @@ Next:
   1) Set credentials in .env.local (both web logins and API tokens)
   2) Run pre-authentication:
        bun run xera:auth-setup
-  3) Try samples:
-       /xera-run SAMPLE-001        # UI
-       /xera-run SAMPLE-HTTP-001   # API
+  3) Start testing:
+       /xera-run SAMPLE-HTTP-001   # API sample
+       /xera-run <YOUR-TICKET>     # UI tickets
 `
         : `
 Next:
   1) Set your Jira credentials in .env.local
   2) Run pre-authentication:
        bun run xera:auth-setup
-  3) Try the sample:
-       Open Claude Code in this directory and run: /xera-run SAMPLE-001
+  3) Start testing:
+       Open Claude Code in this directory and run: /xera-run <TICKET>
 `;
 
   p.note(nextSteps.trim(), 'Next steps');
