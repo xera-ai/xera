@@ -1,5 +1,15 @@
 # @xera-ai/core
 
+## 0.9.4
+
+### Patch Changes
+
+- [#51](https://github.com/xera-ai/xera/pull/51) [`9c77460`](https://github.com/xera-ai/xera/commit/9c77460e62c6040c4042360463c93adbb62a7dff) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - fix graph-record path resolution and xera-internal bundle version loading
+
+- Updated dependencies []:
+  - @xera-ai/web@0.9.4
+  - @xera-ai/http@0.9.4
+
 ## 0.9.3
 
 ### Patch Changes
