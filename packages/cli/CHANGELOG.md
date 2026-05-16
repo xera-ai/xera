@@ -1,5 +1,13 @@
 # @xera-ai/cli
 
+## 0.9.4
+
+### Patch Changes
+
+- Updated dependencies [[`9c77460`](https://github.com/xera-ai/xera/commit/9c77460e62c6040c4042360463c93adbb62a7dff)]:
+  - @xera-ai/core@0.9.4
+  - @xera-ai/skills@0.9.4
+
 ## 0.9.3
 
 ### Patch Changes
