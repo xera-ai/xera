@@ -25,12 +25,23 @@ export async function initUpdateCommand(_opts: { yes: boolean }): Promise<void> 
   }
   const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
   pkg.dependencies = pkg.dependencies ?? {};
-  pkg.dependencies['@xera-ai/core'] = '^0.4.4';
-  pkg.dependencies['@xera-ai/web'] = '^0.2.1';
-  pkg.dependencies['@xera-ai/prompts'] = '^2.3.0';
+  // Bump existing entries to latest; only add adapters that were already present
+  pkg.dependencies['@xera-ai/core'] = '^0.5.0';
+  pkg.dependencies['@xera-ai/prompts'] = '^2.4.0';
+  if (pkg.dependencies['@xera-ai/web']) pkg.dependencies['@xera-ai/web'] = '^0.3.0';
+  if (pkg.dependencies['@xera-ai/http']) pkg.dependencies['@xera-ai/http'] = '^0.1.0';
+
   pkg.scripts = pkg.scripts ?? {};
+  pkg.scripts['xera:auth-setup'] = 'xera-internal auth-setup';
+  pkg.scripts['xera:graph-record'] = 'xera-internal graph-record';
   pkg.scripts['xera:graph-snapshot'] = 'xera-internal graph-snapshot';
+  pkg.scripts['xera:graph-query'] = 'xera-internal graph-query';
+  pkg.scripts['xera:graph-backfill'] = 'xera-internal graph-backfill';
+  pkg.scripts['xera:graph-enrich'] = 'xera-internal graph-enrich';
   pkg.scripts['xera:graph-render'] = 'xera-internal graph-render';
+  pkg.scripts['xera:impact-prepare'] = 'xera-internal impact-prepare';
+  pkg.scripts['xera:heal-prepare'] = 'xera-internal heal-prepare';
+  pkg.scripts['xera:disputes'] = 'xera-internal disputes';
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 
   // Scaffold GitHub Actions viewer workflow (v0.6.3+)
