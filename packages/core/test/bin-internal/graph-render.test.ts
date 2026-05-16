@@ -6,7 +6,8 @@ import { graphRenderCmd } from '../../src/bin-internal/graph-render';
 import { appendEvents } from '../../src/graph/store';
 import { ulid } from '../../src/graph/ulid';
 
-let root: string; let prevCwd: string;
+let root: string;
+let prevCwd: string;
 
 beforeEach(() => {
   prevCwd = process.cwd();
@@ -19,11 +20,27 @@ afterEach(() => {
 });
 
 function seedSmallGraph() {
-  appendEvents(root, [{
-    event_id: ulid(), schema_version: 1, ts: '2026-05-16T00:00:00Z', actor: 'test',
-    type: 'ticket.fetched',
-    payload: { ticketId: 'ABC-1', summary: 'login', ac: [], jiraLinks: [], storyHash: 'h', modifiesAreas: ['login'] },
-  } as any], { skill: 'test', ticketId: 'ABC-1' });
+  appendEvents(
+    root,
+    [
+      {
+        event_id: ulid(),
+        schema_version: 1,
+        ts: '2026-05-16T00:00:00Z',
+        actor: 'test',
+        type: 'ticket.fetched',
+        payload: {
+          ticketId: 'ABC-1',
+          summary: 'login',
+          ac: [],
+          jiraLinks: [],
+          storyHash: 'h',
+          modifiesAreas: ['login'],
+        },
+      } as any,
+    ],
+    { skill: 'test', ticketId: 'ABC-1' },
+  );
 }
 
 describe('graph-render', () => {
@@ -47,12 +64,42 @@ describe('graph-render', () => {
   });
 
   test('--ticket filter narrows to one ticket', async () => {
-    appendEvents(root, [
-      { event_id: ulid(), schema_version: 1, ts: '2026-05-16T00:00:00Z', actor: 't', type: 'ticket.fetched',
-        payload: { ticketId: 'ABC-1', summary: 'A', ac: [], jiraLinks: [], storyHash: 'h', modifiesAreas: [] } },
-      { event_id: ulid(), schema_version: 1, ts: '2026-05-16T00:00:00Z', actor: 't', type: 'ticket.fetched',
-        payload: { ticketId: 'ABC-2', summary: 'B', ac: [], jiraLinks: [], storyHash: 'h', modifiesAreas: [] } },
-    ] as any, { skill: 't', ticketId: 'ABC-1' });
+    appendEvents(
+      root,
+      [
+        {
+          event_id: ulid(),
+          schema_version: 1,
+          ts: '2026-05-16T00:00:00Z',
+          actor: 't',
+          type: 'ticket.fetched',
+          payload: {
+            ticketId: 'ABC-1',
+            summary: 'A',
+            ac: [],
+            jiraLinks: [],
+            storyHash: 'h',
+            modifiesAreas: [],
+          },
+        },
+        {
+          event_id: ulid(),
+          schema_version: 1,
+          ts: '2026-05-16T00:00:00Z',
+          actor: 't',
+          type: 'ticket.fetched',
+          payload: {
+            ticketId: 'ABC-2',
+            summary: 'B',
+            ac: [],
+            jiraLinks: [],
+            storyHash: 'h',
+            modifiesAreas: [],
+          },
+        },
+      ] as any,
+      { skill: 't', ticketId: 'ABC-1' },
+    );
     const exit = await graphRenderCmd(['--ticket', 'ABC-1']);
     expect(exit).toBe(0);
     const html = readFileSync(join(root, '.xera/graph.html'), 'utf8');

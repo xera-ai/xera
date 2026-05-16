@@ -1,8 +1,8 @@
 import { mkdirSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import type { RenderOpts } from '../graph/render';
 import { renderHtml, transformForVisNetwork } from '../graph/render';
 import { deriveSnapshot, loadAllEvents } from '../graph/store';
-import type { RenderOpts } from '../graph/render';
 
 function parseDepth(s: string | undefined): 1 | 2 | 3 {
   const n = s ? Number.parseInt(s, 10) : 2;

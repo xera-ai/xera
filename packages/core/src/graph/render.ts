@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { Snapshot, EdgeRecord } from './types';
+import type { EdgeRecord, Snapshot } from './types';
 
 export interface VisNode {
   id: string;
@@ -35,9 +35,9 @@ export interface GraphStats {
 }
 
 export interface RenderOpts {
-  since?: string;        // ISO8601 cutoff
-  ticketId?: string;     // ego-graph centered on this ticket
-  depth?: 1 | 2 | 3;     // traversal depth for ego-graph
+  since?: string; // ISO8601 cutoff
+  ticketId?: string; // ego-graph centered on this ticket
+  depth?: 1 | 2 | 3; // traversal depth for ego-graph
   performanceMode?: 'full' | 'ticket-only' | 'text-fallback';
 }
 
@@ -124,7 +124,10 @@ function buildAreaNode(snap: Snapshot, areaId: string): VisNode {
   return node;
 }
 
-function buildFailureNode(_snap: Snapshot, failure: { id: string; scenarioId: string; runId: string; ts: string }): VisNode {
+function buildFailureNode(
+  _snap: Snapshot,
+  failure: { id: string; scenarioId: string; runId: string; ts: string },
+): VisNode {
   const node: VisNode = {
     id: failure.id,
     label: 'fail',
@@ -161,10 +164,6 @@ function buildEdge(edge: EdgeRecord, idx: number): VisEdge {
       v.dashes = false;
       v.width = 1 + Math.round((edge.confidence ?? 0) * 3);
       break;
-    case 'tests':
-    case 'uses':
-    case 'covers':
-    case 'ran':
     default:
       v.color = COLORS.edgeDefault;
       break;
@@ -172,7 +171,11 @@ function buildEdge(edge: EdgeRecord, idx: number): VisEdge {
   return v;
 }
 
-function bfsFromTicket(snap: Snapshot, ticketId: string, depth: number): { nodeIds: Set<string>; edgeIdxs: Set<number> } {
+function bfsFromTicket(
+  snap: Snapshot,
+  ticketId: string,
+  depth: number,
+): { nodeIds: Set<string>; edgeIdxs: Set<number> } {
   const nodeIds = new Set<string>([ticketId]);
   const edgeIdxs = new Set<number>();
   let frontier = new Set<string>([ticketId]);
@@ -199,8 +202,13 @@ function bfsFromTicket(snap: Snapshot, ticketId: string, depth: number): { nodeI
   return { nodeIds, edgeIdxs };
 }
 
-export function transformForVisNetwork(snap: Snapshot, opts: RenderOpts): {
-  nodes: VisNode[]; edges: VisEdge[]; stats: GraphStats;
+export function transformForVisNetwork(
+  snap: Snapshot,
+  opts: RenderOpts,
+): {
+  nodes: VisNode[];
+  edges: VisEdge[];
+  stats: GraphStats;
 } {
   const mode = opts.performanceMode ?? 'full';
 
@@ -224,11 +232,21 @@ export function transformForVisNetwork(snap: Snapshot, opts: RenderOpts): {
     }
     includeEdgeIdxs = result.edgeIdxs;
   } else {
-    includeTickets = new Set(Object.keys(snap.tickets).filter((id) => ticketsAfter(opts.since, snap.tickets[id]!.fetchedAt)));
-    includeScenarios = new Set(Object.keys(snap.scenarios).filter((id) => scenariosAfter(opts.since, snap.scenarios[id]!.generatedAt)));
+    includeTickets = new Set(
+      Object.keys(snap.tickets).filter((id) =>
+        ticketsAfter(opts.since, snap.tickets[id]!.fetchedAt),
+      ),
+    );
+    includeScenarios = new Set(
+      Object.keys(snap.scenarios).filter((id) =>
+        scenariosAfter(opts.since, snap.scenarios[id]!.generatedAt),
+      ),
+    );
     includePoms = new Set(Object.keys(snap.poms));
     includeAreas = new Set(Object.keys(snap.areas));
-    snap.edges.forEach((_, i) => includeEdgeIdxs.add(i));
+    snap.edges.forEach((_, i) => {
+      includeEdgeIdxs.add(i);
+    });
   }
 
   // Apply performance mode
