@@ -84,7 +84,12 @@ describe('xera integration — init + fetch + exec + report', () => {
     `,
     );
 
-    // 4. Run xera-internal fetch SAMPLE-001 (uses mock-jira REST since no MCP)
+    // 4. Install scaffolded deps so `xera:fetch` can resolve the
+    // `xera-internal` bin (from @xera-ai/core).
+    const install = spawn(['bun', 'install'], { cwd });
+    expect(await install.exited).toBe(0);
+
+    // 5. Run xera-internal fetch SAMPLE-001 (uses mock-jira REST since no MCP)
     const fetchProc = spawn(['bun', 'run', '--cwd', cwd, 'xera:fetch', 'SAMPLE-001'], { cwd });
     expect(await fetchProc.exited).toBe(0);
     expect(existsSync(join(cwd, '.xera/SAMPLE-001/story.md'))).toBe(true);
