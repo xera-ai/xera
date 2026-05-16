@@ -31,7 +31,7 @@
     },
     "packages/cli": {
       "name": "@xera-ai/cli",
-      "version": "0.1.13",
+      "version": "0.1.14",
       "bin": {
         "xera": "./bin/xera",
       },
@@ -45,7 +45,7 @@
     },
     "packages/core": {
       "name": "@xera-ai/core",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "bin": {
         "xera-internal": "./dist/bin/internal.js",
       },
@@ -53,20 +53,21 @@
         "@playwright/test": "1.48.0",
         "@xera-ai/web": "^0.1.5",
         "fflate": "0.8.2",
+        "yaml": "2.9.0",
         "zod": "3.23.8",
       },
     },
     "packages/prompts": {
       "name": "@xera-ai/prompts",
-      "version": "2.0.0",
+      "version": "2.1.0",
     },
     "packages/skills": {
       "name": "@xera-ai/skills",
-      "version": "0.2.0",
+      "version": "0.3.0",
     },
     "packages/web": {
       "name": "@xera-ai/web",
-      "version": "0.1.6",
+      "version": "0.1.7",
       "dependencies": {
         "@cucumber/gherkin": "30.0.4",
         "@cucumber/messages": "27.0.2",
@@ -260,6 +261,8 @@
     "undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 
     "uuid": ["uuid@10.0.0", "", { "bin": { "uuid": "dist/bin/uuid" } }, "sha512-8XkAphELsDnEGrDxUOHB3RGvXz6TeuYSGEZBOjtTtPm2lwhGBjLgOzLHB63IUWfBpNucQjND6d3AOudO+H3RWQ=="],
+
+    "yaml": ["yaml@2.9.0", "", { "bin": { "yaml": "bin.mjs" } }, "sha512-2AvhNX3mb8zd6Zy7INTtSpl1F15HW6Wnqj0srWlkKLcpYl/gMIMJiyuGq2KeI2YFxUPjdlB+3Lc10seMLtL4cA=="],
 
     "zod": ["zod@3.23.8", "", {}, "sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g=="],
 
