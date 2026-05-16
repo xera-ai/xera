@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { Snapshot, EdgeRecord } from './types';
 
 export interface VisNode {
@@ -264,4 +267,40 @@ export function transformForVisNetwork(snap: Snapshot, opts: RenderOpts): {
   };
 
   return { nodes, edges, stats };
+}
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const TEMPLATES_DIR = join(__dirname, 'templates');
+
+function loadTemplate(name: string): string {
+  return readFileSync(join(TEMPLATES_DIR, name), 'utf8');
+}
+
+function statsToHuman(s: GraphStats): string {
+  return `${s.tickets} tickets · ${s.scenarios} scenarios · ${s.poms} POMs · ${s.edges} edges`;
+}
+
+export interface RenderHtmlInput {
+  data: { nodes: VisNode[]; edges: VisEdge[] };
+  stats: GraphStats;
+  generatedAt: string;
+}
+
+export function renderHtml(input: RenderHtmlInput): string {
+  const template = loadTemplate('graph.html.template');
+  const css = loadTemplate('graph.css');
+  const js = loadTemplate('graph.js');
+  const visNetwork = loadTemplate('vis-network.min.js');
+
+  const graphJson = JSON.stringify(input.data);
+  const statsHuman = statsToHuman(input.stats);
+
+  return template
+    .replace('{{CSS}}', () => css)
+    .replace('{{STATS}}', () => statsHuman)
+    .replace('{{GENERATED_AT}}', () => input.generatedAt)
+    .replace('{{VIS_NETWORK_JS}}', () => visNetwork)
+    .replace('{{GRAPH_DATA}}', () => graphJson)
+    .replace('{{INTERACTION_JS}}', () => js);
 }

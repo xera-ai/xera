@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { transformForVisNetwork } from '../../src/graph/render';
+import { transformForVisNetwork, renderHtml } from '../../src/graph/render';
 import type { Snapshot } from '../../src/graph/types';
 
 function mkSnapshot(): Snapshot {
@@ -117,5 +117,44 @@ describe('transformForVisNetwork', () => {
     expect(types.has('Scenario')).toBe(false);
     expect(types.has('POM')).toBe(false);
     expect(types.has('SUTArea')).toBe(false);
+  });
+});
+
+describe('renderHtml', () => {
+  test('produces valid HTML with embedded graph data', () => {
+    const snap = mkSnapshot();
+    const data = transformForVisNetwork(snap, {});
+    const html = renderHtml({ data, generatedAt: '2026-05-16T08:00:00Z', stats: data.stats });
+    expect(html).toMatch(/^<!DOCTYPE html>/);
+    expect(html).toContain('window.__GRAPH__');
+    expect(html).toContain('"ABC-100"');
+    expect(html).toContain('2026-05-16T08:00:00Z');
+    expect(html).toContain('vis-network');
+  });
+
+  test('embedded JSON parses correctly', () => {
+    const snap = mkSnapshot();
+    const data = transformForVisNetwork(snap, {});
+    const html = renderHtml({ data, generatedAt: '2026-05-16T08:00:00Z', stats: data.stats });
+    const match = html.match(/window\.__GRAPH__\s*=\s*(\{[\s\S]*?\});/);
+    expect(match).not.toBeNull();
+    const parsed = JSON.parse(match![1]!);
+    expect(parsed.nodes).toBeDefined();
+    expect(parsed.edges).toBeDefined();
+  });
+
+  test('shows stats in topbar', () => {
+    const snap = mkSnapshot();
+    const data = transformForVisNetwork(snap, {});
+    const html = renderHtml({ data, generatedAt: '2026-05-16T08:00:00Z', stats: data.stats });
+    expect(html).toMatch(/2 tickets/i);
+    expect(html).toMatch(/1 scenario/i);
+  });
+
+  test('output size is reasonable (< 1.5 MB)', () => {
+    const snap = mkSnapshot();
+    const data = transformForVisNetwork(snap, {});
+    const html = renderHtml({ data, generatedAt: '2026-05-16T08:00:00Z', stats: data.stats });
+    expect(html.length).toBeLessThan(1_500_000);
   });
 });

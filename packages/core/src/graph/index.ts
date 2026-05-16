@@ -1,3 +1,5 @@
+export { transformForVisNetwork, renderHtml } from './render';
+export type { GraphStats, RenderHtmlInput, RenderOpts, VisEdge, VisNode } from './render';
 export type {
   CandidateEvidence,
   ClassifyEvidence,
