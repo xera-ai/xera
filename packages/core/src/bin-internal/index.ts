@@ -5,6 +5,7 @@ import { evalReportCmd } from './eval-report';
 import { execCmd } from './exec';
 import { fetchCmd } from './fetch';
 import { graphBackfillCmd } from './graph-backfill';
+import { graphRenderCmd } from './graph-render';
 import { graphEnrichCmd } from './graph-enrich';
 import { graphQueryCmd } from './graph-query';
 import { graphRecordCmd } from './graph-record';
@@ -31,6 +32,7 @@ const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
   fetch: fetchCmd,
   'graph-backfill': graphBackfillCmd,
   'graph-enrich': graphEnrichCmd,
+  'graph-render': graphRenderCmd,
   'graph-query': graphQueryCmd,
   'graph-record': graphRecordCmd,
   'graph-snapshot': graphSnapshotCmd,
