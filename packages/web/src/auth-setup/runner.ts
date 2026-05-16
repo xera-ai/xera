@@ -14,10 +14,12 @@ export interface RunAuthSetupInput {
 
 export async function runAuthSetup(input: RunAuthSetupInput): Promise<void> {
   const mod = await import(pathToFileURL(input.setupScriptPath).href);
-  const fn = mod.default;
+  // Support both `export default defineAuthSetup(...)` and `export const web = defineAuthSetup(...)`.
+  // The named `web` export is the scaffold default for mixed-shape projects (web + http in one file).
+  const fn = mod.default ?? mod.web;
   if (typeof fn !== 'function') {
     throw new Error(
-      `Auth setup script at ${input.setupScriptPath} must default-export a function (see defineAuthSetup).`,
+      `Auth setup script at ${input.setupScriptPath} must export a defineAuthSetup function as default or named "web" export.`,
     );
   }
   const context = await input.browser.newContext();

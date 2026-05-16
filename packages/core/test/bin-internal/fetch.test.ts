@@ -35,6 +35,11 @@ describe('xera-internal fetch', () => {
     expect(existsSync(join(cwd, '.xera/JIRA-1/story.md'))).toBe(true);
     const story = readFileSync(join(cwd, '.xera/JIRA-1/story.md'), 'utf8');
     expect(story).toContain('A user story');
+    // Frontmatter required by graph-record fetch
+    expect(story).toMatch(/^---\n/);
+    expect(story).toContain('ticketId: JIRA-1');
+    expect(story).toContain('summary: "A summary"');
+    expect(story).toContain('storyHash:');
 
     delete process.env.XERA_TEST_JIRA;
     rmSync(cwd, { recursive: true });

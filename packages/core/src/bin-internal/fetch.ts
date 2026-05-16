@@ -43,9 +43,12 @@ export async function fetchCmd(argv: string[], opts: FetchCmdOpts = {}): Promise
     t = await client.fetchTicket(ticket, fieldMap);
   }
 
-  const story = renderStory(t);
+  const body = renderStoryBody(t);
+  const storyHash = hashString(body);
+  const acLines = parseAcLines(t.acceptanceCriteria);
+  const full = renderStory(t.key, t.summary, storyHash, acLines, body);
   mkdirSync(dirname(paths.storyPath), { recursive: true });
-  writeFileSync(paths.storyPath, story);
+  writeFileSync(paths.storyPath, full);
 
   const existing = readMeta(paths.metaPath);
   writeMeta(paths.metaPath, {
@@ -55,7 +58,7 @@ export async function fetchCmd(argv: string[], opts: FetchCmdOpts = {}): Promise
     prompts_version: '1.0.0',
     ...(existing ?? {}),
     // Re-stamp the just-fetched fields:
-    story_hash: hashString(story),
+    story_hash: storyHash,
     fetched_at: new Date().toISOString(),
   });
 
@@ -63,7 +66,16 @@ export async function fetchCmd(argv: string[], opts: FetchCmdOpts = {}): Promise
   return 0;
 }
 
-function renderStory(t: JiraTicket): string {
+function parseAcLines(raw: string | undefined): string[] {
+  if (!raw?.trim()) return [];
+  return raw
+    .trim()
+    .split('\n')
+    .map((l) => l.replace(/^[\s\-*]+/, '').trim())
+    .filter(Boolean);
+}
+
+function renderStoryBody(t: JiraTicket): string {
   const lines: string[] = [];
   lines.push(`# ${t.key}: ${t.summary}`, '');
 
@@ -92,4 +104,25 @@ function renderStory(t: JiraTicket): string {
     );
   }
   return lines.join('\n');
+}
+
+function renderStory(
+  key: string,
+  summary: string,
+  storyHash: string,
+  acLines: string[],
+  body: string,
+): string {
+  const yamlLines = [
+    '---',
+    `ticketId: ${key}`,
+    `summary: ${JSON.stringify(summary)}`,
+    `storyHash: ${storyHash}`,
+  ];
+  if (acLines.length > 0) {
+    yamlLines.push('acceptanceCriteria:');
+    for (const ac of acLines) yamlLines.push(`  - ${JSON.stringify(ac)}`);
+  }
+  yamlLines.push('---', '');
+  return yamlLines.join('\n') + body;
 }
