@@ -10,6 +10,10 @@
         "typescript": "6.0.3",
       },
     },
+    "fixtures/mock-api": {
+      "name": "@xera-ai/mock-api",
+      "version": "0.0.0",
+    },
     "fixtures/mock-jira": {
       "name": "@xera-fixtures/mock-jira",
       "version": "0.0.0",
@@ -31,7 +35,7 @@
     },
     "packages/cli": {
       "name": "@xera-ai/cli",
-      "version": "0.2.5",
+      "version": "0.3.0",
       "bin": {
         "xera": "./bin/xera",
       },
@@ -45,7 +49,7 @@
     },
     "packages/core": {
       "name": "@xera-ai/core",
-      "version": "0.4.4",
+      "version": "0.5.0",
       "bin": {
         "xera-internal": "./dist/bin/internal.js",
       },
@@ -71,15 +75,15 @@
     },
     "packages/prompts": {
       "name": "@xera-ai/prompts",
-      "version": "2.3.0",
+      "version": "2.4.0",
     },
     "packages/skills": {
       "name": "@xera-ai/skills",
-      "version": "0.4.4",
+      "version": "0.5.0",
     },
     "packages/web": {
       "name": "@xera-ai/web",
-      "version": "0.2.1",
+      "version": "0.3.0",
       "dependencies": {
         "@cucumber/gherkin": "39.1.0",
         "@cucumber/messages": "32.3.1",
@@ -197,6 +201,8 @@
     "@xera-ai/core": ["@xera-ai/core@workspace:packages/core"],
 
     "@xera-ai/http": ["@xera-ai/http@workspace:packages/http"],
+
+    "@xera-ai/mock-api": ["@xera-ai/mock-api@workspace:fixtures/mock-api"],
 
     "@xera-ai/prompts": ["@xera-ai/prompts@workspace:packages/prompts"],
 
