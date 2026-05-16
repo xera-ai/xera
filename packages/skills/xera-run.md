@@ -22,7 +22,7 @@ If meta is missing or story_hash is older, refresh.
 
 After `/xera-fetch` completes, check whether this ticket modifies areas that other tests depend on.
 
-Read `xera.config.run.autoImpact` (defaults: `{ enabled: true, threshold: 6.0 }`). If `enabled === false`, SKIP this step.
+Read `xera.config.run.autoImpact` (defaults: `{ enabled: true, threshold: 8.0 }`). If `enabled === false`, SKIP this step.
 
 Run:
 
@@ -32,14 +32,12 @@ bun run xera:impact-prepare {{TICKET}} --quiet
 
 This writes `.xera/impact/{{TICKET}}.json` (no markdown). Exit code 2 means the ticket is not yet in graph — surface a warning and proceed (graph data only accumulates over time).
 
-Read the JSON. Count scenarios with `riskScore >= autoImpact.threshold`. If 0, no prompt — continue silently to Step 2.
+Read the JSON. Count scenarios with `riskScore >= autoImpact.threshold` (default **8.0** per v0.6.4).
 
-If ≥1 high-risk scenario, prompt the user:
+- If **0** scenarios above threshold → continue **silently** to Step 2. Do not show any prompt; do not log the result. The impact analysis ran but found nothing actionable.
+- If **≥1** above threshold → prompt the user as before: `[Y]es / [n]o / [details]`.
 
-```
-{{N}} high-risk impacted scenarios detected for {{TICKET}}.
-Re-run them before generating the new script? [Y/n/details]
-```
+This means the auto-trigger is effectively a "high-risk alarm" rather than a per-run interruption. With the default threshold raised to 8.0, prompts only fire for tickets that genuinely affect P0 scenarios in heavily-shared SUT areas. Teams that want the older, chatty behavior can lower the threshold via `xera.config.run.autoImpact.threshold`.
 
 - **[Y]:** Iterate `bun run xera:exec <owner-ticket>` for each unique owner ticket. After each, check status; if all pass, continue to Step 2. If any fail, surface the failure and STOP — the user should diagnose existing-test breakage before introducing more changes.
 - **[n]:** Continue to Step 2.
