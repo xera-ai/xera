@@ -60,7 +60,7 @@ jobs:
         run: |
           bun run lint
           bun run typecheck
-          bun test packages/core packages/web packages/http packages/cli
+          bun run test
 
       - name: Create release PR or publish
         id: changesets
