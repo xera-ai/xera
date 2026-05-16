@@ -1,6 +1,6 @@
 ---
-id: script-from-feature
-version: 2.0.0
+id: script-from-feature-web
+version: 2.1.0
 inputs:
   - test.feature
   - story.md
@@ -82,6 +82,15 @@ export class LoginPage {
 - `tsc --noEmit` must pass on the generated files.
 - `xera:lint` must pass (no `prefer-role-over-css`, `no-auto-classname`, `no-xpath` warnings unless explicitly justified).
 - Each new POM must be referenced by spec.ts.
+
+## Optional: API verification inside a UI test
+
+Your test fixtures expose both `page` and `request` from `@playwright/test`. When Acceptance Criteria explicitly mention server-side state change ("the order is saved", "a record is created", "the backend returns ..."), you MAY add a `request.<method>(url)` assertion after the UI action.
+
+Constraints:
+- Use this only when AC explicitly asks. Do NOT use API calls as a substitute for the UI flow under test.
+- Apply the same Authorization header that the UI session uses (Playwright's `request` inherits cookies from the browser context when launched via `page.request`; if you use the top-level `request` fixture, you must attach the token explicitly).
+- When `xera.config.ts.http.spec` is configured, schema details for endpoints used by this project may be available in your prompt context — but you are not required to use them.
 
 ## Output
 
