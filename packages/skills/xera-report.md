@@ -50,7 +50,37 @@ Step 4 below is *cognitive work that YOU, the session, must do*. It is not a she
 
    **Do not skip this step.** If you find yourself about to call `bun run xera:report` without having written this file, stop and write the file first.
 
+## Step 4b — TEST_OUTDATED pre-check (v0.6.1)
+
+For every scenario in `classifier-input.json` whose `outcome === "FAIL"`:
+
+1. Compute `scenarioId = sha1(<TICKET> + ":" + normalize(scenario.name))` (lowercase, single-spaced).
+2. Query the graph: `bun run xera:graph-query --ticket <TICKET> --format json | jq '.edges[] | select(.kind == "modifies") | select(.discoveredAt > <scenario.generatedAt>)'`.
+3. If there are 0 candidates → skip this scenario, no LLM call needed.
+4. If there are ≥1 candidates → run the `classify-outdated.md` prompt (located at `packages/prompts/classify-outdated.md`):
+   - Inputs: scenario gherkin + original AC, candidate tickets' AC, failure expected/actual from trace.
+   - Wrap untrusted ticket text using v0.3 nonce-wrap pattern.
+   - Output: JSON `{ classification, confidence, evidence }` per the prompt schema.
+5. Aggregate all decisions into `.xera/<TICKET>/runs/<RUN_ID>/outdated-decisions.json` keyed by `scenarioId`.
+
+**If lazy similarity is needed** (a candidate ticket exists but has no `similar` edges and is hot for many scenarios), first run:
+
+```bash
+bun run xera:graph-enrich --ticket <CANDIDATE>
+```
+
+This populates `similar` edges so future graph queries are richer. Skip if not needed.
+
 4a. **Heal sub-flow (only if SELECTOR_DRIFT present).** If the user passed `--no-heal` in the invocation, skip this entire sub-flow and proceed directly to step 5.
+
+**v0.6.1 update:** Before invoking heal, check the **post-enhancement** classification (from `status.json` after `xera:report` ran). If `classification === 'TEST_OUTDATED'` for this scenario, **SKIP heal** and instead instruct the user to regenerate the scenario from the candidate ticket's new AC:
+
+```bash
+# Example:
+bun run xera:script <ORIGINAL_TICKET> --refresh-from <CANDIDATE_TICKET>
+```
+
+Heal is for selector drift (DOM moved); TEST_OUTDATED requires a scenario rewrite, not a heal.
 
 Otherwise: read `.xera/{{TICKET}}/classifier-input.json` (which you just wrote in step 4) and check whether any scenario has `class: "SELECTOR_DRIFT"`. If none, skip this entire sub-flow and proceed directly to step 5 (Aggregate + draft).
 
@@ -118,8 +148,13 @@ If at least one scenario is SELECTOR_DRIFT, take the FIRST such scenario (by arr
 
 After the heal sub-flow finishes (whether it applied, refused, or errored), continue to step 5 below to aggregate + draft the report. The Jira comment in step 5 reflects the run as it was originally classified — heal results are a separate concern not (in v0.5) folded into the Jira comment.
 
-5. **Aggregate + draft.** Run: `bun run xera:report {{TICKET}} -- --input=.xera/{{TICKET}}/classifier-input.json`
-   This CLI: aggregates per-scenario classifications into an overall verdict, updates `status.json` with history, and writes `jira-comment.draft.md`. If exit code is non-zero, surface the error to the user; do not proceed to post.
+5. **Aggregate + draft.** Now invoke the existing `xera:report` flow as before:
+
+   ```bash
+   bun run xera:report {{TICKET}} --input=.xera/{{TICKET}}/classifier-input.json
+   ```
+
+   The `xera:report` subcommand reads `outdated-decisions.json` (if present) and may upgrade scenario classifications to `TEST_OUTDATED`. It aggregates per-scenario classifications into an overall verdict, updates `status.json` with history, and writes `jira-comment.draft.md`. If exit code is non-zero, surface the error to the user; do not proceed to post.
 
 6. **Show the draft.** Read `.xera/{{TICKET}}/jira-comment.draft.md`. Display its content to the user verbatim. Ask: "Post to Jira? (Y/n)" (default: Y, unless `meta.json.source === "local"` for SAMPLE tickets — then never post).
 
@@ -136,3 +171,54 @@ bun run xera:graph-record classify <TICKET> --run-id <RUN_ID>
 ```
 
 Non-fatal. Note: TEST_OUTDATED detection ships in v0.6.1 — for v0.6.0 this just emits `run.classified` events with existing 4-bucket classifications.
+
+## Step 10 — Notify ticket owner when TEST_OUTDATED detected (v0.6.1)
+
+For every scenario classified as `TEST_OUTDATED` in `outdated-decisions.json`, find the **original ticket** that owns the scenario (from graph: `xera:graph-query --ticket <SCENARIO_OWNER_TICKET> --format json`). Then post a Jira sub-task on that ticket via the existing Jira backend (the same code path `/xera-fetch` uses to read tickets — re-use the configured backend per `xera.config.ts.jira`):
+
+Body template:
+
+```
+Test for this ticket may be outdated due to changes introduced by <CURRENT_TICKET>. Confidence: <conf>. Run `xera:script <ORIGINAL_TICKET> --refresh-from <CURRENT_TICKET>` to regenerate the test from the new AC.
+```
+
+Tag the original ticket's assignee. This routes the signal to the right person, not the current QA running this report.
+
+In the current QA's session, only show a summary line:
+```
+3 impact tickets notified (ABC-100, ABC-145, ABC-178). No action required from you.
+```
+
+**Config:** Respects `xera.config.report.testOutdatedNotify`:
+- `'jira-subtask'` (default) — post sub-task as above
+- `'comment'` — post comment instead
+- `'console-only'` — only print to terminal, no Jira write
+
+## Step 11 — Dispute capture (v0.6.1, optional)
+
+After classification is displayed to the user, if any scenario has classification `TEST_OUTDATED` or `REAL_BUG`, prompt the user:
+
+```
+Agree with classifications above? [Y]es / [d]ispute
+```
+
+If the user picks `d`, prompt:
+```
+Which scenario? [N]
+What classification do you think it should be? (REAL_BUG / TEST_BUG / SELECTOR_DRIFT / FLAKY / TEST_OUTDATED)
+Reason (optional, single line):
+```
+
+Then emit a dispute event:
+
+```bash
+bun run xera:graph-record dispute \
+  --run-id <RUN_ID> \
+  --scenario-id <SCENARIO_ID> \
+  --from <ORIGINAL_CLASSIFICATION> \
+  --to <DISPUTED_CLASSIFICATION> \
+  --actor "$(git config user.email)" \
+  --reason "<REASON>"
+```
+
+Non-fatal: if it fails, log warning and continue. Dispute events are captured for v0.7+ classifier learning; v0.6.1 does not change classifier behavior based on disputes.
