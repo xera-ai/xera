@@ -1,4 +1,11 @@
-name: Publish
+name: Publish (manual fallback)
+
+# Primary release flow lives in `release.yml` (changesets-driven). This
+# workflow is kept as a manual emergency control — e.g. to re-run a failed
+# publish, or to publish a specific package whose changeset slipped. Tag
+# pushes no longer trigger this; per-package tags are now created by
+# `changeset publish` in release.yml.
+
 on:
   workflow_dispatch:
     inputs:
@@ -6,11 +13,6 @@ on:
         description: "Run bun publish --dry-run (no actual publish to npm)"
         type: boolean
         default: false
-  push:
-    # Auto-publish when a release tag is pushed (e.g. git push origin v0.6.0).
-    # Tag-triggered runs ALWAYS publish for real (no dry-run option).
-    tags:
-      - 'v*'
 jobs:
   publish:
     runs-on: ubuntu-latest

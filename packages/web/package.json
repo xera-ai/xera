@@ -17,7 +17,8 @@
   ],
   "scripts": {
     "build": "bun build ./src/index.ts --outdir ./dist --target bun --external @playwright/test --external @xera-ai/core --external @cucumber/gherkin --external @cucumber/messages --external fflate",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "bun run build"
   },
   "dependencies": {
     "@cucumber/gherkin": "39.1.0",

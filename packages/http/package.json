@@ -23,7 +23,8 @@
   "scripts": {
     "build": "bun build ./src/index.ts --outdir ./dist --target bun --external @playwright/test --external @xera-ai/core --external @apidevtools/json-schema-ref-parser --external yaml",
     "build:runtime": "bun build ./src/runtime/index.ts --outdir ./dist/runtime --target bun --external @playwright/test --external @xera-ai/core",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "bun run build"
   },
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "11.7.0",
