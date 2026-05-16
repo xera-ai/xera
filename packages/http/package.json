@@ -1,6 +1,6 @@
 {
   "name": "@xera-ai/http",
-  "version": "0.9.4",
+  "version": "0.9.5",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -29,7 +29,7 @@
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "11.7.0",
     "@playwright/test": "1.60.0",
-    "@xera-ai/core": "^0.9.4",
+    "@xera-ai/core": "^0.9.5",
     "yaml": "2.9.0",
     "zod": "4.4.3"
   }

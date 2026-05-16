@@ -1,5 +1,13 @@
 # @xera-ai/core
 
+## 0.9.5
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xera-ai/web@0.9.5
+  - @xera-ai/http@0.9.5
+
 ## 0.9.4
 
 ### Patch Changes
