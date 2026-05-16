@@ -84,12 +84,18 @@ describe('graph-record dispute', () => {
   test('emits classification.disputed event', async () => {
     const exit = await graphRecordCmd([
       'dispute',
-      '--run-id', 'r1',
-      '--scenario-id', 'sc-1',
-      '--from', 'TEST_OUTDATED',
-      '--to', 'REAL_BUG',
-      '--actor', 'qa@example.com',
-      '--reason', 'AI got it wrong; this IS a real bug',
+      '--run-id',
+      'r1',
+      '--scenario-id',
+      'sc-1',
+      '--from',
+      'TEST_OUTDATED',
+      '--to',
+      'REAL_BUG',
+      '--actor',
+      'qa@example.com',
+      '--reason',
+      'AI got it wrong; this IS a real bug',
     ]);
     expect(exit).toBe(0);
     const events = loadAllEvents(root);

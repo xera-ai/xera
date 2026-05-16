@@ -25,10 +25,10 @@ describe('buildSimilarityPrompt', () => {
   });
 
   test('includes candidate tickets in numbered list', () => {
-    const prompt = buildSimilarityPrompt(
-      mkTicket('ABC-100', 'Login page'),
-      [mkTicket('ABC-200', 'Reset password'), mkTicket('ABC-201', 'Logout button')],
-    );
+    const prompt = buildSimilarityPrompt(mkTicket('ABC-100', 'Login page'), [
+      mkTicket('ABC-200', 'Reset password'),
+      mkTicket('ABC-201', 'Logout button'),
+    ]);
     expect(prompt).toContain('ABC-200');
     expect(prompt).toContain('ABC-201');
     expect(prompt).toContain('Reset password');

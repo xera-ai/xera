@@ -17,7 +17,9 @@ export async function graphEnrichCmd(argv: string[]): Promise<number> {
 
   try {
     const result = await enrichTicket(repoRoot, ticket, { force });
-    console.log(`[graph-enrich] ${ticket} enriched (${result.similarCount} similar edges, at ${result.enrichedAt})`);
+    console.log(
+      `[graph-enrich] ${ticket} enriched (${result.similarCount} similar edges, at ${result.enrichedAt})`,
+    );
     return 0;
   } catch (e) {
     console.error(`[graph-enrich] ${ticket} failed: ${(e as Error).message}`);

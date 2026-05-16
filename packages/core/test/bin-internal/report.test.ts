@@ -4,8 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { reportCmd } from '../../src/bin-internal/report';
 import { appendEvents } from '../../src/graph/store';
-import { ulid } from '../../src/graph/ulid';
 import type { Event } from '../../src/graph/types';
+import { ulid } from '../../src/graph/ulid';
 
 let root: string;
 let prevCwd: string;
@@ -66,8 +66,16 @@ function seedGraph(ticket: string, opts: { hasCandidate: boolean }) {
       },
       '2026-05-10T00:00:00Z',
     ),
-    mkE('edge.discovered', { kind: 'uses', from: 'sc-1', to: 'pom-1', source: 't' }, '2026-05-10T00:00:00Z'),
-    mkE('edge.discovered', { kind: 'covers', from: 'pom-1', to: 'login', source: 't' }, '2026-05-10T00:00:00Z'),
+    mkE(
+      'edge.discovered',
+      { kind: 'uses', from: 'sc-1', to: 'pom-1', source: 't' },
+      '2026-05-10T00:00:00Z',
+    ),
+    mkE(
+      'edge.discovered',
+      { kind: 'covers', from: 'pom-1', to: 'login', source: 't' },
+      '2026-05-10T00:00:00Z',
+    ),
   ];
   if (opts.hasCandidate) {
     events.push(
@@ -133,7 +141,11 @@ describe('reportCmd with TEST_OUTDATED enhancement', () => {
     seedGraph('ABC-100', { hasCandidate: true });
     const inputPath = writeReportInput('ABC-100', 'r2');
     writeOutdatedDecisions('ABC-100', 'r2', {
-      'sc-1': { classification: 'TEST_OUTDATED', confidence: 0.87, evidence: { reasoning: 'TICKET-200 changed AC' } },
+      'sc-1': {
+        classification: 'TEST_OUTDATED',
+        confidence: 0.87,
+        evidence: { reasoning: 'TICKET-200 changed AC' },
+      },
     });
     const exit = await reportCmd(['ABC-100', `--input=${inputPath}`]);
     expect(exit).toBe(0);

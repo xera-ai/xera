@@ -6,16 +6,40 @@ import { graphEnrichCmd } from '../../src/bin-internal/graph-enrich';
 import { appendEvents, loadAllEvents } from '../../src/graph/store';
 import { ulid } from '../../src/graph/ulid';
 
-let root: string; let prevCwd: string;
-beforeEach(() => { prevCwd = process.cwd(); root = mkdtempSync(join(tmpdir(), 'xera-genrich-')); process.chdir(root); });
-afterEach(() => { process.chdir(prevCwd); rmSync(root, { recursive: true, force: true }); });
+let root: string;
+let prevCwd: string;
+beforeEach(() => {
+  prevCwd = process.cwd();
+  root = mkdtempSync(join(tmpdir(), 'xera-genrich-'));
+  process.chdir(root);
+});
+afterEach(() => {
+  process.chdir(prevCwd);
+  rmSync(root, { recursive: true, force: true });
+});
 
 function seedTicket(id: string) {
-  appendEvents(root, [{
-    event_id: ulid(), schema_version: 1, ts: '2026-05-16T00:00:00Z', actor: 'test',
-    type: 'ticket.fetched',
-    payload: { ticketId: id, summary: 's', ac: [], jiraLinks: [], storyHash: 'h', modifiesAreas: [] },
-  } as any], { skill: 'test', ticketId: id });
+  appendEvents(
+    root,
+    [
+      {
+        event_id: ulid(),
+        schema_version: 1,
+        ts: '2026-05-16T00:00:00Z',
+        actor: 'test',
+        type: 'ticket.fetched',
+        payload: {
+          ticketId: id,
+          summary: 's',
+          ac: [],
+          jiraLinks: [],
+          storyHash: 'h',
+          modifiesAreas: [],
+        },
+      } as any,
+    ],
+    { skill: 'test', ticketId: id },
+  );
 }
 
 function writeInput(ticket: string, similar: any[]) {

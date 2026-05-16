@@ -194,7 +194,9 @@ function parseFlags(args: string[]): Map<string, string> {
 export async function graphRecordCmd(argv: string[]): Promise<number> {
   const [action, ...rest] = argv;
   if (!action) {
-    console.error(`Usage: xera-internal graph-record <fetch|script|exec|classify|promote|dispute> [args]`);
+    console.error(
+      `Usage: xera-internal graph-record <fetch|script|exec|classify|promote|dispute> [args]`,
+    );
     return 1;
   }
   const repoRoot = process.cwd();
@@ -247,12 +249,23 @@ export async function graphRecordCmd(argv: string[]): Promise<number> {
       const actor = flags.get('--actor');
       const reason = flags.get('--reason');
       if (!runId || !scenarioIdArg || !from || !to || !actor) {
-        console.error('[graph-record dispute] required: --run-id --scenario-id --from --to --actor [--reason]');
+        console.error(
+          '[graph-record dispute] required: --run-id --scenario-id --from --to --actor [--reason]',
+        );
         return 1;
       }
-      const validClass = ['REAL_BUG', 'TEST_BUG', 'SELECTOR_DRIFT', 'FLAKY', 'PASS', 'TEST_OUTDATED'];
+      const validClass = [
+        'REAL_BUG',
+        'TEST_BUG',
+        'SELECTOR_DRIFT',
+        'FLAKY',
+        'PASS',
+        'TEST_OUTDATED',
+      ];
       if (!validClass.includes(from) || !validClass.includes(to)) {
-        console.error(`[graph-record dispute] --from and --to must be one of: ${validClass.join(', ')}`);
+        console.error(
+          `[graph-record dispute] --from and --to must be one of: ${validClass.join(', ')}`,
+        );
         return 1;
       }
       const payload: ClassificationDisputedPayload = {

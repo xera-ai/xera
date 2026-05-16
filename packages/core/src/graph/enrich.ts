@@ -2,9 +2,9 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { z } from 'zod';
 import { appendEvents, deriveSnapshot, loadAllEvents } from './store';
-import { ulid } from './ulid';
-import { SCHEMA_VERSION } from './types';
 import type { EdgeDiscoveredPayload, Event, TicketEnrichedPayload } from './types';
+import { SCHEMA_VERSION } from './types';
+import { ulid } from './ulid';
 
 const MAX_SIMILAR_EDGES = 10;
 const MIN_CONFIDENCE = 0.7;
@@ -36,9 +36,20 @@ const mk = <T extends Event['type']>(
   type: T,
   payload: Extract<Event, { type: T }>['payload'],
 ): Event =>
-  ({ event_id: ulid(), schema_version: SCHEMA_VERSION, ts: nowIso(), actor, type, payload }) as Event;
+  ({
+    event_id: ulid(),
+    schema_version: SCHEMA_VERSION,
+    ts: nowIso(),
+    actor,
+    type,
+    payload,
+  }) as Event;
 
-export async function enrichTicket(repoRoot: string, ticketId: string, opts: EnrichOptions): Promise<EnrichResult> {
+export async function enrichTicket(
+  repoRoot: string,
+  ticketId: string,
+  opts: EnrichOptions,
+): Promise<EnrichResult> {
   const inputPath = join(repoRoot, '.xera', ticketId, 'enrichment-input.json');
   if (!existsSync(inputPath)) {
     throw new Error(`enrichment-input.json not found at ${inputPath}`);

@@ -11,7 +11,8 @@ export function buildSimilarityPrompt(target: TicketNode, candidates: TicketNode
     })
     .join('\n');
 
-  const targetAc = target.ac.length > 0 ? `\nAC:\n${target.ac.map((a) => `  - ${a}`).join('\n')}` : '';
+  const targetAc =
+    target.ac.length > 0 ? `\nAC:\n${target.ac.map((a) => `  - ${a}`).join('\n')}` : '';
 
   return `You are evaluating whether a NEW ticket is semantically related to any prior tickets in this project's knowledge graph.
 

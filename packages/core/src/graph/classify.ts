@@ -1,6 +1,4 @@
-import type {
-  Classification, ScenarioNode, Snapshot, TicketNode,
-} from './types';
+import type { Classification, ScenarioNode, Snapshot, TicketNode } from './types';
 
 export interface ClassifyInput {
   scenarioId: string;
@@ -110,7 +108,8 @@ export async function enhanceClassification(
       reasoning: decision.evidence.reasoning,
       proposedAction: 'regenerate-scenario',
     };
-    if (decision.evidence.expectedByTest) evidence.expectedByTest = decision.evidence.expectedByTest;
+    if (decision.evidence.expectedByTest)
+      evidence.expectedByTest = decision.evidence.expectedByTest;
     if (decision.evidence.actualInApp) evidence.actualInApp = decision.evidence.actualInApp;
     return {
       classification: 'TEST_OUTDATED',

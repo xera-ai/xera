@@ -2,7 +2,14 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { z } from 'zod';
 
-const ClassificationEnum = z.enum(['PASS', 'REAL_BUG', 'SELECTOR_DRIFT', 'FLAKY', 'TEST_BUG', 'TEST_OUTDATED']);
+const ClassificationEnum = z.enum([
+  'PASS',
+  'REAL_BUG',
+  'SELECTOR_DRIFT',
+  'FLAKY',
+  'TEST_BUG',
+  'TEST_OUTDATED',
+]);
 const ResultEnum = z.enum(['PASS', 'FAIL']);
 const ConfidenceEnum = z.enum(['low', 'medium', 'high']);
 

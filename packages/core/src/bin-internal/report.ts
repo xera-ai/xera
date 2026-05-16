@@ -3,8 +3,8 @@ import { join } from 'node:path';
 import { resolveArtifactPaths } from '../artifact/paths';
 import { aggregateScenarios } from '../classifier/aggregate';
 import type { ScenarioClassification } from '../classifier/types';
-import { enhanceClassification } from '../graph/classify';
 import type { OutdatedDecision } from '../graph/classify';
+import { enhanceClassification } from '../graph/classify';
 import { deriveSnapshot, loadAllEvents } from '../graph/store';
 import { buildJiraComment } from '../reporter/jira-comment';
 import { writeStatusFromClassification } from '../reporter/status-writer';
@@ -42,8 +42,7 @@ export async function reportCmd(argv: string[]): Promise<number> {
   // Build a lookup: normalized name → scenarioId (graph node id) for this ticket.
   // This mirrors how graph-record-script.ts stores scenarios using sha1(ticket:name),
   // but here we look up by the stored node id so both sha1-keyed and stub-keyed graphs work.
-  const normalizeScenarioName = (name: string) =>
-    name.trim().toLowerCase().replace(/\s+/g, ' ');
+  const normalizeScenarioName = (name: string) => name.trim().toLowerCase().replace(/\s+/g, ' ');
 
   const scenarioIdByName: Record<string, string> = {};
   for (const [id, node] of Object.entries(graph.scenarios)) {

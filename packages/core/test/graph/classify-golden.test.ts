@@ -8,10 +8,38 @@ import { deriveSnapshot, loadAllEvents } from '../../src/graph/store';
 const FIXTURES = join(import.meta.dir, '../../../../fixtures/golden-graph');
 
 const SCENARIOS = [
-  { name: 'test-outdated-label-change', stubReturns: { classification: 'TEST_OUTDATED' as const, confidence: 0.87, evidence: { reasoning: 'TICKET-200 changed AC' } } },
-  { name: 'test-outdated-multi-candidate', stubReturns: { classification: 'TEST_OUTDATED' as const, confidence: 0.85, evidence: { reasoning: 'first candidate matches' } } },
-  { name: 'test-outdated-ambiguous', stubReturns: { classification: 'AMBIGUOUS' as const, confidence: 0.5, evidence: { reasoning: 'conflict' } } },
-  { name: 'test-outdated-false-positive', stubReturns: { classification: 'BUG' as const, confidence: 0.6, evidence: { reasoning: 'LLM rejects' } } },
+  {
+    name: 'test-outdated-label-change',
+    stubReturns: {
+      classification: 'TEST_OUTDATED' as const,
+      confidence: 0.87,
+      evidence: { reasoning: 'TICKET-200 changed AC' },
+    },
+  },
+  {
+    name: 'test-outdated-multi-candidate',
+    stubReturns: {
+      classification: 'TEST_OUTDATED' as const,
+      confidence: 0.85,
+      evidence: { reasoning: 'first candidate matches' },
+    },
+  },
+  {
+    name: 'test-outdated-ambiguous',
+    stubReturns: {
+      classification: 'AMBIGUOUS' as const,
+      confidence: 0.5,
+      evidence: { reasoning: 'conflict' },
+    },
+  },
+  {
+    name: 'test-outdated-false-positive',
+    stubReturns: {
+      classification: 'BUG' as const,
+      confidence: 0.6,
+      evidence: { reasoning: 'LLM rejects' },
+    },
+  },
 ];
 
 describe('TEST_OUTDATED golden fixtures', () => {
@@ -22,7 +50,9 @@ describe('TEST_OUTDATED golden fixtures', () => {
         cpSync(join(FIXTURES, name), tmp, { recursive: true });
         const events = loadAllEvents(tmp);
         const graph = deriveSnapshot(events);
-        const expected = JSON.parse(readFileSync(join(tmp, 'expected-classification.json'), 'utf8')) as { classification: string; confidence: number };
+        const expected = JSON.parse(
+          readFileSync(join(tmp, 'expected-classification.json'), 'utf8'),
+        ) as { classification: string; confidence: number };
 
         // Pick the first scenario in the graph
         const scenarioId = Object.keys(graph.scenarios)[0]!;

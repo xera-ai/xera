@@ -7,18 +7,41 @@ import { appendEvents, loadAllEvents } from '../../src/graph/store';
 import { ulid } from '../../src/graph/ulid';
 
 let root: string;
-beforeEach(() => { root = mkdtempSync(join(tmpdir(), 'xera-enrich-')); });
-afterEach(() => { rmSync(root, { recursive: true, force: true }); });
+beforeEach(() => {
+  root = mkdtempSync(join(tmpdir(), 'xera-enrich-'));
+});
+afterEach(() => {
+  rmSync(root, { recursive: true, force: true });
+});
 
 function seedTicket(ticketId: string) {
-  appendEvents(root, [{
-    event_id: ulid(), schema_version: 1, ts: '2026-05-16T00:00:00Z', actor: 'test',
-    type: 'ticket.fetched',
-    payload: { ticketId, summary: 's', ac: [], jiraLinks: [], storyHash: 'h', modifiesAreas: [] },
-  } as any], { skill: 'test', ticketId });
+  appendEvents(
+    root,
+    [
+      {
+        event_id: ulid(),
+        schema_version: 1,
+        ts: '2026-05-16T00:00:00Z',
+        actor: 'test',
+        type: 'ticket.fetched',
+        payload: {
+          ticketId,
+          summary: 's',
+          ac: [],
+          jiraLinks: [],
+          storyHash: 'h',
+          modifiesAreas: [],
+        },
+      } as any,
+    ],
+    { skill: 'test', ticketId },
+  );
 }
 
-function writeEnrichmentInput(ticketId: string, similar: Array<{ ticketId: string; confidence: number; reason: string }>) {
+function writeEnrichmentInput(
+  ticketId: string,
+  similar: Array<{ ticketId: string; confidence: number; reason: string }>,
+) {
   const dir = join(root, '.xera', ticketId);
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'enrichment-input.json'), JSON.stringify({ similar }));
@@ -28,7 +51,9 @@ describe('enrichTicket', () => {
   test('emits ticket.enriched + edge.discovered:similar events', async () => {
     seedTicket('ABC-100');
     seedTicket('ABC-200');
-    writeEnrichmentInput('ABC-100', [{ ticketId: 'ABC-200', confidence: 0.85, reason: 'same area' }]);
+    writeEnrichmentInput('ABC-100', [
+      { ticketId: 'ABC-200', confidence: 0.85, reason: 'same area' },
+    ]);
 
     const result = await enrichTicket(root, 'ABC-100', {});
     expect(result.similarCount).toBe(1);
@@ -69,11 +94,14 @@ describe('enrichTicket', () => {
   test('caps similar edges at 10 even if input has more', async () => {
     seedTicket('ABC-100');
     for (let i = 0; i < 15; i++) seedTicket(`ABC-${200 + i}`);
-    writeEnrichmentInput('ABC-100', Array.from({ length: 15 }, (_, i) => ({
-      ticketId: `ABC-${200 + i}`,
-      confidence: 0.8,
-      reason: 'r',
-    })));
+    writeEnrichmentInput(
+      'ABC-100',
+      Array.from({ length: 15 }, (_, i) => ({
+        ticketId: `ABC-${200 + i}`,
+        confidence: 0.8,
+        reason: 'r',
+      })),
+    );
     const result = await enrichTicket(root, 'ABC-100', {});
     expect(result.similarCount).toBe(10);
   });
