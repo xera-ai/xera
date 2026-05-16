@@ -6,8 +6,13 @@ export type Priority = 'p0' | 'p1' | 'p2';
 export type ScenarioStatus = 'pass' | 'fail';
 export type EdgeKind = 'tests' | 'uses' | 'covers' | 'modifies' | 'jira-linked' | 'similar' | 'ran';
 
-export type Classification = 'REAL_BUG' | 'TEST_BUG' | 'SELECTOR_DRIFT' | 'FLAKY' | 'PASS';
-// Note: TEST_OUTDATED is added in v0.6.1.
+export type Classification =
+  | 'REAL_BUG'
+  | 'TEST_BUG'
+  | 'SELECTOR_DRIFT'
+  | 'FLAKY'
+  | 'PASS'
+  | 'TEST_OUTDATED';
 
 export interface TicketFetchedPayload {
   ticketId: string;
