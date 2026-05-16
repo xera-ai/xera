@@ -148,3 +148,30 @@ export default defineConfig({
 ```
 
 When `testOutdated.threshold = 0`, the bucket is effectively disabled.
+
+### Auto-impact analysis from /xera-run (v0.6.2+)
+
+When `/xera-run <TICKET>` runs, it can auto-call `/xera-impact <TICKET>` after fetch and prompt to re-run high-risk scenarios before generating new code.
+
+```typescript
+// xera.config.ts
+export default defineConfig({
+  run: {
+    autoImpact: {
+      enabled: true,        // set false to disable the auto-trigger
+      threshold: 6.0,       // minimum risk score to count a scenario as "high-risk"
+    },
+  },
+});
+```
+
+The risk score formula:
+
+```
+score = priority_weight × 3
+      + edge_type_weight
+      + edge_confidence × 2
+      − days_since_last_pass × 0.1
+```
+
+with `P0=3, P1=2, P2=1`; modifies-same-area edge weight 5; jira-linked.blocks weight 4. Tune `threshold` to the noise level you can tolerate.

@@ -1,5 +1,5 @@
 {
-  "skills": "0.4.1",
+  "skills": "0.4.2",
   "compatible_prompts": "^2.3.0",
   "skill_files": [
     "xera-run.md",
@@ -8,6 +8,7 @@
     "xera-script.md",
     "xera-exec.md",
     "xera-report.md",
-    "xera-promote.md"
+    "xera-promote.md",
+    "xera-impact.md"
   ]
 }

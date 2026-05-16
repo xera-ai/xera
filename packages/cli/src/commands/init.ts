@@ -137,7 +137,7 @@ export async function initCommand(opts: { yes: boolean }): Promise<void> {
   pkg.scripts['xera:unlock'] = 'xera-internal unlock';
   pkg.scripts['xera:promote'] = 'xera-internal promote';
   pkg.dependencies = pkg.dependencies ?? {};
-  pkg.dependencies['@xera-ai/core'] = '^0.4.1';
+  pkg.dependencies['@xera-ai/core'] = '^0.4.2';
   pkg.dependencies['@xera-ai/web'] = '^0.2.0';
   pkg.dependencies['@xera-ai/prompts'] = '^2.3.0';
   pkg.devDependencies = pkg.devDependencies ?? {};

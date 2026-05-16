@@ -118,3 +118,19 @@ If `xera-report` flagged a scenario as TEST_OUTDATED but you believe it's a real
    ```
 2. Lower the threshold in `xera.config.testOutdated.threshold` (default 0.7) if you're getting too many false positives.
 3. v0.7+ will use dispute events to refine classifier behavior automatically.
+
+### Impact list too large
+
+If `/xera-impact` returns >50 scenarios, the markdown report shows the top 20 by score and writes the full list to `.xera/impact/<TICKET>.json`. To narrow:
+
+- Use `--depth 1` to skip cross-ticket (jira-linked) and similarity edges
+- Use `--min-priority p0` to focus on critical scenarios only
+- Raise `xera.config.run.autoImpact.threshold` in config
+
+### Impact list always empty
+
+If `/xera-impact` returns no scenarios even though there should be coverage:
+
+1. Run `xera doctor` to confirm the graph is up-to-date
+2. Run `bun run xera:graph-query --ticket <TICKET>` to verify the ticket has `modifies` edges
+3. If the ticket has no `modifies` edges, re-fetch: `/xera-fetch <TICKET>` (the v0.6.0 `extract-areas.md` prompt populates them at fetch time)
