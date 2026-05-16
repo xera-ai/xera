@@ -1,6 +1,8 @@
-import { defineAuthSetup } from '@xera-ai/web';
+{{#if wantsWeb}}import { defineAuthSetup } from '@xera-ai/web';
+{{/if}}{{#if wantsHttp}}import { defineHttpAuthSetup, presetHttpAuth } from '@xera-ai/http';
+{{/if}}
 
-export default defineAuthSetup(async (page, _role, creds) => {
+{{#if wantsWeb}}export const web = defineAuthSetup(async (page, _role, creds) => {
   await page.goto('/login');
   await page.getByLabel('Email').fill(creds.email);
   await page.getByLabel('Password').fill(creds.password);
@@ -8,3 +10,15 @@ export default defineAuthSetup(async (page, _role, creds) => {
   await page.waitForURL(/.*\/dashboard/);
   return { expiresAt: Date.now() + 8 * 3600 * 1000 };
 });
+{{/if}}
+{{#if wantsHttp}}export const http = defineHttpAuthSetup(async (request, role, creds) => {
+  // Default preset — reads tokenEnv from xera.config.ts http.auth.roles.<role>.tokenEnv.
+  // Replace this body with a custom login flow if your API doesn't use static tokens.
+  return presetHttpAuth({
+    request,
+    role,
+    // The runner injects config via a global; v0.7 limitation
+    config: (globalThis as Record<string, unknown>).__XERA_HTTP_CONFIG__ as never,
+  });
+});
+{{/if}}

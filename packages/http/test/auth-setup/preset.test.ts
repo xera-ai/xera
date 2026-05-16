@@ -1,10 +1,12 @@
-import { describe, test, expect, beforeEach } from 'bun:test';
-import { presetHttpAuth } from '../../src/auth-setup/preset';
+import { beforeEach, describe, expect, test } from 'bun:test';
 import type { XeraConfig } from '@xera-ai/core';
+import { presetHttpAuth } from '../../src/auth-setup/preset';
 
 const fakeRequest = {} as unknown as Parameters<typeof presetHttpAuth>[0]['request'];
 
-function makeConfig(overrides: Partial<NonNullable<XeraConfig['http']>>): NonNullable<XeraConfig['http']> {
+function makeConfig(
+  overrides: Partial<NonNullable<XeraConfig['http']>>,
+): NonNullable<XeraConfig['http']> {
   return {
     baseUrl: { dev: 'https://api.x.com' },
     defaultEnv: 'dev',
@@ -26,7 +28,12 @@ describe('presetHttpAuth', () => {
       request: fakeRequest,
       role: 'admin',
       config: makeConfig({
-        auth: { strategy: 'bearer', ttl: '8h', refreshBuffer: '30m', roles: { admin: { tokenEnv: 'TEST_TOKEN_ENV' } } },
+        auth: {
+          strategy: 'bearer',
+          ttl: '8h',
+          refreshBuffer: '30m',
+          roles: { admin: { tokenEnv: 'TEST_TOKEN_ENV' } },
+        },
       }),
     });
     expect(result.token).toBe('abc123');
@@ -40,7 +47,12 @@ describe('presetHttpAuth', () => {
       request: fakeRequest,
       role: 'user',
       config: makeConfig({
-        auth: { strategy: 'apiKey', ttl: '8h', refreshBuffer: '30m', roles: { user: { tokenEnv: 'TEST_TOKEN_ENV' } } },
+        auth: {
+          strategy: 'apiKey',
+          ttl: '8h',
+          refreshBuffer: '30m',
+          roles: { user: { tokenEnv: 'TEST_TOKEN_ENV' } },
+        },
       }),
     });
     expect(result.type).toBe('apiKey');
@@ -55,7 +67,12 @@ describe('presetHttpAuth', () => {
       request: fakeRequest,
       role: 'user',
       config: makeConfig({
-        auth: { strategy: 'basic', ttl: '8h', refreshBuffer: '30m', roles: { user: { userEnv: 'TEST_USER_ENV', passEnv: 'TEST_PASS_ENV' } } },
+        auth: {
+          strategy: 'basic',
+          ttl: '8h',
+          refreshBuffer: '30m',
+          roles: { user: { userEnv: 'TEST_USER_ENV', passEnv: 'TEST_PASS_ENV' } },
+        },
       }),
     });
     expect(result.type).toBe('basic');
@@ -63,42 +80,60 @@ describe('presetHttpAuth', () => {
   });
 
   test('bearer throws helpful error when env var missing', async () => {
-    expect(presetHttpAuth({
-      request: fakeRequest,
-      role: 'admin',
-      config: makeConfig({
-        auth: { strategy: 'bearer', ttl: '8h', refreshBuffer: '30m', roles: { admin: { tokenEnv: 'MISSING_ENV' } } },
+    expect(
+      presetHttpAuth({
+        request: fakeRequest,
+        role: 'admin',
+        config: makeConfig({
+          auth: {
+            strategy: 'bearer',
+            ttl: '8h',
+            refreshBuffer: '30m',
+            roles: { admin: { tokenEnv: 'MISSING_ENV' } },
+          },
+        }),
       }),
-    })).rejects.toThrow(/MISSING_ENV/);
+    ).rejects.toThrow(/MISSING_ENV/);
   });
 
   test('throws when role not configured', async () => {
-    expect(presetHttpAuth({
-      request: fakeRequest,
-      role: 'guest',
-      config: makeConfig({
-        auth: { strategy: 'bearer', ttl: '8h', refreshBuffer: '30m', roles: { admin: { tokenEnv: 'X' } } },
+    expect(
+      presetHttpAuth({
+        request: fakeRequest,
+        role: 'guest',
+        config: makeConfig({
+          auth: {
+            strategy: 'bearer',
+            ttl: '8h',
+            refreshBuffer: '30m',
+            roles: { admin: { tokenEnv: 'X' } },
+          },
+        }),
       }),
-    })).rejects.toThrow(/role 'guest'/);
+    ).rejects.toThrow(/role 'guest'/);
   });
 
   test('strategy custom throws — must use defineHttpAuthSetup body', async () => {
-    expect(presetHttpAuth({
-      request: fakeRequest,
-      role: 'admin',
-      config: makeConfig({
-        auth: { strategy: 'custom', ttl: '8h', refreshBuffer: '30m', roles: { admin: {} } },
+    expect(
+      presetHttpAuth({
+        request: fakeRequest,
+        role: 'admin',
+        config: makeConfig({
+          auth: { strategy: 'custom', ttl: '8h', refreshBuffer: '30m', roles: { admin: {} } },
+        }),
       }),
-    })).rejects.toThrow(/custom/);
+    ).rejects.toThrow(/custom/);
   });
 
   test('strategy none throws', async () => {
-    expect(presetHttpAuth({
-      request: fakeRequest,
-      role: 'admin',
-      config: makeConfig({
-        auth: { strategy: 'none', ttl: '8h', refreshBuffer: '30m', roles: { admin: {} } },
+    expect(
+      presetHttpAuth({
+        request: fakeRequest,
+        role: 'admin',
+        config: makeConfig({
+          auth: { strategy: 'none', ttl: '8h', refreshBuffer: '30m', roles: { admin: {} } },
+        }),
       }),
-    })).rejects.toThrow(/none/);
+    ).rejects.toThrow(/none/);
   });
 });
