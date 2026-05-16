@@ -8,12 +8,10 @@
   }
 
   function trunc(s, n) {
-    return s && s.length > n ? s.slice(0, n - 1) + '…' : s;
+    return s && s.length > n ? `${s.slice(0, n - 1)}…` : s;
   }
 
-  var nodeData = data.nodes.map(function(n) {
-    return Object.assign({}, n, { label: trunc(n.label, 28) });
-  });
+  var nodeData = data.nodes.map((n) => Object.assign({}, n, { label: trunc(n.label, 28) }));
 
   var nodes = new vis.DataSet(nodeData);
   var edges = new vis.DataSet(data.edges);
@@ -52,7 +50,9 @@
     },
   );
 
-  network.once('stabilizationIterationsDone', () => network.fit({ animation: { duration: 400, easingFunction: 'easeInOutQuad' } }));
+  network.once('stabilizationIterationsDone', () =>
+    network.fit({ animation: { duration: 400, easingFunction: 'easeInOutQuad' } }),
+  );
 
   var sidepanel = document.getElementById('sidepanel');
   var spTitle = document.getElementById('sp-title');
@@ -67,19 +67,22 @@
       return;
     }
     var nodeId = params.nodes[0];
-    var node = data.nodes.find(function(n) { return n.id === nodeId; });
+    var node = data.nodes.find((n) => n.id === nodeId);
+    var btn = null;
     if (!node) return;
     spTitle.textContent = node.label;
     spGroup.textContent = node.group || '';
     spDesc.textContent = node.title || '';
     spActions.innerHTML = '';
     if (node.group === 'Ticket') {
-      var btn = document.createElement('button');
-      btn.textContent = 'Copy /xera-impact ' + nodeId;
+      btn = document.createElement('button');
+      btn.textContent = `Copy /xera-impact ${nodeId}`;
       btn.onclick = () => {
-        navigator.clipboard?.writeText('/xera-impact ' + nodeId);
+        navigator.clipboard?.writeText(`/xera-impact ${nodeId}`);
         btn.textContent = 'Copied!';
-        setTimeout(() => { btn.textContent = 'Copy /xera-impact ' + nodeId; }, 1500);
+        setTimeout(() => {
+          btn.textContent = `Copy /xera-impact ${nodeId}`;
+        }, 1500);
       };
       spActions.appendChild(btn);
     }
@@ -90,17 +93,19 @@
   function highlightEgo(nodeId) {
     var connected = network.getConnectedNodes(nodeId);
     var connected2 = [];
-    connected.forEach(function(id) {
+    connected.forEach((id) => {
       Array.prototype.push.apply(connected2, network.getConnectedNodes(id));
     });
     var keep = new Set([nodeId].concat(connected).concat(connected2));
-    nodes.forEach(function(n) {
+    nodes.forEach((n) => {
       nodes.update({ id: n.id, opacity: keep.has(n.id) ? 1 : 0.12 });
     });
   }
 
   function resetOpacity() {
-    nodes.forEach(function(n) { nodes.update({ id: n.id, opacity: 1 }); });
+    nodes.forEach((n) => {
+      nodes.update({ id: n.id, opacity: 1 });
+    });
   }
 
   document.getElementById('reset').onclick = () => {
@@ -111,12 +116,17 @@
 
   document.getElementById('search').oninput = (e) => {
     var q = e.target.value.toLowerCase();
-    if (!q) { resetOpacity(); return; }
-    nodes.forEach(function(n) {
-      var orig = data.nodes.find(function(x) { return x.id === n.id; });
+    if (!q) {
+      resetOpacity();
+      return;
+    }
+    nodes.forEach((n) => {
+      var orig = data.nodes.find((x) => x.id === n.id);
       var matches =
         (orig && (orig.label || '').toLowerCase().includes(q)) ||
-        String(n.id || '').toLowerCase().includes(q);
+        String(n.id || '')
+          .toLowerCase()
+          .includes(q);
       nodes.update({ id: n.id, opacity: matches ? 1 : 0.12 });
     });
   };
@@ -125,7 +135,7 @@
     document.getElementById(id).onchange = () => {
       var pass = document.getElementById('filter-pass').checked;
       var fail = document.getElementById('filter-fail').checked;
-      nodes.forEach(function(n) {
+      nodes.forEach((n) => {
         if (n.group !== 'Scenario') return;
         var visible = true;
         if (n.color === '#10B981' && !pass) visible = false;
