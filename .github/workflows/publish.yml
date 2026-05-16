@@ -65,15 +65,36 @@ jobs:
           bun run typecheck
           bun test packages/core packages/web
 
-      - name: Show local vs npm versions
+      - name: Plan publish (skip versions already on npm)
+        id: plan
         run: |
+          # For each package, set publish_<pkg>=true/false based on whether the
+          # local version is already published. Probes the version-specific
+          # registry URL (404 = not published yet, 200 = already published).
+          # On dry-run we publish all packages so the workflow exercises every
+          # build step end-to-end.
           for pkg in web core cli skills prompts; do
             local_v=$(jq -r .version packages/$pkg/package.json)
-            npm_v=$(curl -s https://registry.npmjs.org/@xera-ai/$pkg/latest | jq -r .version 2>/dev/null || echo "none")
-            echo "@xera-ai/$pkg: local=$local_v npm=$npm_v"
+            if [ "${{ inputs.dry-run }}" = "true" ]; then
+              echo "@xera-ai/$pkg: local=$local_v (dry-run → will publish)"
+              echo "publish_$pkg=true" >> "$GITHUB_OUTPUT"
+              continue
+            fi
+            status=$(curl -s -o /dev/null -w "%{http_code}" "https://registry.npmjs.org/@xera-ai/$pkg/$local_v")
+            if [ "$status" = "200" ]; then
+              echo "@xera-ai/$pkg: $local_v already on npm → skip"
+              echo "publish_$pkg=false" >> "$GITHUB_OUTPUT"
+            elif [ "$status" = "404" ]; then
+              echo "@xera-ai/$pkg: $local_v not on npm → publish"
+              echo "publish_$pkg=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "::error::@xera-ai/$pkg: unexpected HTTP $status probing $local_v"
+              exit 1
+            fi
           done
 
       - name: Publish @xera-ai/web
+        if: steps.plan.outputs.publish_web == 'true'
         working-directory: packages/web
         run: |
           rm -rf dist
@@ -86,6 +107,7 @@ jobs:
           fi
 
       - name: Publish @xera-ai/core
+        if: steps.plan.outputs.publish_core == 'true'
         working-directory: packages/core
         run: |
           rm -rf dist
@@ -98,6 +120,7 @@ jobs:
           fi
 
       - name: Publish @xera-ai/cli
+        if: steps.plan.outputs.publish_cli == 'true'
         working-directory: packages/cli
         run: |
           rm -rf dist
@@ -109,6 +132,7 @@ jobs:
           fi
 
       - name: Publish @xera-ai/skills
+        if: steps.plan.outputs.publish_skills == 'true'
         working-directory: packages/skills
         run: |
           if [ "${{ inputs.dry-run }}" = "true" ]; then
@@ -118,6 +142,7 @@ jobs:
           fi
 
       - name: Publish @xera-ai/prompts
+        if: steps.plan.outputs.publish_prompts == 'true'
         working-directory: packages/prompts
         run: |
           if [ "${{ inputs.dry-run }}" = "true" ]; then
