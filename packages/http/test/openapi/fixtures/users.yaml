@@ -1,0 +1,27 @@
+openapi: 3.0.0
+info: { title: Users, version: 1.0.0 }
+paths:
+  /users:
+    post:
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserCreated' }
+        '422':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ValidationError' }
+components:
+  schemas:
+    UserCreated:
+      type: object
+      required: [id, email]
+      properties:
+        id: { type: string }
+        email: { type: string }
+    ValidationError:
+      type: object
+      required: [errors]
+      properties:
+        errors: { type: array, items: { type: string } }

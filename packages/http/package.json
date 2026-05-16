@@ -16,7 +16,10 @@
       "types": "./dist/runtime/index.d.ts"
     }
   },
-  "files": ["dist", "src"],
+  "files": [
+    "dist",
+    "src"
+  ],
   "scripts": {
     "build": "bun build ./src/index.ts --outdir ./dist --target bun --external @playwright/test --external @xera-ai/core --external @apidevtools/json-schema-ref-parser --external yaml",
     "build:runtime": "bun build ./src/runtime/index.ts --outdir ./dist/runtime --target bun --external @playwright/test --external @xera-ai/core",
