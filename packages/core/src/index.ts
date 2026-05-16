@@ -8,6 +8,7 @@ export * from './auth/encrypt';
 export * from './auth/key';
 export * from './auth/refresh';
 export * from './auth/state';
+export type { OpenAPIDocument, OpenAPISchema } from './classifier/contract-drift';
 export * from './config/define';
 export * from './config/load';
 export * from './config/schema';
