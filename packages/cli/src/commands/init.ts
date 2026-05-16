@@ -9,176 +9,169 @@ import { copyDir, scaffoldFile, TEMPLATE_DIR } from '../scaffold';
 const require = createRequire(import.meta.url);
 
 export type ProjectShape = 'web' | 'api' | 'mixed';
+export type HttpAuthStrategy = 'bearer' | 'apiKey' | 'basic' | 'oauth-cc' | 'none';
 
-export async function initCommand(opts: { yes: boolean; shape?: ProjectShape }): Promise<void> {
+export interface InitOptions {
+  yes: boolean;
+  shape?: ProjectShape;
+  // Jira flags
+  jiraBaseUrl?: string;
+  projectKeys?: string;
+  storyField?: string;
+  acField?: string;
+  // Web flags
+  stagingUrl?: string;
+  authEnabled?: boolean;
+  roles?: string;
+  // HTTP flags
+  apiBaseUrl?: string;
+  openapiPath?: string;
+  authStrategy?: HttpAuthStrategy;
+  httpRoles?: string;
+}
+
+function cancel(): never {
+  p.cancel('Aborted.');
+  process.exit(0);
+}
+
+async function prompt<T>(
+  flag: T | undefined,
+  defaultValue: T | undefined,
+  ask: () => Promise<T | symbol>,
+): Promise<T> {
+  if (flag !== undefined) return flag;
+  if (defaultValue !== undefined) return defaultValue;
+  const val = await ask();
+  if (typeof val === 'symbol') cancel();
+  return val as T;
+}
+
+export async function initCommand(opts: InitOptions): Promise<void> {
   const cwd = process.cwd();
   p.intro(pc.cyan('xera — project setup'));
 
   // Determine shape first
-  const shape: ProjectShape =
-    opts.shape ??
-    (opts.yes
-      ? 'web'
-      : ((await p.select({
-          message: 'What kind of testing does this project do?',
-          initialValue: 'web' as ProjectShape,
-          options: [
-            { value: 'web', label: 'Web UI only (Playwright browser tests)' },
-            { value: 'api', label: 'HTTP API only (REST/GraphQL endpoint tests, no browser)' },
-            { value: 'mixed', label: 'Both (some UI tickets, some API tickets, in one repo)' },
-          ],
-        })) as ProjectShape));
-
-  if (typeof shape === 'symbol') {
-    p.cancel('Aborted.');
-    process.exit(0);
-  }
+  const shape: ProjectShape = await prompt<ProjectShape>(
+    opts.shape,
+    opts.yes ? 'web' : undefined,
+    () =>
+      p.select({
+        message: 'What kind of testing does this project do?',
+        initialValue: 'web' as ProjectShape,
+        options: [
+          { value: 'web', label: 'Web UI only (Playwright browser tests)' },
+          { value: 'api', label: 'HTTP API only (REST/GraphQL endpoint tests, no browser)' },
+          { value: 'mixed', label: 'Both (some UI tickets, some API tickets, in one repo)' },
+        ],
+      }) as Promise<ProjectShape | symbol>,
+  );
 
   const wantsWeb = shape === 'web' || shape === 'mixed';
   const wantsHttp = shape === 'api' || shape === 'mixed';
 
   // Base (Jira) questions — all shapes
-  const baseAnswers = opts.yes
-    ? {
-        jiraBaseUrl: 'https://example.atlassian.net',
-        projectKeys: 'JIRA',
-        storyField: 'description',
-        acceptanceCriteriaField: '',
-      }
-    : await p.group(
-        {
-          jiraBaseUrl: () =>
-            p.text({ message: 'Jira workspace URL', placeholder: 'https://x.atlassian.net' }),
-          projectKeys: () =>
-            p.text({
-              message: 'Jira project key(s) (comma-separated)',
-              placeholder: 'JIRA',
-            }),
-          storyField: () =>
-            p.text({ message: 'Jira field id for user story', initialValue: 'description' }),
-          acceptanceCriteriaField: () =>
-            p.text({
-              message: 'Jira field id for AC (leave empty if same as story)',
-              initialValue: '',
-            }),
-        },
-        {
-          onCancel: () => {
-            p.cancel('Aborted.');
-            process.exit(0);
-          },
-        },
-      );
+  const jiraBaseUrl = await prompt(
+    opts.jiraBaseUrl,
+    opts.yes ? 'https://example.atlassian.net' : undefined,
+    () => p.text({ message: 'Jira workspace URL', placeholder: 'https://x.atlassian.net' }),
+  );
+  const projectKeys = await prompt(opts.projectKeys, opts.yes ? 'JIRA' : undefined, () =>
+    p.text({ message: 'Jira project key(s) (comma-separated)', placeholder: 'JIRA' }),
+  );
+  const storyField = await prompt(opts.storyField, opts.yes ? 'description' : undefined, () =>
+    p.text({ message: 'Jira field id for user story', initialValue: 'description' }),
+  );
+  const acceptanceCriteriaField = await prompt(opts.acField, opts.yes ? '' : undefined, () =>
+    p.text({
+      message: 'Jira field id for AC (leave empty if same as story)',
+      initialValue: '',
+    }),
+  );
 
   // Web questions — only when wantsWeb
-  const webAnswers = !wantsWeb
-    ? null
-    : opts.yes
-      ? { stagingUrl: 'http://localhost:3000', authEnabled: true, roles: 'admin,regular' }
-      : await p.group(
-          {
-            stagingUrl: () =>
-              p.text({
-                message: 'Web app staging URL',
-                placeholder: 'https://staging.example.com',
-              }),
-            authEnabled: () =>
-              p.confirm({
-                message: 'Does your app require login to test most pages?',
-                initialValue: true,
-              }),
-            roles: () =>
-              p.text({
-                message: 'Test user roles (comma-separated)',
-                initialValue: 'admin,regular',
-              }),
-          },
-          {
-            onCancel: () => {
-              p.cancel('Aborted.');
-              process.exit(0);
-            },
-          },
-        );
+  let stagingUrl = '';
+  let authEnabled = false;
+  let roles = '';
+  if (wantsWeb) {
+    stagingUrl = await prompt(opts.stagingUrl, opts.yes ? 'http://localhost:3000' : undefined, () =>
+      p.text({
+        message: 'Web app staging URL',
+        placeholder: 'https://staging.example.com',
+      }),
+    );
+    authEnabled = await prompt(opts.authEnabled, opts.yes ? true : undefined, () =>
+      p.confirm({ message: 'Does your app require login to test most pages?', initialValue: true }),
+    );
+    roles = await prompt(opts.roles, opts.yes ? 'admin,regular' : undefined, () =>
+      p.text({ message: 'Test user roles (comma-separated)', initialValue: 'admin,regular' }),
+    );
+  }
 
   // HTTP questions — only when wantsHttp
-  const httpAnswers = !wantsHttp
-    ? null
-    : opts.yes
-      ? {
-          apiBaseUrl: 'http://localhost:4111',
-          openapiPath: './openapi.yaml',
-          authStrategy: 'bearer',
-          httpRoles: 'user',
-        }
-      : await p.group(
-          {
-            apiBaseUrl: () =>
-              p.text({
-                message: 'API base URL',
-                placeholder: 'https://api.staging.example.com',
-              }),
-            openapiPath: () =>
-              p.text({
-                message: 'OpenAPI spec path (relative or URL — leave empty to skip)',
-                initialValue: './openapi.yaml',
-              }),
-            authStrategy: () =>
-              p.select({
-                message: 'API auth strategy',
-                initialValue: 'bearer',
-                options: [
-                  { value: 'bearer', label: 'Bearer token (env var)' },
-                  { value: 'apiKey', label: 'API key (header)' },
-                  { value: 'basic', label: 'Basic auth (env vars)' },
-                  { value: 'oauth-cc', label: 'OAuth client_credentials' },
-                  { value: 'none', label: 'None / public API' },
-                ],
-              }),
-            httpRoles: () =>
-              p.text({ message: 'HTTP roles (comma-separated)', initialValue: 'user' }),
-          },
-          {
-            onCancel: () => {
-              p.cancel('Aborted.');
-              process.exit(0);
-            },
-          },
-        );
+  let apiBaseUrl = '';
+  let openapiPath = '';
+  let authStrategy: HttpAuthStrategy = 'none';
+  let httpRoles = '';
+  if (wantsHttp) {
+    apiBaseUrl = await prompt(opts.apiBaseUrl, opts.yes ? 'http://localhost:4111' : undefined, () =>
+      p.text({ message: 'API base URL', placeholder: 'https://api.staging.example.com' }),
+    );
+    openapiPath = await prompt(opts.openapiPath, opts.yes ? './openapi.yaml' : undefined, () =>
+      p.text({
+        message: 'OpenAPI spec path (relative or URL — leave empty to skip)',
+        initialValue: './openapi.yaml',
+      }),
+    );
+    authStrategy = await prompt<HttpAuthStrategy>(
+      opts.authStrategy,
+      opts.yes ? 'bearer' : undefined,
+      () =>
+        p.select({
+          message: 'API auth strategy',
+          initialValue: 'bearer' as HttpAuthStrategy,
+          options: [
+            { value: 'bearer', label: 'Bearer token (env var)' },
+            { value: 'apiKey', label: 'API key (header)' },
+            { value: 'basic', label: 'Basic auth (env vars)' },
+            { value: 'oauth-cc', label: 'OAuth client_credentials' },
+            { value: 'none', label: 'None / public API' },
+          ],
+        }) as Promise<HttpAuthStrategy | symbol>,
+    );
+    httpRoles = await prompt(opts.httpRoles, opts.yes ? 'user' : undefined, () =>
+      p.text({ message: 'HTTP roles (comma-separated)', initialValue: 'user' }),
+    );
+  }
 
   const vars = {
     shape,
     wantsWeb,
     wantsHttp,
-    jiraBaseUrl: baseAnswers.jiraBaseUrl,
-    projectKeys: baseAnswers.projectKeys
+    jiraBaseUrl,
+    projectKeys: projectKeys
       .split(',')
       .map((s: string) => s.trim())
       .filter(Boolean),
-    storyField: baseAnswers.storyField,
-    acceptanceCriteriaField: baseAnswers.acceptanceCriteriaField,
-
-    // web-only fields, default empty when not present:
-    stagingUrl: webAnswers?.stagingUrl ?? '',
-    authEnabled: !!webAnswers?.authEnabled,
-    roles: webAnswers
-      ? webAnswers.roles
+    storyField,
+    acceptanceCriteriaField,
+    stagingUrl,
+    authEnabled,
+    roles: roles
+      ? roles
           .split(',')
           .map((s: string) => s.trim())
           .filter(Boolean)
       : [],
-
-    // http-only fields:
-    apiBaseUrl: httpAnswers?.apiBaseUrl ?? '',
-    openapiPath: httpAnswers?.openapiPath ?? '',
-    authStrategy: (httpAnswers?.authStrategy as string | undefined) ?? 'none',
-    httpRoles: httpAnswers
-      ? (httpAnswers.httpRoles as string)
+    apiBaseUrl,
+    openapiPath,
+    authStrategy,
+    httpRoles: httpRoles
+      ? httpRoles
           .split(',')
           .map((s: string) => s.trim())
           .filter(Boolean)
       : [],
-
     authKey: generateKey(),
   };
 
