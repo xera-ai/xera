@@ -74,7 +74,7 @@ const RunSchema = z
     autoImpact: z
       .object({
         enabled: z.boolean().default(true),
-        threshold: z.number().nonnegative().default(6.0),
+        threshold: z.number().nonnegative().default(8.0),
       })
       .prefault({}),
   })

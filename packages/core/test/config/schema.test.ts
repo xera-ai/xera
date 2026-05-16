@@ -14,10 +14,10 @@ const MIN_VALID = {
 };
 
 describe('XeraConfigSchema run.autoImpact', () => {
-  test('defaults to enabled=true, threshold=6.0', () => {
+  test('defaults to enabled=true, threshold=8.0', () => {
     const parsed = XeraConfigSchema.parse(MIN_VALID);
     expect(parsed.run?.autoImpact?.enabled).toBe(true);
-    expect(parsed.run?.autoImpact?.threshold).toBe(6.0);
+    expect(parsed.run?.autoImpact?.threshold).toBe(8.0);
   });
 
   test('accepts custom threshold', () => {
