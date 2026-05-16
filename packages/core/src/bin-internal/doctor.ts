@@ -117,16 +117,25 @@ function checkRootScripts(repoRoot: string): CheckResult[] {
   return missing.map((s) => ({ ok: false, message: `root package.json missing script: ${s}` }));
 }
 
+function isXeraMonorepo(repoRoot: string): boolean {
+  return (
+    existsSync(join(repoRoot, 'packages/skills')) &&
+    existsSync(join(repoRoot, 'packages/prompts'))
+  );
+}
+
 export async function doctorCmd(argv: string[], opts: DoctorOpts = {}): Promise<number> {
   const repoRoot = opts.cwd ?? process.cwd();
   const autoEnrich = argv.includes('--auto-enrich');
-  const results: CheckResult[] = [
-    ...checkGoldenEvalDir(repoRoot),
-    ...checkRubricPrompt(repoRoot),
-    ...checkEvalSkill(repoRoot),
-    ...checkPromptInjectionPreamble(repoRoot),
-    ...checkRootScripts(repoRoot),
-  ];
+  const results: CheckResult[] = isXeraMonorepo(repoRoot)
+    ? [
+        ...checkGoldenEvalDir(repoRoot),
+        ...checkRubricPrompt(repoRoot),
+        ...checkEvalSkill(repoRoot),
+        ...checkPromptInjectionPreamble(repoRoot),
+        ...checkRootScripts(repoRoot),
+      ]
+    : [];
   // Cost summary (past 7 days)
   const cost = summarizeCost(repoRoot, 7);
   if (cost.totalCalls > 0) {
