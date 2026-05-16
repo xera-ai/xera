@@ -69,11 +69,23 @@ const ReportingSchema = z
   })
   .prefault({});
 
+const RunSchema = z
+  .object({
+    autoImpact: z
+      .object({
+        enabled: z.boolean().default(true),
+        threshold: z.number().nonnegative().default(6.0),
+      })
+      .prefault({}),
+  })
+  .prefault({});
+
 export const XeraConfigSchema = z.object({
   jira: JiraSchema,
   web: WebSchema,
   ai: AISchema,
   reporting: ReportingSchema,
+  run: RunSchema.prefault({}),
   adapters: z.array(z.string().min(1)).min(1).default(['web']),
 });
 
