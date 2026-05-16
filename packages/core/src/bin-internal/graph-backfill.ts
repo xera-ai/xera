@@ -14,9 +14,9 @@ async function backfillTicket(repoRoot: string, ticket: string, dryRun: boolean)
     console.log(`[backfill dry-run] would backfill ${ticket}`);
     return 0;
   }
-  // recordScriptImpl handles scenario/POM extraction.
-  await recordScriptImpl(repoRoot, ticket);
+  // fetch first (establishes ticket node), then script (adds scenarios/POMs).
   await recordFetch(repoRoot, ticket);
+  await recordScriptImpl(repoRoot, ticket);
   return 0;
 }
 

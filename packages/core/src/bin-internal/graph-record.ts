@@ -119,12 +119,12 @@ async function recordScript(repoRoot: string, ticket: string): Promise<number> {
 }
 
 async function recordExec(repoRoot: string, ticket: string, runId: string): Promise<number> {
-  const reporterPath = join(repoRoot, '.xera', ticket, 'runs', runId, 'reporter.json');
-  if (!existsSync(reporterPath)) {
-    console.error(`[graph-record exec] reporter.json missing`);
+  const { reportJsonPath } = resolveArtifactPaths(repoRoot, ticket).runPath(runId);
+  if (!existsSync(reportJsonPath)) {
+    console.error(`[graph-record exec] report.json missing`);
     return 1;
   }
-  const data = JSON.parse(readFileSync(reporterPath, 'utf8')) as {
+  const data = JSON.parse(readFileSync(reportJsonPath, 'utf8')) as {
     scenarios: Array<{ name: string; status: 'pass' | 'fail'; runtime: number; traceId?: string }>;
   };
   const events: Event[] = [];
