@@ -4,6 +4,7 @@ import { evalPrepareCmd } from './eval-prepare';
 import { evalReportCmd } from './eval-report';
 import { execCmd } from './exec';
 import { fetchCmd } from './fetch';
+import { graphQueryCmd } from './graph-query';
 import { graphRecordCmd } from './graph-record';
 import { graphSnapshotCmd } from './graph-snapshot';
 import { healPrepareCmd } from './heal-prepare';
@@ -25,6 +26,7 @@ const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
   'eval-report': evalReportCmd,
   exec: execCmd,
   fetch: fetchCmd,
+  'graph-query': graphQueryCmd,
   'graph-record': graphRecordCmd,
   'graph-snapshot': graphSnapshotCmd,
   'heal-prepare': healPrepareCmd,
