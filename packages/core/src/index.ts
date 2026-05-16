@@ -1,4 +1,3 @@
-export const VERSION = '0.1.0';
 export type * from './adapter/types';
 export * from './artifact/hash';
 export * from './artifact/meta';
@@ -19,3 +18,4 @@ export * from './jira/types';
 export * from './lock/file-lock';
 export * from './logging/ndjson-logger';
 export * from './scrub';
+export { XERA_VERSION as VERSION } from './versions';
