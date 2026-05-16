@@ -261,6 +261,9 @@ export async function graphRecordCmd(argv: string[]): Promise<number> {
         'FLAKY',
         'PASS',
         'TEST_OUTDATED',
+        'CONTRACT_DRIFT',
+        'RATE_LIMITED',
+        'AUTH_EXPIRED',
       ];
       if (!validClass.includes(from) || !validClass.includes(to)) {
         console.error(

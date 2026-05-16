@@ -12,7 +12,10 @@ export type Classification =
   | 'SELECTOR_DRIFT'
   | 'FLAKY'
   | 'PASS'
-  | 'TEST_OUTDATED';
+  | 'TEST_OUTDATED'
+  | 'CONTRACT_DRIFT'
+  | 'RATE_LIMITED'
+  | 'AUTH_EXPIRED';
 
 export interface TicketFetchedPayload {
   ticketId: string;
