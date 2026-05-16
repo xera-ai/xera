@@ -84,7 +84,7 @@ export async function enrichTicket(
       from: ticketId,
       to: s.ticketId,
       confidence: s.confidence,
-      source: `claude:${s.reason.slice(0, 80)}`,
+      source: `llm-similarity:${s.reason.slice(0, 80)}`,
     };
     events.push(mk('graph-enrich', 'edge.discovered', payload));
   }

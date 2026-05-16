@@ -59,7 +59,7 @@ For every scenario in `classifier-input.json` whose `outcome === "FAIL"`:
 3. If there are 0 candidates → skip this scenario, no LLM call needed.
 4. If there are ≥1 candidates → run the `classify-outdated.md` prompt (located at `packages/prompts/classify-outdated.md`):
    - Inputs: scenario gherkin + original AC, candidate tickets' AC, failure expected/actual from trace.
-   - Wrap untrusted ticket text using v0.3 nonce-wrap pattern.
+   - Wrap untrusted ticket text using the v0.3 untrusted-input preamble pattern (boundary tags + refusal label).
    - Output: JSON `{ classification, confidence, evidence }` per the prompt schema.
 5. Aggregate all decisions into `.xera/<TICKET>/runs/<RUN_ID>/outdated-decisions.json` keyed by `scenarioId`.
 
@@ -73,7 +73,7 @@ This populates `similar` edges so future graph queries are richer. Skip if not n
 
 4a. **Heal sub-flow (only if SELECTOR_DRIFT present).** If the user passed `--no-heal` in the invocation, skip this entire sub-flow and proceed directly to step 5.
 
-**v0.6.1 update:** Before invoking heal, check the **post-enhancement** classification (from `status.json` after `xera:report` ran). If `classification === 'TEST_OUTDATED'` for this scenario, **SKIP heal** and instead instruct the user to regenerate the scenario from the candidate ticket's new AC:
+**v0.6.1 update:** Before invoking heal, check whether the scenario's failure was classified as TEST_OUTDATED. Read `.xera/{{TICKET}}/runs/{{RUN_ID}}/outdated-decisions.json` (written at step 4b, available in the current session). If the scenario's entry has `classification === 'TEST_OUTDATED'` and `confidence >= 0.7`, **SKIP heal** and instead instruct the user to regenerate the scenario from the candidate ticket's new AC:
 
 ```bash
 # Example:
