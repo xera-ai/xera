@@ -1,0 +1,5 @@
+{
+  "id": "EVAL-009",
+  "summary": "BUG (not TEST_OUTDATED) when AC reworded but behavior identical",
+  "stages": ["classify-outdated"]
+}

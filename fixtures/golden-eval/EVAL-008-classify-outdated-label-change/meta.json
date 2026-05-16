@@ -1,0 +1,5 @@
+{
+  "id": "EVAL-008",
+  "summary": "TEST_OUTDATED detection on label-change scenario",
+  "stages": ["classify-outdated"]
+}

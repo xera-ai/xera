@@ -1,7 +1,22 @@
+export type {
+  CandidateEvidence,
+  ClassifyEvidence,
+  ClassifyInput,
+  ClassifyOutput,
+  DecideOutdated,
+  OutdatedDecision,
+} from './classify';
+export {
+  enhanceClassification,
+  findCandidateTickets,
+} from './classify';
 export type { CostSummary, LlmCallLog } from './cost';
 export { logLlmCall, summarizeCost } from './cost';
+export type { EnrichOptions, EnrichResult } from './enrich';
+export { enrichTicket } from './enrich';
 export { currentYyyyMm, graphPaths } from './paths';
 export { EventSchema, safeParseEvent } from './schema';
+export { buildSimilarityPrompt } from './similarity';
 export {
   appendEvents,
   computeEventsHash,

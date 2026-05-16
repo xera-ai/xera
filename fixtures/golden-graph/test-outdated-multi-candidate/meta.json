@@ -1,0 +1,5 @@
+{
+  "id": "test-outdated-multi-candidate",
+  "summary": "Two candidates (ABC-200, ABC-300) modify login area after sc-1 generated; LLM picks first",
+  "expectation": "enhanceClassification returns classification=TEST_OUTDATED, confidence=0.85"
+}

@@ -2,6 +2,7 @@ import type { ClassifyOutput, Confidence, ScenarioClassification } from './types
 
 const CLASS_PRIORITY: Array<ClassifyOutput['overall']> = [
   'REAL_BUG',
+  'TEST_OUTDATED',
   'TEST_BUG',
   'SELECTOR_DRIFT',
   'FLAKY',

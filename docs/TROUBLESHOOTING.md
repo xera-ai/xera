@@ -103,3 +103,18 @@ Generates one `ticket.fetched` event per existing `.xera/<TICKET>/` directory.
 ### LLM cost surprise
 
 Check `.xera/cost-log.jsonl` (gitignored, per-machine). `xera doctor` summarizes the past 7 days.
+
+### TEST_OUTDATED false positive
+
+If `xera-report` flagged a scenario as TEST_OUTDATED but you believe it's a real bug:
+
+1. Use the dispute prompt during `/xera-report` (or run manually):
+   ```bash
+   bun run xera:graph-record dispute \
+     --run-id <RUN_ID> --scenario-id <SHA> \
+     --from TEST_OUTDATED --to REAL_BUG \
+     --actor "$(git config user.email)" \
+     --reason "..."
+   ```
+2. Lower the threshold in `xera.config.testOutdated.threshold` (default 0.7) if you're getting too many false positives.
+3. v0.7+ will use dispute events to refine classifier behavior automatically.

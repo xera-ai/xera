@@ -1,0 +1,7 @@
+{
+  "classification": "TEST_OUTDATED",
+  "confidence": 0.87,
+  "evidence": {
+    "reasoning": "Candidate ticket explicitly renames the button per AC2"
+  }
+}

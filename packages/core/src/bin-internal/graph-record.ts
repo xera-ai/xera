@@ -4,6 +4,8 @@ import { basename, join } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import { appendEvents } from '../graph/store';
 import type {
+  Classification,
+  ClassificationDisputedPayload,
   EdgeDiscoveredPayload,
   Event,
   PomPromotedPayload,
@@ -192,7 +194,9 @@ function parseFlags(args: string[]): Map<string, string> {
 export async function graphRecordCmd(argv: string[]): Promise<number> {
   const [action, ...rest] = argv;
   if (!action) {
-    console.error(`Usage: xera-internal graph-record <fetch|script|exec|classify|promote> [args]`);
+    console.error(
+      `Usage: xera-internal graph-record <fetch|script|exec|classify|promote|dispute> [args]`,
+    );
     return 1;
   }
   const repoRoot = process.cwd();
@@ -235,6 +239,46 @@ export async function graphRecordCmd(argv: string[]): Promise<number> {
     }
     case 'promote': {
       return recordPromote(repoRoot, parseFlags(rest));
+    }
+    case 'dispute': {
+      const flags = parseFlags(rest);
+      const runId = flags.get('--run-id');
+      const scenarioIdArg = flags.get('--scenario-id');
+      const from = flags.get('--from');
+      const to = flags.get('--to');
+      const actor = flags.get('--actor');
+      const reason = flags.get('--reason');
+      if (!runId || !scenarioIdArg || !from || !to || !actor) {
+        console.error(
+          '[graph-record dispute] required: --run-id --scenario-id --from --to --actor [--reason]',
+        );
+        return 1;
+      }
+      const validClass = [
+        'REAL_BUG',
+        'TEST_BUG',
+        'SELECTOR_DRIFT',
+        'FLAKY',
+        'PASS',
+        'TEST_OUTDATED',
+      ];
+      if (!validClass.includes(from) || !validClass.includes(to)) {
+        console.error(
+          `[graph-record dispute] --from and --to must be one of: ${validClass.join(', ')}`,
+        );
+        return 1;
+      }
+      const payload: ClassificationDisputedPayload = {
+        runId,
+        scenarioId: scenarioIdArg,
+        originalClassification: from as Classification,
+        disputedTo: to as Classification,
+        qaActor: actor,
+      };
+      if (reason) payload.qaReason = reason;
+      const e = makeEvent('xera-report', 'classification.disputed', payload);
+      appendEvents(repoRoot, [e], { skill: 'xera-report', ticketId: scenarioIdArg.slice(0, 12) });
+      return 0;
     }
     default:
       console.error(`Unknown action: ${action}`);

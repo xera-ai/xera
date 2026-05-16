@@ -11,6 +11,8 @@ const IN_SCOPE_PROMPTS = [
   'script-from-feature.md',
   'heal-locator.md',
   'extract-areas.md',
+  'similarity-match.md',
+  'classify-outdated.md',
 ] as const;
 
 const REQUIRED_SECTION_HEADING = '## Handling untrusted input';

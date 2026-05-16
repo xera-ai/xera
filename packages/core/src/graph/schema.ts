@@ -71,7 +71,14 @@ const runCompleted = z
   })
   .passthrough();
 
-const classification = z.enum(['REAL_BUG', 'TEST_BUG', 'SELECTOR_DRIFT', 'FLAKY', 'PASS']);
+const classification = z.enum([
+  'REAL_BUG',
+  'TEST_BUG',
+  'SELECTOR_DRIFT',
+  'FLAKY',
+  'PASS',
+  'TEST_OUTDATED',
+]);
 
 const runClassified = z
   .object({

@@ -1,0 +1,5 @@
+{
+  "id": "test-outdated-label-change",
+  "summary": "ABC-200 changes login button label after sc-1 was generated; LLM returns TEST_OUTDATED",
+  "expectation": "enhanceClassification returns classification=TEST_OUTDATED, confidence=0.87"
+}
