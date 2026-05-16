@@ -213,7 +213,8 @@ Bug fixes, dep bumps, refactors of code you're already touching, and doc tweaks 
 | **v0.6.3** | HTML viewer (vendored vis-network), CI artifact + sticky PR comment, consumer scaffold `xera-graph.yml` |
 | **v0.6.4** | QA polish — `--grep` per-scenario filter, priority auto-detect from AC keywords, threshold tuning, disputed marker in viewer, `xera doctor --auto-enrich`, `xera-internal disputes` CLI |
 | **v0.7** | HTTP API adapter (`@xera-ai/http`) — no-browser executor, pre-auth helpers (`defineHttpAuthSetup`, `presetHttpAuth`), OpenAPI loader; 3 new classifier buckets (`CONTRACT_DRIFT`, `RATE_LIMITED`, `AUTH_EXPIRED`); `xera init --shape web\|api\|mixed`; `script-from-feature-http.md` prompt; `xera:auth-setup` subcommand |
+| **v0.8** | Release pipeline overhaul — all six packages unified at one version (`fixed` group in `.changeset/config.json`); `release.yml` (changesets-driven publish) replaces tag-triggered `publish.yml` (kept as manual fallback); `auto-changeset.yml` infers bumps from conventional-commit PR titles; `xera-automation` GitHub App mints installation tokens so bot pushes trigger downstream CI; branch protection on `main` + changeset-bot required-comment; legacy v0.x npm versions unpublished or deprecated, registry starts fresh from 0.8.0 |
 
-Repo at `xera-ai/xera`, public, MIT. 6 packages on npm under `@xera-ai/*`. Starter template at `xera-ai/xera-starter`. ~350 unit tests across `@xera-ai/core` + `@xera-ai/web` + `@xera-ai/http`.
+Repo at `xera-ai/xera`, public, MIT. 6 packages on npm under `@xera-ai/*` — all currently at the same `fixed`-group version. Starter template at `xera-ai/xera-starter`. ~350 unit tests across `@xera-ai/core` + `@xera-ai/web` + `@xera-ai/http`.
 
 **Not yet shipped** (each is a separate future spec): `/xera-sprint` multi-ticket orchestration, production trace → test backfill, Mobile/Performance/Security adapters, live dashboard.
