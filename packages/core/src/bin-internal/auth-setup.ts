@@ -1,0 +1,116 @@
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { loadConfig } from '../config/load';
+
+interface AuthSetupOpts {
+  role?: string;
+  shape: 'web' | 'http' | 'all';
+}
+
+function parseOpts(argv: string[]): AuthSetupOpts {
+  const opts: AuthSetupOpts = { shape: 'all' };
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    const next = argv[i + 1];
+    if (a === '--role' && next) {
+      opts.role = next;
+      i++;
+    } else if (a === '--shape' && next) {
+      if (next === 'web' || next === 'http' || next === 'all') opts.shape = next;
+      i++;
+    }
+  }
+  return opts;
+}
+
+export async function authSetupCmd(argv: string[]): Promise<number> {
+  const opts = parseOpts(argv);
+  const cwd = process.cwd();
+  const config = await loadConfig(cwd);
+
+  const authSetupScript = join(cwd, 'shared', 'auth-setup.ts');
+  if (!existsSync(authSetupScript)) {
+    console.error(
+      `[xera:auth-setup] auth-setup.ts not found at ${authSetupScript}. Run 'bunx @xera-ai/cli init' first.`,
+    );
+    return 1;
+  }
+
+  const mod = (await import(pathToFileURL(authSetupScript).href)) as {
+    web?: unknown;
+    http?: unknown;
+  };
+
+  let exitCode = 0;
+
+  // Web roles
+  if (
+    (opts.shape === 'all' || opts.shape === 'web') &&
+    config.web &&
+    typeof mod.web === 'function'
+  ) {
+    const { runAuthSetup } = await import('@xera-ai/web');
+    const { chromium } = await import('@playwright/test');
+    const browser = await chromium.launch();
+    try {
+      for (const [roleName, roleCreds] of Object.entries(config.web.auth.roles)) {
+        if (opts.role && roleName !== opts.role) continue;
+        const email = process.env[roleCreds.envEmail];
+        const password = process.env[roleCreds.envPassword];
+        if (!email || !password) {
+          console.error(
+            `[xera:auth-setup] missing env vars ${roleCreds.envEmail} / ${roleCreds.envPassword} for role '${roleName}'`,
+          );
+          exitCode = 1;
+          continue;
+        }
+        try {
+          await runAuthSetup({
+            role: roleName,
+            creds: { email, password },
+            setupScriptPath: authSetupScript,
+            authDir: join(cwd, '.xera', '.auth'),
+            browser,
+          });
+          console.log(`[xera:auth-setup] ✓ ${roleName}.json (web)`);
+        } catch (e) {
+          console.error(`[xera:auth-setup] ✗ web/${roleName}: ${(e as Error).message}`);
+          exitCode = 1;
+        }
+      }
+    } finally {
+      await browser.close();
+    }
+  }
+
+  // Http roles
+  if (
+    (opts.shape === 'all' || opts.shape === 'http') &&
+    config.http &&
+    typeof mod.http === 'function'
+  ) {
+    // The auth-setup.ts template reads config via globalThis; set it for the user's function.
+    (globalThis as Record<string, unknown>).__XERA_HTTP_CONFIG__ = config.http;
+
+    const { runHttpAuthSetup } = await import('@xera-ai/http');
+    for (const roleName of Object.keys(config.http.auth.roles)) {
+      if (opts.role && roleName !== opts.role) continue;
+      try {
+        await runHttpAuthSetup({
+          authDir: join(cwd, '.xera', '.auth'),
+          role: roleName,
+          config: config.http,
+          setupFn: mod.http as Parameters<typeof runHttpAuthSetup>[0]['setupFn'],
+          creds: { email: '', password: '' },
+        });
+        console.log(`[xera:auth-setup] ✓ http/${roleName}.json`);
+      } catch (e) {
+        console.error(`[xera:auth-setup] ✗ http/${roleName}: ${(e as Error).message}`);
+        exitCode = 1;
+      }
+    }
+  }
+
+  return exitCode;
+}
