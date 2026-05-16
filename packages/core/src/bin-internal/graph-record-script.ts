@@ -54,7 +54,7 @@ const P0_KEYWORDS = [
 ];
 
 function inferPriority(name: string, gherkin: string): 'p0' | 'p1' {
-  const haystack = (name + ' ' + gherkin).toLowerCase();
+  const haystack = `${name} ${gherkin}`.toLowerCase();
   for (const kw of P0_KEYWORDS) {
     if (haystack.includes(kw)) return 'p0';
   }

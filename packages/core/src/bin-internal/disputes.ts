@@ -47,7 +47,7 @@ function renderText(rows: DisputeRow[]): string {
     );
     if (r.qaReason) lines.push(`    reason: ${r.qaReason}`);
   }
-  return lines.join('\n') + '\n';
+  return `${lines.join('\n')}\n`;
 }
 
 export async function disputesCmd(argv: string[]): Promise<number> {
@@ -65,8 +65,7 @@ export async function disputesCmd(argv: string[]): Promise<number> {
   const repoRoot = process.cwd();
   const events = loadAllEvents(repoRoot);
   const disputes = events.filter(
-    (e): e is Event & { type: 'classification.disputed' } =>
-      e.type === 'classification.disputed',
+    (e): e is Event & { type: 'classification.disputed' } => e.type === 'classification.disputed',
   );
 
   let cutoffMs: number | undefined;

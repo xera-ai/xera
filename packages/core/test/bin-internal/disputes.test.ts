@@ -4,8 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { disputesCmd } from '../../src/bin-internal/disputes';
 import { appendEvents } from '../../src/graph/store';
-import { ulid } from '../../src/graph/ulid';
 import type { Event } from '../../src/graph/types';
+import { ulid } from '../../src/graph/ulid';
 
 let root: string;
 let prevCwd: string;

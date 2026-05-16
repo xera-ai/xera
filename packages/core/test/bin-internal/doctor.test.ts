@@ -4,7 +4,10 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { doctorCmd } from '../../src/bin-internal/doctor';
 
-async function runDoctor(root: string, argv: string[] = []): Promise<{ stdout: string; exit: number }> {
+async function runDoctor(
+  root: string,
+  argv: string[] = [],
+): Promise<{ stdout: string; exit: number }> {
   const lines: string[] = [];
   const origLog = console.log;
   console.log = (...a: unknown[]) => lines.push(a.join(' '));
