@@ -151,3 +151,18 @@ ls .github/workflows/xera-graph.yml
 ```
 
 If missing, run `bunx @xera-ai/cli init --update` to refresh the scaffold (v0.6.3+).
+
+### Auto-trigger never prompts
+
+If `/xera-run <TICKET>` never asks about re-running impacted scenarios, the threshold may be too high. v0.6.4 defaults to `8.0`. Lower it:
+
+```typescript
+// xera.config.ts
+export default defineConfig({
+  run: {
+    autoImpact: { threshold: 5.0 },
+  },
+});
+```
+
+The prompt fires only when at least one scenario's risk score exceeds the threshold. P0 scenarios with direct `modifies-same-area` edges score around 14; P1 around 11. Most P2 scenarios score below 8.

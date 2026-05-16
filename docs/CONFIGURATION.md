@@ -195,3 +195,21 @@ The viewer is a single self-contained HTML file (~700 KB total — vendored vis-
 - `> 2000 nodes`: text-fallback — writes a placeholder text file
 
 **CI publishing:** `xera init` scaffolds `.github/workflows/xera-graph.yml` which renders the viewer on every PR, uploads it as an artifact, and posts a sticky comment with the artifact link. Reviewers click → open in browser, no clone required.
+
+### v0.6.4 changes
+
+**`run.autoImpact.threshold` default raised 6.0 → 8.0.** This means `/xera-run` only prompts to re-run impacted scenarios when at least one has a risk score ≥ 8.0 (i.e. P0 scenario in a heavily-shared SUT area). Below threshold, the step is silent. Set `threshold: 6.0` to restore the v0.6.2/v0.6.3 chatty behavior.
+
+**`xera-internal disputes`** lists `classification.disputed` events for review by the QA lead:
+
+```bash
+bun run xera:disputes                       # all disputes, text format
+bun run xera:disputes --since 7d            # past week only
+bun run xera:disputes --format json         # machine-readable
+```
+
+**`xera doctor --auto-enrich`** runs non-interactive backfill of unbackfilled tickets, intended for CI:
+
+```bash
+bun run xera:doctor --auto-enrich           # cron-friendly
+```
