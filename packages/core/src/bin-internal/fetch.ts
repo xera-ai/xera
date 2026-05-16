@@ -6,6 +6,7 @@ import { resolveArtifactPaths } from '../artifact/paths';
 import { loadConfig } from '../config/load';
 import { createJiraClient } from '../jira/client';
 import type { JiraTicket } from '../jira/types';
+import { PROMPTS_VERSION, XERA_VERSION } from '../versions';
 
 export interface FetchCmdOpts {
   cwd?: string;
@@ -54,8 +55,8 @@ export async function fetchCmd(argv: string[], opts: FetchCmdOpts = {}): Promise
   writeMeta(paths.metaPath, {
     ticket,
     adapter: 'web',
-    xera_version: '0.1.0',
-    prompts_version: '1.0.0',
+    xera_version: XERA_VERSION,
+    prompts_version: PROMPTS_VERSION,
     ...(existing ?? {}),
     // Re-stamp the just-fetched fields:
     story_hash: storyHash,

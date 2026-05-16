@@ -12,6 +12,7 @@ import * as p from '@clack/prompts';
 import pc from 'picocolors';
 
 const require = createRequire(import.meta.url);
+const CLI_VERSION = (require('../package.json') as { version: string }).version;
 
 export async function initUpdateCommand(_opts: { yes: boolean }): Promise<void> {
   const cwd = process.cwd();
@@ -26,10 +27,10 @@ export async function initUpdateCommand(_opts: { yes: boolean }): Promise<void> 
   const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
   pkg.dependencies = pkg.dependencies ?? {};
   // Bump existing entries to latest; only add adapters that were already present
-  pkg.dependencies['@xera-ai/core'] = '^0.8.0';
-  pkg.dependencies['@xera-ai/prompts'] = '^0.8.0';
-  if (pkg.dependencies['@xera-ai/web']) pkg.dependencies['@xera-ai/web'] = '^0.8.0';
-  if (pkg.dependencies['@xera-ai/http']) pkg.dependencies['@xera-ai/http'] = '^0.8.0';
+  pkg.dependencies['@xera-ai/core'] = `^${CLI_VERSION}`;
+  pkg.dependencies['@xera-ai/prompts'] = `^${CLI_VERSION}`;
+  if (pkg.dependencies['@xera-ai/web']) pkg.dependencies['@xera-ai/web'] = `^${CLI_VERSION}`;
+  if (pkg.dependencies['@xera-ai/http']) pkg.dependencies['@xera-ai/http'] = `^${CLI_VERSION}`;
 
   pkg.scripts = pkg.scripts ?? {};
   pkg.scripts['xera:auth-setup'] = 'xera-internal auth-setup';

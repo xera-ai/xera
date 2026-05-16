@@ -13,6 +13,7 @@ import type { OutdatedDecision } from '../graph/classify';
 import { enhanceClassification } from '../graph/classify';
 import { deriveSnapshot, loadAllEvents } from '../graph/store';
 import { buildJiraComment } from '../reporter/jira-comment';
+import { PROMPTS_VERSION, XERA_VERSION } from '../versions';
 import { writeStatusFromClassification } from '../reporter/status-writer';
 
 interface ReportInput {
@@ -187,8 +188,8 @@ export async function reportCmd(argv: string[]): Promise<number> {
     overall: reAggregated.overall,
     overallConfidence: reAggregated.overallConfidence,
     scenarios: reAggregated.scenarios,
-    xeraVersion: '0.1.0',
-    promptsVersion: '1.0.0',
+    xeraVersion: XERA_VERSION,
+    promptsVersion: PROMPTS_VERSION,
   });
   const draftPath = join(paths.ticketDir, 'jira-comment.draft.md');
   writeFileSync(draftPath, md);

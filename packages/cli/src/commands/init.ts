@@ -7,6 +7,7 @@ import pc from 'picocolors';
 import { copyDir, scaffoldFile, TEMPLATE_DIR } from '../scaffold';
 
 const require = createRequire(import.meta.url);
+const CLI_VERSION = (require('../package.json') as { version: string }).version;
 
 export type ProjectShape = 'web' | 'api' | 'mixed';
 export type HttpAuthStrategy = 'bearer' | 'apiKey' | 'basic' | 'oauth-cc' | 'none';
@@ -256,7 +257,7 @@ export async function initCommand(opts: InitOptions): Promise<void> {
   const skillsDir = join(skillsSrc, '..');
   for (const target of ['.claude/skills', '.claude/commands']) {
     copyDir(skillsDir, join(cwd, target));
-    for (const name of ['package.json', 'version.json']) {
+    for (const name of ['package.json', 'version.json', 'CHANGELOG.md']) {
       const f = join(cwd, target, name);
       if (existsSync(f)) unlinkSync(f);
     }
@@ -294,10 +295,10 @@ export async function initCommand(opts: InitOptions): Promise<void> {
   pkg.scripts['xera:disputes'] = 'xera-internal disputes';
 
   pkg.dependencies = pkg.dependencies ?? {};
-  pkg.dependencies['@xera-ai/core'] = '^0.8.0';
-  pkg.dependencies['@xera-ai/prompts'] = '^0.8.0';
-  if (wantsWeb) pkg.dependencies['@xera-ai/web'] = '^0.8.0';
-  if (wantsHttp) pkg.dependencies['@xera-ai/http'] = '^0.8.0';
+  pkg.dependencies['@xera-ai/core'] = `^${CLI_VERSION}`;
+  pkg.dependencies['@xera-ai/prompts'] = `^${CLI_VERSION}`;
+  if (wantsWeb) pkg.dependencies['@xera-ai/web'] = `^${CLI_VERSION}`;
+  if (wantsHttp) pkg.dependencies['@xera-ai/http'] = `^${CLI_VERSION}`;
 
   pkg.devDependencies = pkg.devDependencies ?? {};
   pkg.devDependencies['@playwright/test'] = '^1.60.0';

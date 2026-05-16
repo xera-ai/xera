@@ -1,4 +1,4 @@
-export const VERSION = '0.1.0';
+export { XERA_VERSION as VERSION } from './versions';
 export type * from './adapter/types';
 export * from './artifact/hash';
 export * from './artifact/meta';
