@@ -15,11 +15,6 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "types": ["bun-types"],
-    "baseUrl": ".",
-    "paths": {
-      "@xera-ai/core": ["./packages/core/src/index.ts"],
-      "@xera-ai/core/adapter": ["./packages/core/src/adapter/types.ts"],
-      "@xera-ai/web": ["./packages/web/src/index.ts"]
-    }
+    "customConditions": ["bun"]
   }
 }

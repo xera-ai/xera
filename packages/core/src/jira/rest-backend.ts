@@ -1,4 +1,4 @@
-import type { JiraClient, JiraFieldMap, JiraTicket } from './types';
+import type { JiraClient, JiraTicket } from './types';
 
 interface RestCreds {
   email: string;

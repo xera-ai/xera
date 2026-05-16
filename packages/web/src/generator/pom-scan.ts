@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const CLASS_RE = /export\s+class\s+([A-Z][A-Za-z0-9_]*)/g;
