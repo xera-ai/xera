@@ -81,6 +81,34 @@ jobs:
           publish: bun run release
           commit: 'chore: version packages'
           title: 'chore: version packages'
+          createGithubReleases: false
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create combined GitHub release
+        if: steps.changesets.outputs.published == 'true'
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          VERSION=$(jq -r .version packages/cli/package.json)
+          TAG="v${VERSION}"
+
+          # Extract the latest changelog section from cli (representative for all packages)
+          NOTES=$(awk '/^## /{count++; if(count==2) exit} count==1{print}' packages/cli/CHANGELOG.md | tail -n +2)
+
+          gh release create "$TAG" \
+            --title "xera v${VERSION}" \
+            --notes "## Packages
+
+All packages updated to \`${VERSION}\`:
+- \`@xera-ai/cli\`
+- \`@xera-ai/core\`
+- \`@xera-ai/web\`
+- \`@xera-ai/http\`
+- \`@xera-ai/prompts\`
+- \`@xera-ai/skills\`
+
+## Changes
+
+${NOTES}"
