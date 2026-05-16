@@ -30,7 +30,9 @@ There is no "hybrid adapter." A web ticket that calls `page.request` is still a 
 - New package `@xera-ai/http` (`packages/http/`):
   - `TestAdapter` implementation (`generate`, `execute`, `classify`, `doctor`).
   - Executor built on `@playwright/test`'s `request.newContext()` — no browser.
-  - Auth strategies: `bearer`, `apiKey`, `basic`, `oauth-cc`, `none`.
+  - Auth preset strategies: `bearer`, `apiKey`, `basic`, `oauth-cc`, `custom`, `none`.
+  - `defineHttpAuthSetup` helper + `presetHttpAuth` built-in (parallels web's `defineAuthSetup`).
+  - Runtime helper `newAuthedContext(playwright, role)` consumed by generated `spec.ts`.
   - HTTP trace normalizer (request/response pairs JSON, scrubbed via shared `scrub-rules.ts`).
   - OpenAPI loader (path or URL, optional).
 - Config schema additions in `@xera-ai/core`:
@@ -50,6 +52,8 @@ There is no "hybrid adapter." A web ticket that calls `page.request` is still a 
 - CLI `init` wizard branches on shape, scaffolds `xera.config.ts` and (if applicable) `openapi.yaml` reminder, env file template.
 - CLI `doctor` adds http-specific checks (token presence, OpenAPI reachable if configured) with gentle warnings, never hard fails.
 - `xera-internal` subcommand: `http-trace-normalize` (parallel to web's normalizer).
+- `bun run xera:auth-setup` extended to iterate http roles (existing command, code change in the runner).
+- Filesystem migration: existing `.xera/.auth/<role>.json` → `.xera/.auth/web/<role>.json`. Handled by `init --upgrade` and gracefully by the auth runner (reads either path during transition, writes only to the new location).
 - Test fixtures:
   - `fixtures/mock-api/` — Bun.serve-based deterministic HTTP target (parallels `fixtures/mock-jira/`).
   - `fixtures/golden-tickets-http/` — golden tickets for HTTP classifier paths.
@@ -90,9 +94,11 @@ A maintainer can, from a clean checkout:
 3. `bun run xera:verify-prompts` — reports ok with 8 in-scope prompts (was 7).
 4. `bun test` — all green, including new `packages/http/test/` and updated classifier tests.
 5. `cd /tmp && rm -rf api-tryout && mkdir api-tryout && cd api-tryout && bunx @xera-ai/cli init --yes --shape api` — scaffolds api-only project. No `playwright install chromium` triggered.
-6. Open Claude Code in that directory. Edit a seeded `PROJ-HTTP-001/meta.json` with a story that maps to `POST /users`. Run `/xera-run PROJ-HTTP-001`. Skill generates feature.md → spec.ts using `request.newContext`, runs it against the bundled mock-api server, posts result to mock-jira.
-7. As a second smoke: `bunx @xera-ai/cli init --yes --shape mixed`. Run a web ticket whose AC includes "verify the order is created in backend." Confirm the generated script uses both `page.click` and `request.get`.
-8. As a third smoke: in an http-only project with no OpenAPI configured, `bun run xera:doctor` emits the gentle warning ("OpenAPI not configured — CONTRACT_DRIFT detection disabled, schema-derived edge cases disabled") and exits ok.
+6. Set bearer env var: `echo 'USER_BEARER_TOKEN=test-token-001' >> .env.local`. Run `bun run xera:auth-setup --role user`. Confirm `.xera/.auth/http/user.json` exists, is encrypted (`file` reports binary-ish), and `xera doctor` reports it ✓ with expiry hint.
+7. Open Claude Code in that directory. Edit a seeded `PROJ-HTTP-001/meta.json` with a story that maps to `POST /users`. Run `/xera-run PROJ-HTTP-001`. Skill generates feature.md → spec.ts using `newAuthedContext`, runs it against the bundled mock-api server (which validates the Authorization header against the seeded token), posts result to mock-jira.
+8. As a second smoke: `bunx @xera-ai/cli init --yes --shape mixed`. Run a web ticket whose AC includes "verify the order is created in backend." Confirm the generated script uses both `page.click` and `request.get`.
+9. As a third smoke: in an http-only project with no OpenAPI configured, `bun run xera:doctor` emits the gentle warning ("OpenAPI not configured — CONTRACT_DRIFT detection disabled, schema-derived edge cases disabled") and exits ok.
+10. As a fourth smoke (auth lifecycle): seed an expired JWT into `.xera/.auth/http/user.json`. Run `/xera-run PROJ-HTTP-001`. Run reports `AUTH_EXPIRED` with the suggested fix (`bun run xera:auth-setup --role user`).
 
 If any of those breaks, v0.7.0 is not ready.
 
@@ -110,13 +116,13 @@ packages/
       adapter.ts                              TestAdapter impl
       executor/
         index.ts                              runHttpScenarios entry
-        request-context.ts                    builds APIRequestContext from config + auth
-      auth/
-        index.ts                              getToken(role, config)
-        bearer.ts                             env-var token, JWT-exp aware
-        api-key.ts                            header or query
-        basic.ts                              base64
-        oauth-cc.ts                           client_credentials flow + cache
+        playwright-config.ts                  generates http-only playwright config
+      auth-setup/
+        define.ts                             defineHttpAuthSetup + result types
+        preset.ts                             presetHttpAuth (bearer/apiKey/basic/oauth-cc impls)
+        runner.ts                             runHttpAuthSetup — invoked by xera:auth-setup
+      runtime/
+        index.ts                              newAuthedContext(playwright, role) — used by spec.ts
       openapi/
         loader.ts                             parse YAML/JSON, dereference $refs
         index.ts                              public lookup helpers
@@ -211,28 +217,199 @@ Normalizer:
 
 Scrubbing is non-negotiable — same posture as web. Adding rules is fine; removing is not (per CLAUDE.md reflex).
 
-### 2.5 Auth
+### 2.5 Auth — pre-authentication, per-role encrypted file
 
-Five strategies, all driven by config + env vars. Tokens that have a fetched lifecycle (`oauth-cc`) are cached in `.xera/.auth/http-tokens.json` encrypted with the same AES-256-GCM utility web uses for storageState (`packages/core/src/auth/encrypt.ts`).
+**Mirror of web's `auth-setup.ts` → `.xera/.auth/<role>.json` pattern.** A QA team runs pre-authentication ONCE per role; the resulting token (and any session cookies) lands in an encrypted file. Test runs read the file at startup. No raw tokens in env vars at run time.
+
+The core auth state module already supports this — `packages/core/src/auth/state.ts` exports `AuthStateEntry` with `strategy: z.enum(['storageState', 'apiToken'])`. The `apiToken` branch was anticipated by the original architecture; v0.7 activates it.
+
+#### 2.5.1 Storage layout
+
+```
+.xera/.auth/
+  web/<role>.json         encrypted storageState (cookies/localStorage)
+  http/<role>.json        encrypted { token, type, cookies?, expires_at }
+```
+
+Web's existing path `.xera/.auth/<role>.json` is migrated to `.xera/.auth/web/<role>.json` (migration handled by `init --upgrade`; existing roles auto-moved). This avoids name collision when a mixed project has the same role under both adapters.
+
+File payload schema for http:
 
 ```ts
-// packages/http/src/auth/index.ts
-export async function getToken(role: string, config: XeraConfig['http']): Promise<string> {
-  const r = config.auth.roles[role];
-  if (!r) throw new Error(`Auth role '${role}' not configured`);
-  switch (config.auth.strategy) {
-    case 'bearer':   return readEnv(r.tokenEnv);                       // simple env read
-    case 'apiKey':   return readEnv(r.tokenEnv);                       // ditto, header/query at request time
-    case 'basic':    return base64(`${readEnv(r.userEnv)}:${readEnv(r.passEnv)}`);
-    case 'oauth-cc': return getOrRefreshClientCredentials(r);          // cached, refreshed when < refreshBuffer to expiry
-    case 'none':     return '';
-  }
+{
+  role: 'admin',
+  strategy: 'apiToken',
+  created_at: '2026-05-16T10:00:00.000Z',
+  expires_at: '2026-05-16T18:00:00.000Z',
+  payload: {
+    type: 'bearer',                     // 'bearer' | 'apiKey' | 'basic' | 'cookie'
+    token: '<jwt-or-opaque>',
+    header: 'Authorization',            // header name to attach; default 'Authorization' for bearer
+    scheme: 'Bearer',                   // header value prefix; default 'Bearer ' for bearer
+    cookies?: [{ name, value, domain, path, expires? }],   // optional session cookies
+  },
 }
 ```
 
-`oauth-cc` flow: POST `tokenUrl` with `grant_type=client_credentials&client_id=...&client_secret=...&scope=...`, parse `access_token` + `expires_in`, cache file path `.xera/.auth/http-tokens.json` (gitignored by `xera init`), refresh when current time + `refreshBuffer` > expiry. Decode JWT `exp` when present to drive `AUTH_EXPIRED` classifier hint.
+Same AES-256-GCM encryption as web (`packages/core/src/auth/encrypt.ts`, key from `packages/core/src/auth/key.ts`). File is gitignored by `init`.
 
-**Multi-role auth** is in scope (per brainstorm): `roles.admin`, `roles.user`, `roles.readonly` etc. The generated `spec.ts` selects which token to attach per scenario, based on the Gherkin step (e.g. "When admin POSTs /users …" → admin role; LLM picks the role string from the prompt's instruction).
+#### 2.5.2 Pre-auth script: `defineHttpAuthSetup`
+
+Mirror of web's `defineAuthSetup`. New helper exported from `@xera-ai/http`:
+
+```ts
+// packages/http/src/auth-setup/define.ts
+import type { APIRequestContext } from '@playwright/test';
+
+export interface HttpAuthRoleCreds { email: string; password: string; }
+export interface HttpAuthSetupResult {
+  type: 'bearer' | 'apiKey' | 'basic' | 'cookie';
+  token: string;
+  header?: string;
+  scheme?: string;
+  cookies?: Array<{ name: string; value: string; domain: string; path: string; expires?: number }>;
+  expiresAt?: number;
+}
+export type HttpAuthSetupFn = (
+  request: APIRequestContext,
+  role: string,
+  creds: HttpAuthRoleCreds,
+) => Promise<HttpAuthSetupResult>;
+
+export function defineHttpAuthSetup(fn: HttpAuthSetupFn): HttpAuthSetupFn { return fn; }
+```
+
+User's `auth-setup.ts` (mixed project example):
+
+```ts
+import { defineAuthSetup } from '@xera-ai/web';
+import { defineHttpAuthSetup } from '@xera-ai/http';
+
+// Web roles — opens browser, logs in via UI, captures storageState.
+export const web = defineAuthSetup(async (page, _role, creds) => {
+  await page.goto('/login');
+  await page.getByLabel('Email').fill(creds.email);
+  await page.getByLabel('Password').fill(creds.password);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.waitForURL(/.*\/dashboard/);
+  return { expiresAt: Date.now() + 8 * 3600 * 1000 };
+});
+
+// HTTP roles — POSTs /auth/login, captures bearer token (and any session cookies).
+export const http = defineHttpAuthSetup(async (request, _role, creds) => {
+  const res = await request.post('/auth/login', { data: creds });
+  if (res.status() !== 200) throw new Error(`Login failed: ${res.status()}`);
+  const body = await res.json();
+  const cookies = await request.storageState().then(s => s.cookies);
+  return {
+    type: 'bearer',
+    token: body.access_token,
+    expiresAt: Date.now() + body.expires_in * 1000,
+    cookies: cookies.length > 0 ? cookies : undefined,
+  };
+});
+```
+
+Web-only and api-only projects only export the relevant function.
+
+#### 2.5.3 Preset strategies (when no custom login flow needed)
+
+90% of teams won't need to write `defineHttpAuthSetup` by hand. For these cases, `init` scaffolds an `auth-setup.ts` that uses a preset strategy from config:
+
+```ts
+// xera.config.ts
+http: {
+  auth: {
+    strategy: 'bearer',          // 'bearer' | 'apiKey' | 'basic' | 'oauth-cc' | 'custom' | 'none'
+    roles: {
+      admin: { tokenEnv: 'ADMIN_BEARER_TOKEN' },
+      user:  { tokenEnv: 'USER_BEARER_TOKEN' },
+    },
+  },
+},
+```
+
+Scaffolded `auth-setup.ts`:
+
+```ts
+import { defineHttpAuthSetup, presetHttpAuth } from '@xera-ai/http';
+export const http = defineHttpAuthSetup(presetHttpAuth);  // reads config.http.auth.strategy
+```
+
+`presetHttpAuth` is the built-in implementation:
+- `bearer` / `apiKey`: read `process.env[role.tokenEnv]` → wrap as result.
+- `basic`: base64(`process.env[userEnv]:process.env[passEnv]`) → result.
+- `oauth-cc`: POST `tokenUrl` with `grant_type=client_credentials`, return `access_token` + `expires_in`.
+- `none`: throw — should not call pre-auth for `none`.
+
+Users escape to a custom function by replacing the export body. The `strategy: 'custom'` value tells doctor not to validate preset-specific fields (`tokenEnv`, `tokenUrl`, etc.).
+
+#### 2.5.4 Runner: `bun run xera:auth-setup`
+
+Existing command (web's). Extended to also iterate http roles:
+
+1. Read `xera.config.ts`. For each adapter configured:
+   - Each role in `web.auth.roles` → run `web` export with credentials from env (`auth.roles.<role>.envEmail/envPassword`).
+   - Each role in `http.auth.roles` → run `http` export with credentials (for preset `bearer`/`apiKey`/`basic`: feed `tokenEnv`/`userEnv`/`passEnv` env values; for preset `oauth-cc`: feed `clientIdEnv`/`clientSecretEnv`; for `custom`: feed `envEmail`/`envPassword` for whatever the user's function needs).
+2. Each successful function returns a result.
+3. Runner writes encrypted `.xera/.auth/{web|http}/<role>.json` via `writeAuthState`.
+4. Failures print clear errors per role; partial success allowed (one bad role doesn't block others).
+
+CI invocation: `bun run xera:auth-setup --role admin` (single role) or no arg (all roles).
+
+#### 2.5.5 Run-time: how `spec.ts` uses the token
+
+Generated `spec.ts` for http tickets uses a new runtime helper from `@xera-ai/http`:
+
+```ts
+import { test, expect } from '@playwright/test';
+import { newAuthedContext } from '@xera-ai/http/runtime';
+
+test.describe('User registration validation', () => {
+  let api: APIRequestContext;
+  test.beforeAll(async ({ playwright }) => {
+    api = await newAuthedContext(playwright, 'user');     // reads .xera/.auth/http/user.json
+  });
+  test.afterAll(() => api.dispose());
+
+  test('Reject empty email', async () => {
+    const res = await api.post('/users', { data: { name: 'alice', email: '' } });
+    expect(res.status()).toBe(422);
+  });
+});
+```
+
+`newAuthedContext(playwright, role)`:
+1. Calls `readAuthState('http', role)` → decrypted entry.
+2. If file missing → throws with message `"Auth file not found for role '<role>'. Run: bun run xera:auth-setup --role <role>"`.
+3. If `expires_at` past → emits classifier hint `AUTH_EXPIRED` for the run and throws same message (single source of truth: missing OR expired both require re-running auth-setup).
+4. Builds `APIRequestContext` with `baseURL`, the auth header from payload (`payload.header: payload.scheme + ' ' + payload.token`), and any cookies attached.
+
+The prompt `script-from-feature-http.md` teaches the LLM this pattern verbatim.
+
+#### 2.5.6 Doctor check
+
+Replaces the env-var presence checks from earlier draft:
+
+```
+$ xera doctor
+
+✓ HTTP adapter configured
+✓ Auth file present:  .xera/.auth/http/admin.json (expires in 7h 23m)
+✓ Auth file present:  .xera/.auth/http/user.json  (expires in 7h 23m)
+⚠ Auth file expired:  .xera/.auth/http/readonly.json (expired 2h ago)
+    → Run: bun run xera:auth-setup --role readonly
+✗ Auth file missing:  .xera/.auth/http/guest.json
+    → Run: bun run xera:auth-setup --role guest
+```
+
+Hard fail only when running a ticket whose roles have missing/expired auth files; doctor reports it as ✗ but xera CLI itself doesn't refuse to start.
+
+#### 2.5.7 Refresh policy
+
+Existing `packages/core/src/auth/refresh.ts` already handles "ttl ± refreshBuffer" detection. v0.7 reuses it as-is — the same module reads `expires_at` from either web or http entries and tells the runner whether to refresh now or wait. No new refresh code.
+
+**Multi-role** is in scope: each role gets its own file. The generated `spec.ts` picks the role from the Gherkin step ("When admin POSTs /users …" → `newAuthedContext(playwright, 'admin')`).
 
 ### 2.6 OpenAPI loader
 
@@ -281,7 +458,7 @@ const HttpAuthRoleSchema = z.object({
 });
 
 const HttpAuthSchema = z.object({
-  strategy: z.enum(['bearer', 'apiKey', 'basic', 'oauth-cc', 'none']).default('none'),
+  strategy: z.enum(['bearer', 'apiKey', 'basic', 'oauth-cc', 'custom', 'none']).default('none'),
   ttl: z.string().default('8h'),
   refreshBuffer: z.string().default('30m'),
   roles: z.record(z.string(), HttpAuthRoleSchema).default({}),
@@ -359,23 +536,40 @@ Scaffolds:
 |---|---|---|---|
 | `xera.config.ts` | with `web` block | with `http` block | with both |
 | `playwright.config.ts` | full | http-only (no `browserName`) | full |
-| `.xera/.auth/` (gitignored) | for storageState | for http-tokens.json | both |
-| `auth-setup.ts` | yes | no | yes |
-| `openapi.yaml` reminder | no | yes (echo a TODO comment) | yes |
-| `.env.example` | jira + base url | jira + api token vars per role | both |
+| `.xera/.auth/web/` (gitignored) | yes | no | yes |
+| `.xera/.auth/http/` (gitignored) | no | yes | yes |
+| `auth-setup.ts` | exports `web` | exports `http` (preset by default) | exports both |
+| `openapi.yaml` reminder | no | yes (TODO comment in scaffold) | yes |
+| `.env.example` | jira + base url + auth creds | jira + auth env vars per preset | both |
 | `sample/SAMPLE-001` | UI sample | HTTP sample (POST /users validation) | UI sample |
 
-Sample HTTP ticket (`sample/SAMPLE-HTTP-001/`): seed story + feature + spec that runs against a stubbed local mock (or against the user's configured baseUrl if reachable). Demonstrates `request.newContext`, multi-role auth, OpenAPI-aware assertions.
+Sample HTTP ticket (`sample/SAMPLE-HTTP-001/`): seed story + feature + spec that runs against a stubbed local mock (or against the user's configured baseUrl if reachable). Demonstrates `newAuthedContext`, multi-role auth, OpenAPI-aware assertions.
+
+After `init` finishes, the wizard prints a clear next-step:
+
+```
+✓ xera scaffolded successfully.
+
+Next:
+  1) Set your auth credentials in .env.local:
+       USER_BEARER_TOKEN=...
+       ADMIN_BEARER_TOKEN=...
+  2) Run pre-authentication:
+       bun run xera:auth-setup
+  3) Try the sample:
+       Open Claude Code in this directory and run: /xera-run SAMPLE-HTTP-001
+```
 
 ### 4.2 `bunx @xera-ai/cli doctor`
 
-New checks, all warnings (never hard fail unless config is invalid):
+Checks for the pre-auth files, never their contents (no token leakage in logs):
 
-- ⚠ `OpenAPI spec not configured (http.spec)` — *if* `http` is configured and `spec` is absent. Mentions which features degrade.
-- ⚠ `OpenAPI spec unreachable` — if path or URL doesn't resolve. Suggests fixes.
-- ✓ `HTTP auth tokens present (<role>, <role>)` — env vars referenced by `http.auth.roles` are set.
-- ✗ `HTTP auth token missing: $ENV_VAR_NAME` — hard fail; tests can't run.
-- ⚠ `Web tests configured but no OpenAPI` — for `mixed` projects, gentle reminder that v0.7 doesn't yet do `CONTRACT_DRIFT` on web traces; mention v0.9 roadmap.
+- ⚠ `OpenAPI spec not configured (http.spec)` — *if* `http` is configured and `spec` is absent. Mentions degraded features.
+- ⚠ `OpenAPI spec unreachable` — path or URL doesn't resolve. Suggests fixes.
+- ✓ `Auth file present: .xera/.auth/http/<role>.json (expires in 7h 23m)` — per role.
+- ⚠ `Auth file expired: .xera/.auth/http/<role>.json` — suggests `bun run xera:auth-setup --role <role>`.
+- ✗ `Auth file missing: .xera/.auth/http/<role>.json` — hard error only when a ticket needs that role; doctor itself shows ✗ but doesn't refuse to start.
+- ⚠ `Web tests configured but no OpenAPI` — gentle reminder for mixed projects; v0.7 doesn't do `CONTRACT_DRIFT` on web traces (v0.9 roadmap).
 
 ---
 
@@ -442,8 +636,9 @@ Other skills (`xera-fetch`, `xera-feature`, `xera-report`, `xera-impact`, `xera-
 
 Same frontmatter shape as the existing web prompt. Body covers:
 
-- Output shape: `@playwright/test` `request.newContext` style; one `test.describe` per Gherkin Feature, one `test()` per Scenario.
-- Auth: read `process.env.XERA_TOKEN_<ROLE>` for the role implied by Gherkin (`admin POSTs ...` → admin role); default role is the first one in config.
+- Output shape: `@playwright/test` style with `newAuthedContext(playwright, role)` from `@xera-ai/http/runtime`. One `test.describe` per Gherkin Feature, one `test()` per Scenario. Each `describe` opens an authed `APIRequestContext` in `beforeAll` and disposes in `afterAll`.
+- Auth: pick the role from Gherkin step language (`admin POSTs ...` → `'admin'`; `user GETs ...` → `'user'`). Default role is the first one in `http.auth.roles` (deterministic).
+- Token files are NOT read directly — `newAuthedContext` handles decrypt + header attach. The LLM MUST NOT emit code that reads `process.env.XERA_TOKEN_*` or decrypts files itself. This keeps adversarial prompt-injection in OpenAPI fields from leaking tokens.
 - Request body construction: if OpenAPI schema present in context, build a body that satisfies the schema (use `faker`-style realistic data — first/last name, valid email pattern); if not present, use the values literally implied by the scenario.
 - Unique-data-per-run: for endpoints that POST creating resources, use `process.env.XERA_RUN_ID` as a suffix in identifying fields (e.g. `email: alice-${XERA_RUN_ID}@example.com`). Avoids cross-run collisions.
 - Assertion shape: status code (always); response body shape (against OpenAPI schema if present, else against literal AC examples); response time if AC mentions latency.
@@ -477,18 +672,22 @@ Bump prompt version `1.x.x` → `1.(x+1).0` (additive). All version-line + verif
 Same as today, with a different `spec.ts` shape and an `http-trace.jsonl` in run dirs:
 
 ```
-.xera/<TICKET>/
-  meta.json                  { "adapter": "http", ... }
-  story.md
-  feature.md                 (Gherkin — adapter-agnostic shape)
-  spec.ts                    (adapter-specific code; http uses request.newContext)
-  pom/                       (web only; not present for http tickets)
-  runs/<RUN_ID>/
-    raw-report.json          Playwright JSON reporter output
-    http-trace.jsonl         http only — per-request log
-    normalized.json          shared schema, with optional http.calls extension
-    classifier-output.json   { class: ..., rationale: ..., evidence: ... }
-    post-input.json          payload for xera-report
+.xera/
+  .auth/
+    web/<role>.json          encrypted storageState (was .xera/.auth/<role>.json in v0.6)
+    http/<role>.json         encrypted { token, type, cookies?, expires_at }
+  <TICKET>/
+    meta.json                { "adapter": "http", ... }
+    story.md
+    feature.md               (Gherkin — adapter-agnostic shape)
+    spec.ts                  (adapter-specific; http uses newAuthedContext + api.request)
+    pom/                     (web only; not present for http tickets)
+    runs/<RUN_ID>/
+      raw-report.json        Playwright JSON reporter output
+      http-trace.jsonl       http only — per-request log
+      normalized.json        shared schema, with optional http.calls extension
+      classifier-output.json { class: ..., rationale: ..., evidence: ... }
+      post-input.json        payload for xera-report
 ```
 
 Hash-based drift (story_hash / feature_hash / script_hash) works unchanged. `events_hash` for graph events likewise.
@@ -533,7 +732,9 @@ Minimal scaffold mimicking what a real user's project might look like — used b
 ### 9.1 Unit tests (`packages/http/test/`)
 
 - `adapter.test.ts` — id, generate is noop, execute happy path against mock.
-- `auth/bearer.test.ts`, `auth/api-key.test.ts`, `auth/basic.test.ts`, `auth/oauth-cc.test.ts` — each strategy, including refresh / cache / expiry behavior.
+- `auth-setup/preset.test.ts` — each preset strategy returns correct result shape: bearer reads env, basic base64-encodes, oauth-cc fetches from token endpoint (against mock-api).
+- `auth-setup/runner.test.ts` — happy path writes `.xera/.auth/http/<role>.json`; missing env → clear error; partial role failure doesn't break other roles.
+- `runtime/newAuthedContext.test.ts` — reads file, attaches header, missing file throws helpful message, expired file emits AUTH_EXPIRED hint.
 - `openapi/loader.test.ts` — YAML + JSON + URL + $ref resolution + malformed spec error.
 - `openapi/findOperation.test.ts` — path template matching including `{param}` placeholders.
 - `trace-normalizer/normalize.test.ts` — JSONL → normalized.json, scenarios mapped, durations preserved.
@@ -569,6 +770,9 @@ Extend `.github/workflows/nightly-e2e.yml` with an http-shape branch that:
 - `meta.json.adapter` field already exists from v0.6; just accepts `'http'` as a value now.
 - Prompt rename `script-from-feature.md` → `script-from-feature-web.md` is internal-only — end users don't import prompts by name. Skills reference the new name.
 - Classifier enum gains values — consumers ignoring unknown values are fine; consumers exhaustively switching break loudly (we fix at the call sites in this PR).
+- Auth file relocation: `.xera/.auth/<role>.json` → `.xera/.auth/web/<role>.json`. Handled in two layers:
+  - `init --upgrade` moves files for existing projects, leaves a `.xera/.auth/.migrated` marker.
+  - The auth state reader checks `.xera/.auth/web/<role>.json` first, falls back to `.xera/.auth/<role>.json` for one release. v0.8 removes the fallback. This means QA teams on v0.7 can still run without re-auth.
 
 No runtime feature flag; v0.7.0 is a clean minor bump on top of v0.6.4.
 
@@ -578,9 +782,11 @@ No runtime feature flag; v0.7.0 is a clean minor bump on top of v0.6.4.
 
 - OpenAPI YAML parsed from disk → treated as **untrusted** per v0.3. The prompt template embeds `## Handling untrusted input` preamble; LLM never executes content from `description` / `example` fields.
 - HTTP request/response bodies scrubbed via shared `scrub-rules.ts` before classifier, before Jira post, before disk write. Adversarial unit tests cover Authorization headers, password fields, credit-card patterns, and known token formats (JWT, API-key prefixes).
-- Token cache (`http-tokens.json`) AES-256-GCM encrypted; key derivation matches web's storageState; cache file path under `.xera/.auth/` which `init` adds to `.gitignore`.
-- Doctor refuses to print token contents (only their env-var names).
+- Per-role auth files (`.xera/.auth/http/<role>.json`) AES-256-GCM encrypted; same key derivation as web's storageState (`packages/core/src/auth/key.ts`); `.xera/.auth/` already in `.gitignore` from web.
+- Tokens never appear in env at run time — `newAuthedContext` decrypts in-process and attaches the header to the `APIRequestContext`. Spec.ts code generated by the LLM does NOT see the raw token (prompt explicitly forbids reading env vars or files for auth).
+- Doctor reports auth file presence + expiry only; never prints token contents or even token prefixes.
 - `curl` reproducer in failure posts: Authorization values replaced with `***`. Body fields scrubbed identically to the rest of the trace.
+- Auth-setup script (`auth-setup.ts`) is user-owned code — if a user writes a custom `defineHttpAuthSetup` that, say, sends creds to a third-party logger, that's a user-introduced risk we cannot prevent. v0.7 ships only the safe `presetHttpAuth` defaults.
 
 ---
 
@@ -590,7 +796,9 @@ No runtime feature flag; v0.7.0 is a clean minor bump on top of v0.6.4.
 |---|---|
 | OpenAPI matcher misclassifies a real bug as `CONTRACT_DRIFT` because a $ref didn't resolve. | Classifier emits `CONTRACT_DRIFT` only when matcher returns confident match-fail; ambiguous cases fall through to `FAIL` (existing behavior). Logged in classifier rationale. |
 | Path-template matcher too simplistic (no matrix, no regex). | Document v0.7 limits in `docs/CONFIGURATION.md`. Full matcher = v0.9 deliverable. |
-| Token cache file collisions in parallel runs. | Use the same file-locking mechanism as v0.1 (`packages/core/src/lock/`). |
+| Per-role auth file writes collide when `xera:auth-setup` runs all roles in parallel. | Use the existing file-locking module (`packages/core/src/lock/`) per role path. Reads are lock-free. |
+| QA forgets to run `xera:auth-setup` and gets confused by "auth file missing" errors at test time. | Doctor surfaces missing files prominently with the exact command to run; sample HTTP ticket's first run does an inline auth check and prints the same hint instead of failing deep in Playwright. |
+| Custom `defineHttpAuthSetup` function written by user has a bug (e.g. parses token from wrong response field). | Auth-setup runner validates the returned `HttpAuthSetupResult` against a Zod schema before writing; clear error pinpoints which field is wrong. |
 | `request.newContext` differences between Playwright versions. | Pin `@playwright/test` minor in `@xera-ai/http`'s peerDependencies (same as `@xera-ai/web`). |
 | Auth strategy `oauth-cc` adds external HTTP call to a token endpoint at run start. | Cache aggressively; gentle warning if cache invalid; never block doctor on token-endpoint reachability (treated as "warn", reachable at exec time only). |
 | QA running a web ticket on a mixed project gets surprised by API verifications appearing in their script. | Web prompt update explicitly says "only when AC asks for it." Plus QA reviews feature.md / spec.ts before approving. |
