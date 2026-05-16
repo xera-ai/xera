@@ -175,3 +175,23 @@ score = priority_weight × 3
 ```
 
 with `P0=3, P1=2, P2=1`; modifies-same-area edge weight 5; jira-linked.blocks weight 4. Tune `threshold` to the noise level you can tolerate.
+
+### HTML viewer (v0.6.3+)
+
+Generate a single self-contained HTML file visualizing the project knowledge graph:
+
+```bash
+bun run xera:graph-render                            # full snapshot
+bun run xera:graph-render --since 90d                # filter to recent activity
+bun run xera:graph-render --ticket ABC-200 --depth 2 # ego-graph centered on one ticket
+bun run xera:graph-render --out custom-path.html     # custom output location
+```
+
+The viewer is a single self-contained HTML file (~700 KB total — vendored vis-network is the bulk). Open it in any browser; works offline. The file is automatically gitignored.
+
+**Performance modes** (auto-selected based on graph size):
+- `< 500 nodes`: full mode — all node types visible
+- `500–2000 nodes`: ticket-only — scenarios, POMs, and areas hidden
+- `> 2000 nodes`: text-fallback — writes a placeholder text file
+
+**CI publishing:** `xera init` scaffolds `.github/workflows/xera-graph.yml` which renders the viewer on every PR, uploads it as an artifact, and posts a sticky comment with the artifact link. Reviewers click → open in browser, no clone required.
