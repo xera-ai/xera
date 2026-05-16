@@ -43,7 +43,6 @@ describe('xera integration — init + fetch + exec + report', () => {
     const init = spawn(['bun', 'run', '--cwd', cwd, xeraBin, 'init', '--yes'], { cwd });
     expect(await init.exited).toBe(0);
     expect(existsSync(join(cwd, 'xera.config.ts'))).toBe(true);
-    expect(existsSync(join(cwd, '.xera/SAMPLE-001/spec.ts'))).toBe(true);
 
     // 2. Rewrite xera.config.ts to point at mock-jira
     let cfg = readFileSync(join(cwd, 'xera.config.ts'), 'utf8');

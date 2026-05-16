@@ -1,9 +1,0 @@
-{
-  "ticket": "SAMPLE-001",
-  "adapter": "web",
-  "xera_version": "0.1.0",
-  "prompts_version": "1.0.0",
-  "source": "local",
-  "fetched_at": "2026-05-14T00:00:00.000Z",
-  "story_hash": "sha256:placeholder"
-}

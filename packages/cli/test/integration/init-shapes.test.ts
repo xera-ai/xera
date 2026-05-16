@@ -51,9 +51,6 @@ describe('xera init --shape web', () => {
     // No openapi placeholder for web-only
     expect(existsSync(join(cwd, 'openapi.yaml'))).toBe(false);
 
-    // SAMPLE-001 (web sample) seeded
-    expect(existsSync(join(cwd, '.xera/SAMPLE-001/meta.json'))).toBe(true);
-
     // auth-setup exports only web
     const authSetup = readFileSync(join(cwd, 'shared/auth-setup.ts'), 'utf8');
     expect(authSetup).toContain("from '@xera-ai/web'");
@@ -81,9 +78,8 @@ describe('xera init --shape api', () => {
     expect(pw).not.toContain('browserName');
     expect(pw).toContain("projects: [{ name: 'http' }]");
 
-    // SAMPLE-HTTP-001 (http sample) seeded; web SAMPLE-001 NOT seeded
+    // SAMPLE-HTTP-001 (http sample) seeded
     expect(existsSync(join(cwd, '.xera/SAMPLE-HTTP-001/meta.json'))).toBe(true);
-    expect(existsSync(join(cwd, '.xera/SAMPLE-001/meta.json'))).toBe(false);
 
     // auth-setup exports only http
     const authSetup = readFileSync(join(cwd, 'shared/auth-setup.ts'), 'utf8');
@@ -107,8 +103,7 @@ describe('xera init --shape mixed', () => {
     expect(cfg).toContain('web: {');
     expect(cfg).toContain('http: {');
 
-    // Both samples seeded
-    expect(existsSync(join(cwd, '.xera/SAMPLE-001/meta.json'))).toBe(true);
+    // HTTP sample seeded
     expect(existsSync(join(cwd, '.xera/SAMPLE-HTTP-001/meta.json'))).toBe(true);
 
     // auth-setup exports BOTH web and http
