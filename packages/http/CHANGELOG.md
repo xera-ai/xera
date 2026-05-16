@@ -1,5 +1,12 @@
 # @xera-ai/http
 
+## 0.9.8
+
+### Patch Changes
+
+- Updated dependencies [[`5d7d137`](https://github.com/xera-ai/xera/commit/5d7d1373c100b65c9ec33777e15558a6a3ba2e65)]:
+  - @xera-ai/core@0.9.8
+
 ## 0.9.7
 
 ### Patch Changes

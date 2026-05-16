@@ -1,5 +1,15 @@
 # @xera-ai/core
 
+## 0.9.8
+
+### Patch Changes
+
+- [#61](https://github.com/xera-ai/xera/pull/61) [`5d7d137`](https://github.com/xera-ai/xera/commit/5d7d1373c100b65c9ec33777e15558a6a3ba2e65) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - downgrade vendored vis-network from 9.1.10 to 9.1.6 to fix "Ev is not a constructor" white-screen bug in graph HTML viewer
+
+- Updated dependencies []:
+  - @xera-ai/web@0.9.8
+  - @xera-ai/http@0.9.8
+
 ## 0.9.7
 
 ### Patch Changes
