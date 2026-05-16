@@ -1,0 +1,5 @@
+{
+  "id": "test-outdated-false-positive",
+  "summary": "ABC-200 modifies login area but LLM returns BUG (AC change unrelated); expected REAL_BUG",
+  "expectation": "enhanceClassification returns classification=REAL_BUG, confidence=1"
+}

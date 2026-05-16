@@ -1,0 +1,5 @@
+{
+  "id": "test-outdated-ambiguous",
+  "summary": "Two conflicting candidates modify login area; LLM returns AMBIGUOUS, falls through to REAL_BUG",
+  "expectation": "enhanceClassification returns classification=REAL_BUG, confidence=1"
+}
