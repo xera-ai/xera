@@ -34,9 +34,9 @@ Graph is also the only feature whose value scales with project age — competito
 
 ### 1.3 In-scope deliverables
 
-- `packages/core/src/graph/` module: types, schema, store, similarity, traverse, classify, render
-- 5 new bin-internal subcommands: `graph-record`, `graph-snapshot`, `graph-query`, `graph-render`, `impact-prepare`
-- 2 new prompt templates: `similarity-match.md` (v1.0.0), `classify-outdated.md` (v1.0.0)
+- `packages/core/src/graph/` module: types, schema, store, similarity, traverse, classify, render, enrich, cost
+- 6 new bin-internal subcommands: `graph-record`, `graph-snapshot`, `graph-query`, `graph-enrich`, `graph-render`, `impact-prepare`
+- 3 new prompt templates: `extract-areas.md` (v1.0.0), `similarity-match.md` (v1.0.0), `classify-outdated.md` (v1.0.0)
 - `/xera-impact <TICKET>` skill (v0.6.2)
 - 5 existing skills patched to emit graph events: `xera-fetch`, `xera-script`, `xera-exec`, `xera-report`, `xera-promote`
 - TEST_OUTDATED bucket integrated into existing classifier flow + v0.5 self-heal sub-flow (skip heal when TEST_OUTDATED)
@@ -73,9 +73,11 @@ packages/core/src/
     schema.ts                 schema_version + Zod validators
     store.ts                  Read events, derive snapshot, atomic write
     similarity.ts             Format prompt for Claude similarity query
+    enrich.ts                 Batch + on-demand similarity enrichment (§11.2)
     traverse.ts               BFS query: "ticket X → impacted scenarios"
     classify.ts               TEST_OUTDATED detection logic
     render.ts                 HTML viewer generator
+    cost.ts                   LLM cost telemetry writer (§11.7)
     templates/
       graph.html.template     HTML shell with placeholders
       graph.css               styles (inlined into HTML)
@@ -85,6 +87,7 @@ packages/core/src/
     graph-record.ts           Subcommand: emit events (called by skills)
     graph-snapshot.ts         Subcommand: rebuild snapshot from events
     graph-query.ts            Subcommand: ASCII text dump
+    graph-enrich.ts           Subcommand: batch + on-demand similarity (§11.2)
     graph-render.ts           Subcommand: generate .xera/graph.html
     impact-prepare.ts         Subcommand: compute impact for /xera-impact
 ```
@@ -156,17 +159,19 @@ Event record:
 }
 ```
 
-### 3.2 Seven event types
+### 3.2 Nine event types
 
 | Type | Emitted by | Payload shape |
 |---|---|---|
 | `ticket.fetched` | xera-fetch | `{ ticketId, summary, ac[], jiraLinks[], storyHash, modifiesAreas[] }` |
+| `ticket.enriched` | graph-enrich | `{ ticketId, enrichedAt, similarCount }` — marks lazy enrichment complete (§11.2) |
 | `scenario.generated` | xera-script | `{ scenarioId, ticketId, name, gherkin, priority, featureHash, generatedAt }` |
 | `pom.generated` | xera-script | `{ pomId, ticketId, filePath, route, locators[], scope }` |
 | `pom.promoted` | xera-promote | `{ pomId, fromPath, toPath }` |
 | `run.completed` | xera-exec | `{ scenarioId, ticketId, runId, status, traceId?, runtime }` |
 | `run.classified` | xera-report | `{ scenarioId, runId, classification, confidence, evidence? }` |
-| `edge.discovered` | xera-fetch / xera-script / xera-report | `{ kind, from, to, confidence?, source }` |
+| `classification.disputed` | xera-report --dispute | `{ runId, scenarioId, originalClassification, disputedTo, qaReason?, qaActor }` (§11.6) |
+| `edge.discovered` | xera-fetch / graph-enrich / xera-script / xera-report | `{ kind, from, to, confidence?, source }` |
 
 ### 3.3 Node and edge model
 
@@ -254,9 +259,11 @@ Each skill, after its primary work completes, invokes `bun run xera:graph-record
 **Trigger:** after `story.md` written, before returning to user.
 
 **New LLM sub-step** (in skill `.md`, before `graph-record` call):
-> "Read `.xera/graph/events/` for the most recent 50 ticket events. For the just-fetched `<TICKET>`, output JSON `{ similar: [{ticketId, confidence, reason}], modifiesAreas: [areaSlug] }`. Use `similarity-match.md` prompt template."
+> "Read the just-fetched `<TICKET>`'s AC. Output JSON `{ modifiesAreas: [areaSlug] }`. Use `extract-areas.md` prompt template."
 
-Output → `.xera/<TICKET>/graph-input.json`, then:
+Output → `.xera/<TICKET>/graph-input.json`. **Note: similarity edges are NOT computed here** — they are deferred to on-demand (see §11.2 for rationale). Only the cheap, single-ticket-only `modifiesAreas` extraction runs at fetch time (~2s, single AC, no rolling window).
+
+Then:
 
 ```bash
 bun run xera:graph-record fetch <TICKET>
@@ -268,7 +275,8 @@ bun run xera:graph-record fetch <TICKET>
 |---|---|
 | `ticket.fetched` ×1 | `story.md` frontmatter + `graph-input.json.modifiesAreas` |
 | `edge.discovered` `kind:"jira-linked"` ×N | `story.md.linked_issues[]` |
-| `edge.discovered` `kind:"similar"` ×M | `graph-input.json.similar[]` where confidence ≥ 0.7 |
+
+`edge.discovered` `kind:"similar"` events are emitted later by `xera:graph-enrich` (lazy, on-demand) — see §11.2.
 
 **Idempotency:** re-fetch → new events; snapshot dedupe by `(type, ticketId)` keeps latest ULID. History preserved.
 
@@ -703,7 +711,9 @@ One-shot `bun run xera:graph-backfill`. Reads:
 - All existing `.xera/<TICKET>/story.md`, `.feature`, `*.spec.ts`, POMs
 - Historical `.xera/<TICKET>/run-*.json` if retained
 
-Synthesizes events with `ts` from file mtime (chronologically approximate), `actor: "xera-backfill"`. Does **not** call LLM — `similar` edges build forward via `/xera-fetch` calls. `modifiesAreas` empty for backfilled tickets; user can opt into `xera:graph-reembed <TICKET>` later (token cost).
+Synthesizes events with `ts` from file mtime (chronologically approximate), `actor: "xera-backfill"`. Does **not** call LLM during backfill itself — `similar` edges build forward, `modifiesAreas` empty initially.
+
+After backfill completes, `xera doctor` detects unenriched backfilled tickets and prompts the enrichment wizard (§11.4) — opt-in batch LLM enrichment with cost preview. This prevents silent TEST_OUTDATED degradation: team gets explicit choice between paying token cost upfront or running enrichment lazily on-demand.
 
 `--dry-run` prints summary *"will create 142 events, 89 nodes, 234 edges"* before committing.
 
@@ -855,31 +865,41 @@ Smoke-level, not a substitute for unit/integration.
 **xera v0.6.0 — Graph foundation** (no user-facing skill new)
 - `@xera-ai/core` 0.3.0 → 0.4.0
 - `@xera-ai/skills` 0.3.0 → 0.4.0
-- Adds `core/graph/` + 3 subcommands (`graph-record`, `graph-snapshot`, `graph-query`)
+- `@xera-ai/prompts` 2.1.0 → 2.2.0 (new `extract-areas.md` v1.0.0 — cheap area-extraction prompt for `/xera-fetch`)
+- Adds `core/graph/` + 4 subcommands (`graph-record`, `graph-snapshot`, `graph-query`, `graph-enrich`)
 - 5 skill `.md` files patched to emit events
+- `/xera-fetch` extracts `modifiesAreas` only — similarity edges deferred (§11.2)
+- Cost telemetry: `.xera/cost-log.jsonl` writer + `xera doctor` summary (§11.7)
+- Backfill enrichment wizard via `xera doctor` (§11.4)
 - Tests: unit + 5 golden-graph fixtures + e2e smoke
-- Migration: `xera:graph-backfill` documented in CHANGELOG
 - Risk: event-emission bug slows skills → mitigated by non-fatal exit code on `graph-record` failure
 
-**xera v0.6.1 — TEST_OUTDATED bucket**
+**xera v0.6.1 — TEST_OUTDATED bucket + similarity enrichment**
 - `@xera-ai/core` 0.4.0 → 0.4.1
-- `@xera-ai/prompts` 2.1.0 → 2.2.0 (new `classify-outdated.md` v1.0.0, `similarity-match.md` v1.0.0)
-- `@xera-ai/skills` 0.4.0 → 0.4.1 (`/xera-report` sub-flow updated to skip v0.5 heal on TEST_OUTDATED)
-- Tests: golden EVAL-008/009 + 4 classifier unit cases
-- Risk: false-positive TEST_OUTDATED → conservative threshold 0.7 + config override
+- `@xera-ai/prompts` 2.2.0 → 2.3.0 (new `classify-outdated.md` v1.0.0, `similarity-match.md` v1.0.0)
+- `@xera-ai/skills` 0.4.0 → 0.4.1 (`/xera-report` sub-flow updated to skip v0.5 heal on TEST_OUTDATED; supports `--dispute` flag)
+- Notification routing: TEST_OUTDATED posts Jira sub-task to original ticket's assignee (§11.3)
+- New event type: `classification.disputed` (§11.6)
+- Lazy similarity enrichment fires from `findCandidateTickets` on first miss
+- Tests: golden EVAL-008/009 + 4 classifier unit cases + 1 dispute-flow integration test
+- Risk: false-positive TEST_OUTDATED → conservative threshold 0.7 + config override + dispute-event capture
 
-**xera v0.6.2 — `/xera-impact` skill**
+**xera v0.6.2 — `/xera-impact` skill + `/xera-run` auto-trigger**
 - `@xera-ai/core` 0.4.1 → 0.4.2 (`impact-prepare.ts`)
-- `@xera-ai/skills` 0.4.1 → 0.4.2 (new `xera-impact.md`)
+- `@xera-ai/skills` 0.4.1 → 0.4.2 (new `xera-impact.md`; `/xera-run` patched to auto-call impact-prepare per §11.1)
 - Adds `xera:exec --from-impact` flag
-- Tests: golden-impact fixtures + integration
+- Config `xera.config.run.autoImpact` controls auto-trigger behavior
+- Tests: golden-impact fixtures + integration + auto-trigger smoke
 - Risk: re-run interactive UX scope creep → locked to list+propose (decision §6)
 
-**xera v0.6.3 — HTML viewer**
+**xera v0.6.3 — HTML viewer + CI publishing**
 - `@xera-ai/core` 0.4.2 → 0.4.3 (`render.ts`, vendored vis-network)
 - `@xera-ai/skills` 0.4.2 → 0.4.3 (CHANGELOG only)
+- `@xera-ai/cli` adds `.github/workflows/xera-graph.yml.template` to scaffold; init template copies it
 - New `bun run xera:graph-render`
-- Tests: render fixture snapshot, HTML structure validation
+- CI publishes `.xera/graph.html` as PR artifact + sticky comment (§11.5)
+- Disputed runs visually distinct in viewer (§11.6)
+- Tests: render fixture snapshot, HTML structure validation, CI workflow snapshot
 - Risk: vendored JS size — accept ~500KB output HTML, document trade-off
 
 ### 10.2 Workspace dep bumps
@@ -901,10 +921,191 @@ Each sub-release bumps explicit caret on consumer packages (`@xera-ai/cli`, `@xe
 
 ---
 
-## 11. Open Questions / Future Work
+## 11. QA Workflow Integration
+
+This section captures **how QA actually interacts with v0.6 day-to-day**, addressing seven friction points identified after first-pass spec review. Without these, the technical architecture is sound but adoption stalls.
+
+### 11.1 Auto-trigger in `/xera-run` (don't make QA remember `/xera-impact`)
+
+`/xera-run <TICKET>` is the primary entry point QA uses 80%+ of the time. v0.6 extends `/xera-run` to call impact automatically, never asking QA to remember a separate command.
+
+**Updated `/xera-run` flow:**
+
+```
+1. /xera-fetch <TICKET>
+2. Auto-check impact:
+     bun run xera:impact-prepare <TICKET> --quiet
+   If top-score scenarios exist (default threshold: ≥1 scenario with score ≥6.0):
+     Prompt: "Found 3 high-risk impacted scenarios. Re-run before continuing? [Y/n]"
+     If yes → run impacted scenarios first, route results to next step
+3. /xera-script <TICKET>
+4. /xera-exec <TICKET>
+5. /xera-report <TICKET>
+```
+
+`/xera-impact` standalone skill still ships for explicit pre-merge audit (CI usage, ad-hoc inspection). But the default QA flow gets impact for free.
+
+Config: `xera.config.run.autoImpact: { enabled: true, threshold: 6.0 }`.
+
+### 11.2 Lazy similarity (don't slow down every fetch)
+
+The Claude similarity rolling window adds ~5–10s and 50K input tokens per fetch. Over a sprint of 20 fetches that's 3 minutes of pure latency and meaningful token cost — for a feature most fetches don't immediately benefit from.
+
+**Move similarity computation out of `/xera-fetch`. Run on-demand:**
+
+- When `/xera-impact <TICKET>` runs and target ticket has no `similar` edges yet → trigger `xera:graph-enrich --ticket <TICKET>` first
+- When `classify.findCandidateTickets()` returns no candidates AND ticket has no enrichment → trigger enrichment, then re-query (one-time cost per ticket lifetime)
+- Manual: `bun run xera:graph-enrich --since 7d` to batch-enrich recent tickets
+
+Each enrichment writes `edge.discovered kind:"similar"` events and marks the ticket node as `enrichedAt: <timestamp>`. Snapshot field `tickets[id].enrichedAt` distinguishes enriched vs not.
+
+This makes `/xera-fetch` snappy (only `modifiesAreas` extraction, ~2s) while preserving full similarity-edge value where it pays off.
+
+### 11.3 Notification routing (right person, not current QA)
+
+The original design dumped TEST_OUTDATED messages into the current QA session — but the *current* QA may have no context or authority over the affected ticket.
+
+**Routing rule** (updated `/xera-report` sub-flow):
+
+When TEST_OUTDATED is detected for scenario owned by `<ORIGINAL_TICKET>`:
+
+1. Post a Jira sub-task **on `<ORIGINAL_TICKET>`** (not current ticket) with body:
+   *"Test for this ticket may be outdated due to changes introduced by `<CURRENT_TICKET>`. Confidence: 0.87. Run `xera-script <ORIGINAL_TICKET> --refresh-from <CURRENT_TICKET>` to regenerate."*
+2. Tag original ticket's assignee (read from Jira) — they get the notification, not current QA
+3. Current QA session shows summary line only:
+   *"3 impact tickets notified (ABC-100, ABC-145, ABC-178). No action required from you."*
+4. Config opt-out: `xera.config.report.testOutdatedNotify: 'jira-subtask' | 'comment' | 'console-only'`
+
+This routes signal to the right person and prevents QA-fatigue from notifications they can't act on.
+
+### 11.4 Backfill enrichment UX (avoid silent degradation)
+
+Backfilled tickets have no `modifiesAreas` and no `similar` edges. TEST_OUTDATED silently skips them. Team thinks the feature works but 80% of historical tickets are invisible to it.
+
+**Enrichment wizard via `xera doctor`:**
+
+```
+$ xera doctor
+
+✓ Config valid
+✓ Auth state present
+⚠ Graph: 200 tickets backfilled, 0 enriched
+    These tickets won't participate in TEST_OUTDATED detection until enriched.
+    Estimated cost: ~$2 (one-time, 200 LLM calls × ~$0.01 each).
+
+    [E]nrich now / [D]efer / [S]kip
+```
+
+Three modes:
+- **Enrich now** → batch-call enrichment, write `ticket.enriched` event per ticket, gated by progress bar
+- **Defer** → write `.xera/graph/enrichment-deferred` marker; doctor re-prompts next run
+- **Skip** → write `.xera/graph/enrichment-skipped` marker; doctor stays quiet, but `xera:graph-enrich --ticket <ID>` still works on-demand
+
+### 11.5 Viewer artifact via CI (manager doesn't need CLI)
+
+The viewer is manager-facing, but the original design required QA/dev to run CLI locally and screenshot. This bottlenecks manager visibility.
+
+**CI publishes viewer automatically.** Add to `.github/workflows/ci.yml` (and consumer projects' templates):
+
+```yaml
+- name: Build graph viewer
+  run: bun run xera:graph-render
+- name: Upload viewer
+  uses: actions/upload-artifact@v4
+  with:
+    name: xera-graph
+    path: .xera/graph.html
+- name: Comment on PR
+  uses: actions/github-script@v7
+  with:
+    script: |
+      // sticky comment with artifact link
+```
+
+Manager sees PR → clicks "xera-graph" artifact → opens HTML in browser. No clone, no CLI. Per-PR snapshot of graph state.
+
+For end-user consumer projects, scaffold template `.github/workflows/xera-graph.yml.template` shipped via `bunx xera init`.
+
+### 11.6 Dispute event (feedback loop for classifier)
+
+When QA disagrees with TEST_OUTDATED (or any classification), there's no recorded signal — the classifier never learns.
+
+**New event type: `classification.disputed`.** Emitted by `/xera-report` when QA invokes:
+
+```bash
+/xera-report <TICKET> --dispute <runId> --to <classification>
+```
+
+Or interactive: after `/xera-report` displays classification, prompt:
+*"Agree with classification? [Y]es / [d]ispute"*
+
+Payload:
+```jsonc
+{
+  "type": "classification.disputed",
+  "payload": {
+    "runId": "<ULID>",
+    "scenarioId": "<sha>",
+    "originalClassification": "TEST_OUTDATED",
+    "originalConfidence": 0.87,
+    "disputedTo": "BUG",
+    "qaReason": "<free text, optional>",
+    "qaActor": "<git author email>"
+  }
+}
+```
+
+v0.6 does NOT change classifier logic based on disputes — that's v0.7 work (rubric refinement input). v0.6 just captures the signal. Disputes visible in viewer (red outline on disputed runs) and `xera doctor` summary.
+
+### 11.7 Cost telemetry (no surprises in billing)
+
+Every LLM call routes through a shared helper that logs to `.xera/cost-log.jsonl` (gitignored, per-machine):
+
+```jsonc
+{ "ts": "2026-05-16T08:23Z", "skill": "xera-fetch", "prompt": "extract-areas", "tokens_in": 1240, "tokens_out": 89, "model": "claude-...", "cost_estimate_usd": 0.012 }
+```
+
+`xera doctor` summary:
+```
+LLM cost (past 7 days):
+  Total calls: 142
+  Estimated:   $3.20 USD
+  Top skill:   xera-fetch (62 calls, $1.40)
+```
+
+Soft cap config: `xera.config.cost.dailyCapUsd: 5`. When `xera doctor` detects daily spend exceeds cap, warns at next skill invocation (does not block).
+
+### 11.8 Summary — friction reductions
+
+| Friction (original spec) | Resolved in §11 |
+|---|---|
+| Every `/xera-fetch` adds 5-10s | §11.2 lazy similarity |
+| `/xera-impact` requires habit change | §11.1 auto-trigger in `/xera-run` |
+| TEST_OUTDATED notifies wrong person | §11.3 Jira sub-task routing |
+| Backfilled projects silently degraded | §11.4 enrichment wizard |
+| Viewer requires local CLI | §11.5 CI artifact + PR comment |
+| No QA override / classifier feedback | §11.6 dispute event |
+| Token cost invisible | §11.7 cost-log + doctor summary |
+
+### 11.9 Rollout mapping to v0.6.x
+
+| Item | Ships in |
+|---|---|
+| §11.2 lazy similarity | v0.6.0 (foundation — `/xera-fetch` design fixed at start) |
+| §11.4 backfill UX | v0.6.0 (with backfill itself) |
+| §11.7 cost telemetry | v0.6.0 (foundation helper) |
+| §11.3 notification routing | v0.6.1 (with TEST_OUTDATED) |
+| §11.6 dispute event | v0.6.1 (with TEST_OUTDATED) |
+| §11.1 auto-trigger in `/xera-run` | v0.6.2 (with `/xera-impact`) |
+| §11.5 viewer CI artifact | v0.6.3 (with viewer) |
+
+---
+
+## 12. Open Questions / Future Work
 
 - **v0.7 sprint mode** depends on graph; design once v0.6 ships
 - **v0.7 graph-compact** to archive cold events (>6 months) into summary nodes
+- **v0.7 classifier learning** from `classification.disputed` events (§11.6)
 - **v0.8 prod-trace backfill** inserts events from Sentry/PostHog session replays
 - **v1.0 dashboard** as live dashboard (replaces static HTML when multi-user demand emerges)
 - **Code-level edges** from git history (file-path mapping ticket ↔ POM) — deferred until graph proves load-bearing
@@ -912,7 +1113,7 @@ Each sub-release bumps explicit caret on consumer packages (`@xera-ai/cli`, `@xe
 
 ---
 
-## 12. References
+## 13. References
 
 - v0.1 design: `2026-05-14-xera-core-web-design.md`
 - v0.2 eval harness: `2026-05-14-xera-v02-eval-harness-design.md`
