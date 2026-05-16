@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { type StatusJson, appendHistory, readStatus, writeStatus } from '../artifact/status';
+import { appendHistory, readStatus, type StatusJson, writeStatus } from '../artifact/status';
 import type { ClassifyOutput } from '../classifier/types';
 
 export interface StatusWriterInput {

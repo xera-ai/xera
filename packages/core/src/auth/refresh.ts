@@ -1,4 +1,5 @@
 import type { AuthStateEntry } from './state';
+
 export type { AuthStateEntry } from './state';
 
 const RE = /^(\d+)([hms])$/;

@@ -1,9 +1,15 @@
 {
   "name": "@xera-ai/cli",
-  "version": "0.1.15",
+  "version": "0.2.1",
   "type": "module",
-  "bin": { "xera": "./bin/xera" },
-  "files": ["dist", "bin", "templates"],
+  "bin": {
+    "xera": "./bin/xera"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "templates"
+  ],
   "scripts": {
     "build": "bun build ./src/index.ts --outdir ./dist --target bun",
     "typecheck": "tsc --noEmit"
@@ -11,8 +17,8 @@
   "dependencies": {
     "@xera-ai/core": "^0.4.0",
     "@xera-ai/skills": "^0.4.0",
-    "@clack/prompts": "0.7.0",
-    "cac": "6.7.14",
-    "picocolors": "1.1.0"
+    "@clack/prompts": "1.4.0",
+    "cac": "7.0.0",
+    "picocolors": "1.1.1"
   }
 }

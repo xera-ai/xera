@@ -1,8 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname } from 'node:path';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { doctorCmd } from '../../src/bin-internal/doctor';
 
 async function runDoctor(root: string): Promise<{ stdout: string; exit: number }> {

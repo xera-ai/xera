@@ -36,7 +36,6 @@ describe('xera-internal fetch', () => {
     const story = readFileSync(join(cwd, '.xera/JIRA-1/story.md'), 'utf8');
     expect(story).toContain('A user story');
 
-    // biome-ignore lint/performance/noDelete: env teardown must remove the var, not set it to "undefined"
     delete process.env.XERA_TEST_JIRA;
     rmSync(cwd, { recursive: true });
   });

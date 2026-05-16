@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import * as p from '@clack/prompts';
@@ -19,7 +19,7 @@ export async function initUpdateCommand(_opts: { yes: boolean }): Promise<void> 
   const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
   pkg.dependencies = pkg.dependencies ?? {};
   pkg.dependencies['@xera-ai/core'] = '^0.4.0';
-  pkg.dependencies['@xera-ai/web'] = '^0.1.6';
+  pkg.dependencies['@xera-ai/web'] = '^0.2.0';
   pkg.dependencies['@xera-ai/prompts'] = '^2.2.0';
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 

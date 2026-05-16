@@ -3,7 +3,6 @@ import { existsSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import { appendEvents } from '../graph/store';
-import { SCHEMA_VERSION } from '../graph/types';
 import type {
   EdgeDiscoveredPayload,
   Event,
@@ -12,6 +11,7 @@ import type {
   RunCompletedPayload,
   TicketFetchedPayload,
 } from '../graph/types';
+import { SCHEMA_VERSION } from '../graph/types';
 import { ulid } from '../graph/ulid';
 
 function nowIso(): string {

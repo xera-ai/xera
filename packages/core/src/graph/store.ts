@@ -2,15 +2,14 @@ import { createHash } from 'node:crypto';
 import {
   existsSync,
   mkdirSync,
-  readFileSync,
   readdirSync,
+  readFileSync,
   renameSync,
   writeFileSync,
 } from 'node:fs';
 import { dirname } from 'node:path';
 import { currentYyyyMm, graphPaths } from './paths';
 import { safeParseEvent } from './schema';
-import { SCHEMA_VERSION } from './types';
 import type {
   EdgeRecord,
   Event,
@@ -20,6 +19,7 @@ import type {
   Snapshot,
   TicketNode,
 } from './types';
+import { SCHEMA_VERSION } from './types';
 
 export interface AppendOptions {
   skill: string;

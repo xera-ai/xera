@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { type StatusJson, appendHistory, readStatus, writeStatus } from '../../src/artifact/status';
+import { appendHistory, readStatus, type StatusJson, writeStatus } from '../../src/artifact/status';
 
 describe('status.json IO', () => {
   test('round-trip', () => {

@@ -1,14 +1,14 @@
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { appendEvents } from '../graph/store';
-import { SCHEMA_VERSION } from '../graph/types';
 import type {
   EdgeDiscoveredPayload,
   Event,
   PomGeneratedPayload,
   ScenarioGeneratedPayload,
 } from '../graph/types';
+import { SCHEMA_VERSION } from '../graph/types';
 import { ulid } from '../graph/ulid';
 
 const sha1 = (s: string) => createHash('sha1').update(s).digest('hex');

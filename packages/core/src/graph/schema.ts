@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { SCHEMA_VERSION } from './types';
 import type { Event } from './types';
+import { SCHEMA_VERSION } from './types';
 
 const schemaV = z.literal(SCHEMA_VERSION);
 const iso = z.string().datetime({ offset: false });

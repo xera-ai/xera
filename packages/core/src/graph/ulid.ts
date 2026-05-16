@@ -50,9 +50,9 @@ export function ulid(now: number = Date.now()): string {
   if (now === lastMs) {
     rand = bumpRandom(lastRand);
   } else {
-    rand = crypto.getRandomValues(new Uint8Array(10));
+    rand = new Uint8Array(crypto.getRandomValues(new Uint8Array(10)));
     lastMs = now;
   }
-  lastRand = rand;
+  lastRand = new Uint8Array(rand);
   return timestampPart(now) + encodeRandom(rand);
 }

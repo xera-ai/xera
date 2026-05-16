@@ -4,7 +4,6 @@ import {
   EMAIL_RE,
   JWT_RE,
   PHONE_RE,
-  SENSITIVE_BODY_KEYS,
   SENSITIVE_HEADERS,
   scrubBodyJson,
   scrubFreeText,
