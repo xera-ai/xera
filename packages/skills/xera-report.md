@@ -63,13 +63,16 @@ For every scenario in `classifier-input.json` whose `outcome === "FAIL"`:
    - Output: JSON `{ classification, confidence, evidence }` per the prompt schema.
 5. Aggregate all decisions into `.xera/<TICKET>/runs/<RUN_ID>/outdated-decisions.json` keyed by `scenarioId`.
 
-**If lazy similarity is needed** (a candidate ticket exists but has no `similar` edges and is hot for many scenarios), first run:
+**If lazy similarity is needed** (a candidate ticket exists but has no `similar` edges and is hot for many scenarios):
+
+1. Read `node_modules/@xera-ai/prompts/similarity-match.md`. Follow its rules to produce a JSON object `{ "similar": [{ "ticketId": "...", "confidence": 0.0–1.0, "reason": "..." }] }`. Write that object to `.xera/<CANDIDATE>/enrichment-input.json`.
+2. Then run:
 
 ```bash
 bun run xera:graph-enrich --ticket <CANDIDATE>
 ```
 
-This populates `similar` edges so future graph queries are richer. Skip if not needed.
+This populates `similar` edges so future graph queries are richer. Skip entirely if not needed.
 
 4a. **Heal sub-flow (only if SELECTOR_DRIFT present).** If the user passed `--no-heal` in the invocation, skip this entire sub-flow and proceed directly to step 5.
 

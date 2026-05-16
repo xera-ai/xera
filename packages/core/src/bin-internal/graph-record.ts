@@ -119,24 +119,24 @@ async function recordScript(repoRoot: string, ticket: string): Promise<number> {
 }
 
 async function recordExec(repoRoot: string, ticket: string, runId: string): Promise<number> {
-  const { reportJsonPath } = resolveArtifactPaths(repoRoot, ticket).runPath(runId);
-  if (!existsSync(reportJsonPath)) {
-    console.error(`[graph-record exec] report.json missing`);
+  const { normalizedPath } = resolveArtifactPaths(repoRoot, ticket).runPath(runId);
+  if (!existsSync(normalizedPath)) {
+    console.error(`[graph-record exec] normalized.json missing`);
     return 1;
   }
-  const data = JSON.parse(readFileSync(reportJsonPath, 'utf8')) as {
-    scenarios: Array<{ name: string; status: 'pass' | 'fail'; runtime: number; traceId?: string }>;
+  const data = JSON.parse(readFileSync(normalizedPath, 'utf8')) as {
+    scenarios: Array<{ name: string; outcome: 'PASS' | 'FAIL' | 'SKIPPED' }>;
   };
   const events: Event[] = [];
   for (const s of data.scenarios) {
+    if (s.outcome === 'SKIPPED') continue;
     const p: RunCompletedPayload = {
       scenarioId: scenarioId(ticket, s.name),
       ticketId: ticket,
       runId,
-      status: s.status,
-      runtime: s.runtime,
+      status: s.outcome === 'PASS' ? 'pass' : 'fail',
+      runtime: 0,
     };
-    if (s.traceId) p.traceId = s.traceId;
     events.push(makeEvent('xera-exec', 'run.completed', p));
   }
   appendEvents(repoRoot, events, { skill: 'xera-exec', ticketId: ticket });
