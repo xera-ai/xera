@@ -13,3 +13,18 @@ export {
 } from './store';
 export * from './types';
 export { ulid } from './ulid';
+export { buildSimilarityPrompt } from './similarity';
+export { enrichTicket } from './enrich';
+export type { EnrichOptions, EnrichResult } from './enrich';
+export {
+  enhanceClassification,
+  findCandidateTickets,
+} from './classify';
+export type {
+  CandidateEvidence,
+  ClassifyEvidence,
+  ClassifyInput,
+  ClassifyOutput,
+  DecideOutdated,
+  OutdatedDecision,
+} from './classify';
