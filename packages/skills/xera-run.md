@@ -18,6 +18,35 @@ Follow the same instructions as `xera-fetch.md`, but never prompt the user about
 
 If meta is missing or story_hash is older, refresh.
 
+## Step 1.5 — Auto-trigger impact analysis (v0.6.2)
+
+After `/xera-fetch` completes, check whether this ticket modifies areas that other tests depend on.
+
+Read `xera.config.run.autoImpact` (defaults: `{ enabled: true, threshold: 6.0 }`). If `enabled === false`, SKIP this step.
+
+Run:
+
+```bash
+bun run xera:impact-prepare {{TICKET}} --quiet
+```
+
+This writes `.xera/impact/{{TICKET}}.json` (no markdown). Exit code 2 means the ticket is not yet in graph — surface a warning and proceed (graph data only accumulates over time).
+
+Read the JSON. Count scenarios with `riskScore >= autoImpact.threshold`. If 0, no prompt — continue silently to Step 2.
+
+If ≥1 high-risk scenario, prompt the user:
+
+```
+{{N}} high-risk impacted scenarios detected for {{TICKET}}.
+Re-run them before generating the new script? [Y/n/details]
+```
+
+- **[Y]:** Iterate `bun run xera:exec <owner-ticket>` for each unique owner ticket. After each, check status; if all pass, continue to Step 2. If any fail, surface the failure and STOP — the user should diagnose existing-test breakage before introducing more changes.
+- **[n]:** Continue to Step 2.
+- **[details]:** Suggest the user run `/xera-impact {{TICKET}}` interactively for full details, then ask again.
+
+Non-fatal: if `xera:impact-prepare` itself exits abnormally, log the warning but continue to Step 2 — graph features are advisory, not gating.
+
 ## Step 2 — Feature
 
 Follow `xera-feature.md`. If `feature_generated_from_story_hash !== story_hash`, regenerate. If unchanged AND spec.ts exists, skip feature generation entirely.
