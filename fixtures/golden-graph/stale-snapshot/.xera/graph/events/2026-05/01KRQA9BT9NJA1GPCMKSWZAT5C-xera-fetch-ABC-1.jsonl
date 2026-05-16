@@ -1,0 +1,1 @@
+{"event_id":"01KRQA9BT9NJA1GPCMKSWZAT5C","schema_version":1,"ts":"2026-05-16T10:00:00Z","actor":"xera-fetch","type":"ticket.fetched","payload":{"ticketId":"ABC-1","summary":"Dashboard loads in under 2 seconds","ac":["Page loads within 2s on fast connection"],"jiraLinks":[],"storyHash":"dashboard-hash","modifiesAreas":["dashboard"]}}

@@ -1,0 +1,5 @@
+{
+  "id": "backfill-pre-v06",
+  "summary": "Pre-v0.6 project layout with story.md, feature file, and POM but no graph events",
+  "expectation": "graph-backfill reads existing .xera/ABC-1/ artifacts and creates 3+ synthetic events"
+}

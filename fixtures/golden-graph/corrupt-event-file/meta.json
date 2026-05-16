@@ -1,0 +1,5 @@
+{
+  "id": "corrupt-event-file",
+  "summary": "One valid event and one corrupt JSON line in the same JSONL file",
+  "expectation": "loadAllEvents skips the corrupt line and returns 1 event; snapshot contains 1 ticket"
+}

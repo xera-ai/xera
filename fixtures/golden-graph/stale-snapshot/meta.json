@@ -1,0 +1,5 @@
+{
+  "id": "stale-snapshot",
+  "summary": "Events directory has a fresh event but snapshot.json has a stale events_hash",
+  "expectation": "isSnapshotStale returns true; snapshot does not match the live events hash"
+}

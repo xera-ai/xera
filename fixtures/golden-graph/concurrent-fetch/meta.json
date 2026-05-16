@@ -1,0 +1,5 @@
+{
+  "id": "concurrent-fetch",
+  "summary": "Two ticket.fetched events in separate files simulating concurrent QA fetch of the same ticket",
+  "expectation": "deriveSnapshot keeps the ticket state from the event with the lexicographically greater ULID"
+}

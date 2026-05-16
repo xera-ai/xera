@@ -1,0 +1,5 @@
+{
+  "id": "dedup-by-ulid",
+  "summary": "Two ticket.fetched events for the same ticket with different ULIDs",
+  "expectation": "deriveSnapshot keeps the summary from the event with the lexicographically greater ULID"
+}

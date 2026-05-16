@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-16T07:00:00Z",
+  "event_count": 0,
+  "events_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "tickets": {},
+  "scenarios": {},
+  "poms": {},
+  "areas": {},
+  "edges": [],
+  "latest_failures": {}
+}
