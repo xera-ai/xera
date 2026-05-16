@@ -20,7 +20,9 @@ afterEach(() => {
 function seedFetch(ticket: string) {
   const dir = join(root, '.xera', ticket);
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, 'story.md'), `---
+  writeFileSync(
+    join(dir, 'story.md'),
+    `---
 ticketId: ${ticket}
 summary: "Login page"
 storyHash: abc123
@@ -31,10 +33,14 @@ linked_issues:
 ---
 
 # story body
-`);
-  writeFileSync(join(dir, 'graph-input.json'), JSON.stringify({
-    modifiesAreas: ['login'],
-  }));
+`,
+  );
+  writeFileSync(
+    join(dir, 'graph-input.json'),
+    JSON.stringify({
+      modifiesAreas: ['login'],
+    }),
+  );
 }
 
 describe('graph-record fetch', () => {
@@ -59,7 +65,13 @@ describe('graph-record fetch', () => {
 describe('graph-record promote', () => {
   test('emits pom.promoted', async () => {
     const exit = await graphRecordCmd([
-      'promote', '--pom-id', 'pom123', '--from', '.xera/ABC-100/poms/Login.ts', '--to', 'shared/poms/Login.ts',
+      'promote',
+      '--pom-id',
+      'pom123',
+      '--from',
+      '.xera/ABC-100/poms/Login.ts',
+      '--to',
+      'shared/poms/Login.ts',
     ]);
     expect(exit).toBe(0);
     const events = loadAllEvents(root);

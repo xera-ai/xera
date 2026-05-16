@@ -35,7 +35,10 @@ function encodeRandom(buf: Uint8Array): string {
 function bumpRandom(prev: Uint8Array): Uint8Array {
   const next = new Uint8Array(prev);
   for (let i = next.length - 1; i >= 0; i--) {
-    if (next[i]! === 0xff) { next[i] = 0; continue; }
+    if (next[i]! === 0xff) {
+      next[i] = 0;
+      continue;
+    }
     next[i] = next[i]! + 1;
     break;
   }

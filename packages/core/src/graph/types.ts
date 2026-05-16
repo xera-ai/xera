@@ -4,28 +4,19 @@ export const SCHEMA_VERSION = 1 as const;
 
 export type Priority = 'p0' | 'p1' | 'p2';
 export type ScenarioStatus = 'pass' | 'fail';
-export type EdgeKind =
-  | 'tests'
-  | 'uses'
-  | 'covers'
-  | 'modifies'
-  | 'jira-linked'
-  | 'similar'
-  | 'ran';
+export type EdgeKind = 'tests' | 'uses' | 'covers' | 'modifies' | 'jira-linked' | 'similar' | 'ran';
 
-export type Classification =
-  | 'REAL_BUG'
-  | 'TEST_BUG'
-  | 'SELECTOR_DRIFT'
-  | 'FLAKY'
-  | 'PASS';
+export type Classification = 'REAL_BUG' | 'TEST_BUG' | 'SELECTOR_DRIFT' | 'FLAKY' | 'PASS';
 // Note: TEST_OUTDATED is added in v0.6.1.
 
 export interface TicketFetchedPayload {
   ticketId: string;
   summary: string;
   ac: string[];
-  jiraLinks: Array<{ ticketId: string; relation: 'blocks' | 'duplicates' | 'relates' | 'supersedes' }>;
+  jiraLinks: Array<{
+    ticketId: string;
+    relation: 'blocks' | 'duplicates' | 'relates' | 'supersedes';
+  }>;
   storyHash: string;
   modifiesAreas: string[];
 }

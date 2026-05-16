@@ -40,7 +40,14 @@ describe('safeParseEvent', () => {
       ts: '2026-05-16T08:23:14Z',
       actor: 'xera-fetch',
       type: 'ticket.fetched',
-      payload: { ticketId: 'ABC-100', summary: 'x', ac: [], jiraLinks: [], storyHash: 'h', modifiesAreas: [] },
+      payload: {
+        ticketId: 'ABC-100',
+        summary: 'x',
+        ac: [],
+        jiraLinks: [],
+        storyHash: 'h',
+        modifiesAreas: [],
+      },
     });
     expect(result.success).toBe(false);
   });
@@ -52,7 +59,13 @@ describe('safeParseEvent', () => {
       ts: '2026-05-16T08:23:14Z',
       actor: 'xera-fetch',
       type: 'edge.discovered',
-      payload: { kind: 'similar', from: 'ABC-100', to: 'ABC-101', confidence: 0.82, source: 'claude' },
+      payload: {
+        kind: 'similar',
+        from: 'ABC-100',
+        to: 'ABC-101',
+        confidence: 0.82,
+        source: 'claude',
+      },
     });
     expect(result.success).toBe(true);
   });
@@ -64,7 +77,13 @@ describe('safeParseEvent', () => {
       ts: '2026-05-16T08:23:14Z',
       actor: 'xera-fetch',
       type: 'edge.discovered',
-      payload: { kind: 'similar', from: 'ABC-100', to: 'ABC-101', confidence: 1.5, source: 'claude' },
+      payload: {
+        kind: 'similar',
+        from: 'ABC-100',
+        to: 'ABC-101',
+        confidence: 1.5,
+        source: 'claude',
+      },
     });
     expect(result.success).toBe(false);
   });

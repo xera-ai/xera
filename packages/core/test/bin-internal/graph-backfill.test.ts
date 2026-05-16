@@ -5,30 +5,47 @@ import { join } from 'node:path';
 import { graphBackfillCmd } from '../../src/bin-internal/graph-backfill';
 import { loadAllEvents } from '../../src/graph/store';
 
-let root: string; let prevCwd: string;
-beforeEach(() => { prevCwd = process.cwd(); root = mkdtempSync(join(tmpdir(), 'xera-bf-')); process.chdir(root); });
-afterEach(() => { process.chdir(prevCwd); rmSync(root, { recursive: true, force: true }); });
+let root: string;
+let prevCwd: string;
+beforeEach(() => {
+  prevCwd = process.cwd();
+  root = mkdtempSync(join(tmpdir(), 'xera-bf-'));
+  process.chdir(root);
+});
+afterEach(() => {
+  process.chdir(prevCwd);
+  rmSync(root, { recursive: true, force: true });
+});
 
 function seedExistingTicket(ticket: string) {
   const dir = join(root, '.xera', ticket);
   mkdirSync(join(dir, 'feature'), { recursive: true });
   mkdirSync(join(dir, 'poms'), { recursive: true });
-  writeFileSync(join(dir, 'story.md'), `---
+  writeFileSync(
+    join(dir, 'story.md'),
+    `---
 ticketId: ${ticket}
 summary: "Login"
 storyHash: h1
 ---
 body
-`);
-  writeFileSync(join(dir, 'feature', `${ticket}.feature`), `Feature: x
+`,
+  );
+  writeFileSync(
+    join(dir, 'feature', `${ticket}.feature`),
+    `Feature: x
 @p0
 Scenario: user signs in
   Given a user
   When they sign in
-`);
-  writeFileSync(join(dir, 'poms', 'LoginPage.ts'), `export class LoginPage {
+`,
+  );
+  writeFileSync(
+    join(dir, 'poms', 'LoginPage.ts'),
+    `export class LoginPage {
   async goto() { await this.page.goto('/login'); }
-}`);
+}`,
+  );
 }
 
 describe('graph-backfill', () => {
