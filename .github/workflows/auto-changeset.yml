@@ -1,0 +1,56 @@
+name: Auto-changeset
+
+# Generate a changeset on every PR (or update it when the PR title changes),
+# unless the PR author has already added a manual one. Driven by conventional-
+# commit PR titles. See `scripts/auto-changeset.mjs` for the rules.
+#
+# Only runs on PRs from the same repo (not forks) because the workflow needs
+# `contents: write` to push the generated changeset back to the PR branch.
+# External-contributor PRs fall back to the manual `bunx changeset` flow,
+# which changeset-bot will flag via PR comment.
+
+on:
+  pull_request:
+    types: [opened, synchronize, edited]
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: auto-changeset-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  generate:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+        with: { bun-version: '1.3.x' }
+
+      - name: Generate changeset
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: bun scripts/auto-changeset.mjs
+
+      - name: Commit changeset to PR branch
+        run: |
+          if [ -z "$(git status --porcelain .changeset/)" ]; then
+            echo "No changeset changes to commit."
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .changeset/
+          git commit -m "chore: auto-generate changeset for #${{ github.event.pull_request.number }}"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}

@@ -101,14 +101,20 @@ Tests live at `packages/<pkg>/test/<area>/<name>.test.ts` mirroring `src/`. Use 
 
 The six packages reference each other with **explicit caret semver** (`"@xera-ai/core": "^0.1.4"`), **not** `workspace:*`. This was a deliberate fix after `bun publish`'s `workspace:*` substitution lagged by one lockfile version on first launch. Keep using explicit semver until Bun fixes that.
 
-**Versions are bumped by [changesets](https://github.com/changesets/changesets), not by hand.** For any PR that should ship to npm, add a changeset:
+**Versions are bumped by [changesets](https://github.com/changesets/changesets), not by hand.** Two things take care of changesets automatically; you only intervene if neither fires.
+
+1. **Auto-changeset workflow** (`.github/workflows/auto-changeset.yml`) — on every PR open / push / title edit, parses the PR title as a conventional commit (`feat:`, `fix:`, `feat!:`, etc.), detects which `packages/<pkg>/` directories changed, and commits `.changeset/auto-pr-<N>.md` back to the PR branch. `docs|chore|test|refactor|style|build|ci` titles are intentionally skipped (no release needed). Manual changesets — any `.changeset/*.md` that isn't `auto-pr-<N>.md` — take precedence and short-circuit auto-generation.
+
+2. **changeset-bot** (GitHub App, [github.com/apps/changeset-bot](https://github.com/apps/changeset-bot)) — comments on every PR with the impact summary and a "Click here to add a changeset" link if both auto-generation and manual creation failed. It's wired into branch protection as a required check, so PRs missing a changeset cannot merge.
+
+Manual override, if you ever need it:
 
 ```bash
-bunx changeset            # pick affected packages + bump type (patch/minor/major)
+bunx changeset            # interactive: pick packages + bump type
 git add .changeset/*.md
 ```
 
-The changeset is committed alongside the code change. On merge to `main`, the `release.yml` workflow opens (or updates) a "Version Packages" PR that applies the bumps + regenerates `CHANGELOG.md`. Merging that PR triggers the same workflow's publish step (`bun run release`) which builds + publishes any package whose version isn't already on npm. `updateInternalDependencies: patch` in `.changeset/config.json` means: bump web → cli gets an automatic patch bump (so `packages/cli/templates/versions.json` regenerates from fresh sibling versions via the `prebuild` hook).
+Once any changeset (auto or manual) is on `main`, `release.yml` opens a "Version Packages" PR that applies the bumps and regenerates `CHANGELOG.md`. Merging that PR triggers the publish step (`bun run release`) which builds and publishes any package whose version isn't already on npm. `updateInternalDependencies: patch` in `.changeset/config.json` means a `web` bump cascades into a `cli` patch bump automatically.
 
 Do not hand-bump `version` fields or push `v*` tags — changesets owns the bump path. The legacy `publish.yml` workflow is kept as a manual fallback (workflow_dispatch only).
 
