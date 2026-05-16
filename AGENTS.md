@@ -4,7 +4,7 @@ Instructions for AI coding agents (Claude Code, Codex, Cursor, etc.) working in 
 
 ## Project at a glance
 
-xera is an **AI-native test framework** that lets QA engineers generate, run, and diagnose Playwright tests by invoking Claude Code skills against Jira tickets. The end-user surface is two CLI commands (`xera init`, `xera doctor`) plus eight Claude Code skills (`/xera-run`, `/xera-fetch`, `/xera-feature`, `/xera-script`, `/xera-exec`, `/xera-report`, `/xera-impact`, `/xera-promote`). Everything else is internal plumbing invoked by skills via `bun run xera:*` scripts (19 `xera-internal` subcommands as of v0.6.4).
+xera is an **AI-native test framework** that lets QA engineers generate, run, and diagnose Playwright/HTTP tests by invoking Claude Code skills against Jira tickets. The end-user surface is two CLI commands (`xera init`, `xera doctor`) plus nine Claude Code skills (`/xera-run`, `/xera-fetch`, `/xera-feature`, `/xera-script`, `/xera-exec`, `/xera-report`, `/xera-impact`, `/xera-promote`, `/xera-eval`). Everything else is internal plumbing invoked by skills via `bun run xera:*` scripts (26 `xera-internal` subcommands).
 
 Since v0.6, xera maintains a **project knowledge graph** — an event-sourced, repo-local data layer that records every fetch / script / exec / report / promote, derives a snapshot, and powers TEST_OUTDATED classification, `/xera-impact` analysis, an HTML viewer, and dispute capture. Graph events are sharded one-file-per-skill-invocation so concurrent QA causes no git merge conflicts.
 
@@ -13,6 +13,7 @@ Since v0.6, xera maintains a **project knowledge graph** — an event-sourced, r
 **Authoritative docs**:
 - Core design spec: `docs/superpowers/specs/2026-05-14-xera-core-web-design.md`
 - v0.6 knowledge graph spec: `docs/superpowers/specs/2026-05-16-xera-v06-project-knowledge-graph-design.md`
+- v0.7 HTTP adapter spec: `docs/superpowers/specs/2026-05-16-xera-v07-http-adapter-design.md`
 - All implementation plans: `docs/superpowers/plans/`
 - Architecture overview: `docs/ARCHITECTURE.md`
 - Configuration reference: `docs/CONFIGURATION.md`
@@ -24,14 +25,16 @@ When in doubt about *why* something is shaped a certain way, the design spec is 
 ```
 packages/
   core/         # @xera-ai/core — config, paths, hashing, lock, log, Jira client,
-                # 5-bucket classifier, auth state, graph/ module (v0.6+),
-                # xera-internal binary (19 subcommands)
-  cli/          # @xera-ai/cli — public CLI: init + doctor only
+                # 8-bucket classifier, auth state, graph/ module (v0.6+),
+                # xera-internal binary (26 subcommands)
+  cli/          # @xera-ai/cli — public CLI: init (--shape web|api|mixed) + doctor only
                 # templates/ includes xera-graph.yml (CI viewer scaffold)
   web/          # @xera-ai/web — Playwright adapter
                 # (executor with --grep, trace normalizer, secret scrubber, generator)
-  skills/       # @xera-ai/skills — 8 Claude Code skill .md files
-  prompts/      # @xera-ai/prompts — 7 versioned LLM prompt templates
+  http/         # @xera-ai/http — HTTP API adapter (v0.7+)
+                # (executor, auth strategies, OpenAPI loader, CONTRACT_DRIFT detection)
+  skills/       # @xera-ai/skills — 9 Claude Code skill .md files
+  prompts/      # @xera-ai/prompts — 9 versioned LLM prompt templates
 fixtures/
   sample-app/   # Next.js app for integration tests
   mock-jira/    # Bun.serve mock for offline Jira
@@ -96,7 +99,7 @@ Tests live at `packages/<pkg>/test/<area>/<name>.test.ts` mirroring `src/`. Use 
 
 ## Workspace deps
 
-The five packages reference each other with **explicit caret semver** (`"@xera-ai/core": "^0.1.4"`), **not** `workspace:*`. This was a deliberate fix after `bun publish`'s `workspace:*` substitution lagged by one lockfile version on first launch. Keep using explicit semver until Bun fixes that.
+The six packages reference each other with **explicit caret semver** (`"@xera-ai/core": "^0.1.4"`), **not** `workspace:*`. This was a deliberate fix after `bun publish`'s `workspace:*` substitution lagged by one lockfile version on first launch. Keep using explicit semver until Bun fixes that.
 
 When bumping a package version, also bump the caret range in any sibling that depends on it, run `bun install`, then `bun publish`.
 
@@ -104,7 +107,7 @@ When bumping a package version, also bump the caret range in any sibling that de
 
 ## Adapter pattern
 
-The `TestAdapter` interface in `packages/core/src/adapter/types.ts` is the extension point. v0.1 has one adapter (`WebAdapter` in `@xera-ai/web`). Future adapters (mobile, API, performance, security) each get their own package + spec + plan and implement `TestAdapter`. The classifier framework, status writer, Jira comment builder, **graph layer**, and skills are adapter-agnostic — a new adapter inherits TEST_OUTDATED, `/xera-impact`, and the HTML viewer for free.
+The `TestAdapter` interface in `packages/core/src/adapter/types.ts` is the extension point. v0.1 shipped `WebAdapter` (`@xera-ai/web`); v0.7 shipped `HttpAdapter` (`@xera-ai/http`). Future adapters (mobile, performance, security) each get their own package + spec + plan and implement `TestAdapter`. The classifier framework, status writer, Jira comment builder, **graph layer**, and skills are adapter-agnostic — a new adapter inherits TEST_OUTDATED, `/xera-impact`, and the HTML viewer for free.
 
 **Do not add adapter implementations into `@xera-ai/core`.** They belong in their own package.
 
@@ -142,7 +145,7 @@ When adding any new event type:
 
 ## Commit conventions
 
-`<scope>: <summary>` where scope is the package name (`core`, `web`, `cli`, `skills`, `prompts`), the workspace area (`fixtures`, `docs`, `ci`), or `chore`/`build` for cross-cutting changes. Examples from history:
+`<scope>: <summary>` where scope is the package name (`core`, `web`, `http`, `cli`, `skills`, `prompts`), the workspace area (`fixtures`, `docs`, `ci`), or `chore`/`build` for cross-cutting changes. Examples from history:
 
 ```
 core: add zod config schema
@@ -160,6 +163,7 @@ Commits should be small and focused. If you're about to do a multi-line summary,
 ```bash
 # In dep order
 cd packages/web  && rm -rf dist && bun run build && bunx tsc --declaration --emitDeclarationOnly --outDir dist && bun publish --access public
+cd packages/http && rm -rf dist && bun run build && bunx tsc --declaration --emitDeclarationOnly --outDir dist && bun publish --access public
 cd packages/core && rm -rf dist && bun run build && bunx tsc --emitDeclarationOnly && bun publish --access public
 cd packages/cli  && rm -rf dist && bun run build && bun publish --access public
 # Skills + prompts have no build step
@@ -198,7 +202,8 @@ Bug fixes, dep bumps, refactors of code you're already touching, and doc tweaks 
 | **v0.6.2** | `/xera-impact` skill, auto-trigger in `/xera-run`, `RunSchema.autoImpact` config |
 | **v0.6.3** | HTML viewer (vendored vis-network), CI artifact + sticky PR comment, consumer scaffold `xera-graph.yml` |
 | **v0.6.4** | QA polish — `--grep` per-scenario filter, priority auto-detect from AC keywords, threshold tuning, disputed marker in viewer, `xera doctor --auto-enrich`, `xera-internal disputes` CLI |
+| **v0.7** | HTTP API adapter (`@xera-ai/http`) — no-browser executor, pre-auth helpers (`defineHttpAuthSetup`, `presetHttpAuth`), OpenAPI loader; 3 new classifier buckets (`CONTRACT_DRIFT`, `RATE_LIMITED`, `AUTH_EXPIRED`); `xera init --shape web\|api\|mixed`; `script-from-feature-http.md` prompt; `xera:auth-setup` subcommand |
 
-Repo at `xera-ai/xera`, public, MIT. 5 packages on npm under `@xera-ai/*`. Starter template at `xera-ai/xera-starter`. ~350 unit tests across `@xera-ai/core` + `@xera-ai/web`.
+Repo at `xera-ai/xera`, public, MIT. 6 packages on npm under `@xera-ai/*`. Starter template at `xera-ai/xera-starter`. ~350 unit tests across `@xera-ai/core` + `@xera-ai/web` + `@xera-ai/http`.
 
-**Not yet shipped** (each is a separate future spec): `/xera-sprint` multi-ticket orchestration, production trace → test backfill, Mobile/API/Performance/Security adapters, live dashboard.
+**Not yet shipped** (each is a separate future spec): `/xera-sprint` multi-ticket orchestration, production trace → test backfill, Mobile/Performance/Security adapters, live dashboard.
