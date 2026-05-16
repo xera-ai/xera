@@ -243,11 +243,6 @@ export async function initCommand(opts: InitOptions): Promise<void> {
     writeFileSync(gitignorePath, `${gitignoreAdditions.trim()}\n`);
   }
 
-  // Seed sample tickets by shape
-  if (wantsHttp) {
-    copyDir(join(TEMPLATE_DIR, 'sample/SAMPLE-HTTP-001'), join(cwd, '.xera/SAMPLE-HTTP-001'));
-  }
-
   // Copy skill .md files from @xera-ai/skills into BOTH .claude/skills/ (for the
   // Skill tool) AND .claude/commands/ (for Claude Code slash-command discovery).
   const skillsSrc = require.resolve('@xera-ai/skills/package.json');
@@ -312,8 +307,8 @@ Next:
        USER_BEARER_TOKEN=...
   2) Run pre-authentication:
        bun run xera:auth-setup
-  3) Try the sample:
-       Open Claude Code in this directory and run: /xera-run SAMPLE-HTTP-001
+  3) Start testing:
+       Open Claude Code in this directory and run: /xera-run <TICKET>
 `
       : shape === 'mixed'
         ? `
@@ -322,8 +317,7 @@ Next:
   2) Run pre-authentication:
        bun run xera:auth-setup
   3) Start testing:
-       /xera-run SAMPLE-HTTP-001   # API sample
-       /xera-run <YOUR-TICKET>     # UI tickets
+       Open Claude Code in this directory and run: /xera-run <TICKET>
 `
         : `
 Next:
