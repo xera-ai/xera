@@ -8,7 +8,8 @@ export interface CheckResult {
 
 const IN_SCOPE_PROMPTS = [
   'feature-from-story.md',
-  'script-from-feature.md',
+  'script-from-feature-web.md',
+  'script-from-feature-http.md',
   'heal-locator.md',
   'extract-areas.md',
   'similarity-match.md',
