@@ -265,6 +265,7 @@ export async function initCommand(opts: { yes: boolean; shape?: ProjectShape }):
     ? JSON.parse(readFileSync(pkgPath, 'utf8'))
     : { name: 'xera-project', private: true, type: 'module' };
   pkg.scripts = pkg.scripts ?? {};
+  // Core workflow (all shapes)
   pkg.scripts['xera:fetch'] = 'xera-internal fetch';
   pkg.scripts['xera:validate-feature'] = 'xera-internal validate-feature';
   pkg.scripts['xera:typecheck'] = 'xera-internal typecheck';
@@ -276,12 +277,25 @@ export async function initCommand(opts: { yes: boolean; shape?: ProjectShape }):
   pkg.scripts['xera:status'] = 'xera-internal status';
   pkg.scripts['xera:unlock'] = 'xera-internal unlock';
   pkg.scripts['xera:promote'] = 'xera-internal promote';
+  pkg.scripts['xera:auth-setup'] = 'xera-internal auth-setup';
+  // Graph
+  pkg.scripts['xera:graph-record'] = 'xera-internal graph-record';
   pkg.scripts['xera:graph-snapshot'] = 'xera-internal graph-snapshot';
+  pkg.scripts['xera:graph-query'] = 'xera-internal graph-query';
+  pkg.scripts['xera:graph-backfill'] = 'xera-internal graph-backfill';
+  pkg.scripts['xera:graph-enrich'] = 'xera-internal graph-enrich';
   pkg.scripts['xera:graph-render'] = 'xera-internal graph-render';
+  // Impact / heal / disputes
+  pkg.scripts['xera:impact-prepare'] = 'xera-internal impact-prepare';
+  pkg.scripts['xera:heal-prepare'] = 'xera-internal heal-prepare';
+  pkg.scripts['xera:disputes'] = 'xera-internal disputes';
+
   pkg.dependencies = pkg.dependencies ?? {};
-  pkg.dependencies['@xera-ai/core'] = '^0.4.4';
-  pkg.dependencies['@xera-ai/web'] = '^0.2.1';
-  pkg.dependencies['@xera-ai/prompts'] = '^2.3.0';
+  pkg.dependencies['@xera-ai/core'] = '^0.5.0';
+  pkg.dependencies['@xera-ai/prompts'] = '^2.4.0';
+  if (wantsWeb) pkg.dependencies['@xera-ai/web'] = '^0.3.0';
+  if (wantsHttp) pkg.dependencies['@xera-ai/http'] = '^0.1.0';
+
   pkg.devDependencies = pkg.devDependencies ?? {};
   pkg.devDependencies['@playwright/test'] = '^1.60.0';
   pkg.devDependencies['@types/node'] = '^25.8.0';
