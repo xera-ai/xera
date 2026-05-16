@@ -6,7 +6,7 @@ Instructions for AI coding agents (Claude Code, Codex, Cursor, etc.) working in 
 
 xera is an **AI-native test framework** that lets QA engineers generate, run, and diagnose Playwright tests by invoking Claude Code skills against Jira tickets. The end-user surface is two CLI commands (`xera init`, `xera doctor`) plus seven Claude Code skills (`/xera-run`, `/xera-fetch`, `/xera-feature`, `/xera-script`, `/xera-exec`, `/xera-report`, `/xera-promote`). Everything else is internal plumbing invoked by skills via `bun run xera:*` scripts.
 
-**Tech**: Bun ≥1.1, TypeScript 5.6 strict, Playwright 1.48, zod, biome, vitest-compatible `bun:test`. ESM-only.
+**Tech**: Bun ≥1.1, TypeScript 5.6 strict, Playwright 1.60, zod, biome, vitest-compatible `bun:test`. ESM-only.
 
 **Authoritative docs**:
 - Design spec: `docs/superpowers/specs/2026-05-14-xera-core-web-design.md`

@@ -19,8 +19,8 @@
   "dependencies": {
     "@cucumber/gherkin": "30.0.4",
     "@cucumber/messages": "27.0.2",
-    "@playwright/test": "1.48.0",
+    "@playwright/test": "1.60.0",
     "@xera-ai/core": "^0.1.5",
-    "fflate": "0.8.2"
+    "fflate": "0.8.3"
   }
 }
