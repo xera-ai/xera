@@ -5,16 +5,21 @@ name: Auto-changeset
 # commit PR titles. See `scripts/auto-changeset.mjs` for the rules.
 #
 # Only runs on PRs from the same repo (not forks) because the workflow needs
-# `contents: write` to push the generated changeset back to the PR branch.
+# write access to push the generated changeset back to the PR branch.
 # External-contributor PRs fall back to the manual `bunx changeset` flow,
 # which changeset-bot will flag via PR comment.
+#
+# Uses the `xera-automation` GitHub App for the push so the resulting commit
+# is attributed to the app and TRIGGERS downstream workflows (test,
+# graph-viewer). Pushes made with the default GITHUB_TOKEN do not trigger
+# other workflows, which would leave required checks stuck "expected".
 
 on:
   pull_request:
     types: [opened, synchronize, edited]
 
 permissions:
-  contents: write
+  contents: read
   pull-requests: read
 
 concurrency:
@@ -27,10 +32,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Mint app token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.XERA_AUTOMATION_APP_ID }}
+          private-key: ${{ secrets.XERA_AUTOMATION_PRIVATE_KEY }}
+
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
 
       - uses: oven-sh/setup-bun@v2
         with: { bun-version: '1.3.x' }
@@ -49,8 +62,8 @@ jobs:
             echo "No changeset changes to commit."
             exit 0
           fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config user.name 'xera-automation[bot]'
+          git config user.email '${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com'
           git add .changeset/
           git commit -m "chore: auto-generate changeset for #${{ github.event.pull_request.number }}"
           git push origin HEAD:${{ github.event.pull_request.head.ref }}
