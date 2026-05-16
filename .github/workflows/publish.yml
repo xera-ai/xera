@@ -40,21 +40,19 @@ jobs:
             exit 1
           fi
 
-          # Write .npmrc to BOTH $HOME and repo root for maximum compatibility.
-          # bun publish searches cwd-upward and $HOME; covering both rules out
-          # path-resolution issues across bun versions.
+          # Write .npmrc ONLY to $HOME. A workspace-rooted .npmrc risks
+          # being git-added by downstream steps (changesets/action etc.)
+          # and leaking the token publicly. bun publish reads $HOME/.npmrc.
           NPMRC_CONTENT="//registry.npmjs.org/:_authToken=${NPM_TOKEN}
           registry=https://registry.npmjs.org/
           always-auth=true"
 
           echo "$NPMRC_CONTENT" > "$HOME/.npmrc"
           chmod 600 "$HOME/.npmrc"
-          echo "$NPMRC_CONTENT" > "$GITHUB_WORKSPACE/.npmrc"
-          chmod 600 "$GITHUB_WORKSPACE/.npmrc"
 
           # Sanity verification (no token leak — show file size + first non-secret line).
-          echo "Auth files written:"
-          ls -la "$HOME/.npmrc" "$GITHUB_WORKSPACE/.npmrc"
+          echo "Auth file written:"
+          ls -la "$HOME/.npmrc"
           echo "Registry config (no token in this line):"
           grep "^registry=" "$HOME/.npmrc"
 

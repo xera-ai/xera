@@ -57,9 +57,12 @@ jobs:
             echo "::error::NPM_TOKEN secret is not set"
             exit 1
           fi
+          # WRITE ONLY TO $HOME — never to $GITHUB_WORKSPACE.
+          # A workspace-rooted .npmrc gets picked up by `changesets/action`'s
+          # `git add -A` and ends up in the Version Packages PR, leaking the
+          # token publicly. bun/npm publish reads $HOME/.npmrc fine.
           echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > "$HOME/.npmrc"
-          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > "$GITHUB_WORKSPACE/.npmrc"
-          chmod 600 "$HOME/.npmrc" "$GITHUB_WORKSPACE/.npmrc"
+          chmod 600 "$HOME/.npmrc"
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
