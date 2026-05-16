@@ -13,8 +13,8 @@ import type { OutdatedDecision } from '../graph/classify';
 import { enhanceClassification } from '../graph/classify';
 import { deriveSnapshot, loadAllEvents } from '../graph/store';
 import { buildJiraComment } from '../reporter/jira-comment';
-import { PROMPTS_VERSION, XERA_VERSION } from '../versions';
 import { writeStatusFromClassification } from '../reporter/status-writer';
+import { PROMPTS_VERSION, XERA_VERSION } from '../versions';
 
 interface ReportInput {
   scenarios: ScenarioClassification[];
