@@ -63,7 +63,7 @@ jobs:
         run: |
           bun run lint
           bun run typecheck
-          bun test packages/core packages/web
+          bun test packages/core packages/web packages/http
 
       - name: Plan publish (skip versions already on npm)
         id: plan
@@ -73,7 +73,7 @@ jobs:
           # registry URL (404 = not published yet, 200 = already published).
           # On dry-run we publish all packages so the workflow exercises every
           # build step end-to-end.
-          for pkg in web core cli skills prompts; do
+          for pkg in web core http cli skills prompts; do
             local_v=$(jq -r .version packages/$pkg/package.json)
             if [ "${{ inputs.dry-run }}" = "true" ]; then
               echo "@xera-ai/$pkg: local=$local_v (dry-run → will publish)"
@@ -119,6 +119,20 @@ jobs:
             bun publish --access public
           fi
 
+      - name: Publish @xera-ai/http
+        if: steps.plan.outputs.publish_http == 'true'
+        working-directory: packages/http
+        run: |
+          rm -rf dist
+          bun run build
+          bun run build:runtime
+          bunx tsc --declaration --emitDeclarationOnly --outDir dist
+          if [ "${{ inputs.dry-run }}" = "true" ]; then
+            bun publish --access public --dry-run
+          else
+            bun publish --access public
+          fi
+
       - name: Publish @xera-ai/cli
         if: steps.plan.outputs.publish_cli == 'true'
         working-directory: packages/cli
@@ -156,7 +170,7 @@ jobs:
         run: |
           sleep 15  # give npm registry CDN time to propagate
           failed=0
-          for pkg in web core cli skills prompts; do
+          for pkg in web core http cli skills prompts; do
             local_v=$(jq -r .version packages/$pkg/package.json)
             npm_v=$(curl -s https://registry.npmjs.org/@xera-ai/$pkg/latest | jq -r .version)
             if [ "$local_v" != "$npm_v" ]; then
