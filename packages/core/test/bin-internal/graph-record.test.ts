@@ -112,3 +112,74 @@ describe('graph-record dispute', () => {
     expect(exit).toBe(1);
   });
 });
+
+describe('graph-record script — priority auto-detection', () => {
+  test('upgrades scenario without explicit @p tag to p0 when AC mentions auth keyword', async () => {
+    const ticket = 'ABC-AUTH';
+    const dir = join(root, '.xera', ticket);
+    mkdirSync(join(dir, 'feature'), { recursive: true });
+    mkdirSync(join(dir, 'poms'), { recursive: true });
+    mkdirSync(join(dir, 'tests'), { recursive: true });
+    writeFileSync(
+      join(dir, 'feature', `${ticket}.feature`),
+      `Feature: Login
+Scenario: User can log in with valid credentials
+  Given a registered user
+  When they submit the login form
+  Then they reach the dashboard
+`,
+    );
+    writeFileSync(join(dir, 'poms', 'LoginPage.ts'), 'export class LoginPage {}');
+    writeFileSync(join(dir, 'tests', `${ticket}.spec.ts`), '// test');
+    const exit = await graphRecordCmd(['script', ticket]);
+    expect(exit).toBe(0);
+    const events = loadAllEvents(root);
+    const scenarios = events.filter((e) => e.type === 'scenario.generated');
+    expect(scenarios.length).toBe(1);
+    const payload = scenarios[0]!.payload as { priority: 'p0' | 'p1' | 'p2' };
+    expect(payload.priority).toBe('p0');
+  });
+
+  test('respects explicit @p2 tag even when keyword present', async () => {
+    const ticket = 'ABC-EXP';
+    const dir = join(root, '.xera', ticket);
+    mkdirSync(join(dir, 'feature'), { recursive: true });
+    mkdirSync(join(dir, 'poms'), { recursive: true });
+    writeFileSync(
+      join(dir, 'feature', `${ticket}.feature`),
+      `Feature: x
+@p2
+Scenario: Edge case admin login
+  Given x
+`,
+    );
+    writeFileSync(join(dir, 'poms', 'X.ts'), 'export class X {}');
+    const exit = await graphRecordCmd(['script', ticket]);
+    expect(exit).toBe(0);
+    const events = loadAllEvents(root);
+    const scenarios = events.filter((e) => e.type === 'scenario.generated');
+    const payload = scenarios[0]!.payload as { priority: 'p0' | 'p1' | 'p2' };
+    expect(payload.priority).toBe('p2');
+  });
+
+  test('keeps p1 default when no keywords match', async () => {
+    const ticket = 'ABC-RGB';
+    const dir = join(root, '.xera', ticket);
+    mkdirSync(join(dir, 'feature'), { recursive: true });
+    mkdirSync(join(dir, 'poms'), { recursive: true });
+    writeFileSync(
+      join(dir, 'feature', `${ticket}.feature`),
+      `Feature: theme
+Scenario: User changes background color
+  Given x
+`,
+    );
+    writeFileSync(join(dir, 'poms', 'X.ts'), 'export class X {}');
+    const exit = await graphRecordCmd(['script', ticket]);
+    expect(exit).toBe(0);
+    const events = loadAllEvents(root);
+    const scenarios = events.filter((e) => e.type === 'scenario.generated');
+    const payload = scenarios[0]!.payload as { priority: 'p0' | 'p1' | 'p2' };
+    expect(payload.priority).toBe('p1');
+  });
+});
