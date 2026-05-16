@@ -174,3 +174,61 @@ export function walkImpact(graph: Snapshot, target: TicketNode, opts: ImpactOpts
   filtered.sort((a, b) => b.riskScore - a.riskScore);
   return filtered;
 }
+
+const HIGH_THRESHOLD = 7.0;
+const MEDIUM_THRESHOLD = 4.0;
+
+function bucket(score: number): 'high' | 'medium' | 'low' {
+  if (score >= HIGH_THRESHOLD) return 'high';
+  if (score >= MEDIUM_THRESHOLD) return 'medium';
+  return 'low';
+}
+
+function fmtEdgePath(path: ImpactEdge[]): string {
+  return path.map((e) => `${e.from} →[${e.kind}]→ ${e.to}`).join(' · ');
+}
+
+export function renderImpactMarkdown(report: ImpactReport): string {
+  const lines: string[] = [];
+  lines.push(`# Impact Analysis — ${report.targetTicket}`);
+  lines.push('');
+  lines.push(`**Modified areas:** ${report.modifiedAreas.join(', ') || '(none)'}`);
+  lines.push(`**Generated:** ${report.generatedAt}`);
+  lines.push('');
+
+  if (report.scenarios.length === 0) {
+    lines.push('No prior scenarios in the modified areas. This may be a new feature area.');
+    lines.push('');
+    return lines.join('\n');
+  }
+
+  const bySeverity = { high: [] as ImpactScenario[], medium: [] as ImpactScenario[], low: [] as ImpactScenario[] };
+  for (const s of report.scenarios) bySeverity[bucket(s.riskScore)].push(s);
+
+  lines.push(`**Total impacted:** ${report.scenarios.length} scenarios (${bySeverity.high.length} high · ${bySeverity.medium.length} medium · ${bySeverity.low.length} low)`);
+  lines.push('');
+
+  for (const [name, scenarios] of [
+    ['High-risk', bySeverity.high],
+    ['Medium-risk', bySeverity.medium],
+    ['Low-risk', bySeverity.low],
+  ] as const) {
+    if (scenarios.length === 0) continue;
+    lines.push(`## ${name}`);
+    lines.push('');
+    for (const s of scenarios) {
+      lines.push(`### ${s.ticketId} / "${s.name}" [${s.priority.toUpperCase()}]   score ${s.riskScore.toFixed(1)}`);
+      lines.push(`- Edge: ${fmtEdgePath(s.edgePath)}`);
+      if (s.lastPassedAt) lines.push(`- Last passed: ${s.lastPassedAt}`);
+      lines.push('');
+    }
+  }
+
+  lines.push('## Re-run commands');
+  lines.push('- All:        `bun run xera:exec --from-impact ' + report.targetTicket + '`');
+  lines.push('- P0 only:    `bun run xera:exec --from-impact ' + report.targetTicket + ' --min-priority p0`');
+  lines.push('- Select:     `bun run xera:exec --from-impact ' + report.targetTicket + ' --select`');
+  lines.push('');
+
+  return lines.join('\n');
+}

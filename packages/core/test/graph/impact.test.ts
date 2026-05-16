@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { riskScore, walkImpact } from '../../src/graph/impact';
-import type { ImpactScenario } from '../../src/graph/impact';
+import { riskScore, walkImpact, renderImpactMarkdown } from '../../src/graph/impact';
+import type { ImpactScenario, ImpactReport } from '../../src/graph/impact';
 import type { Snapshot, TicketNode, ScenarioNode, PomNode, EdgeRecord } from '../../src/graph/types';
 
 function mkImpact(overrides: Partial<ImpactScenario> = {}): ImpactScenario {
@@ -170,5 +170,41 @@ describe('walkImpact', () => {
     for (const r of result) {
       expect(r.riskScore).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('renderImpactMarkdown', () => {
+  test('produces markdown with high/medium/low buckets', () => {
+    const report: ImpactReport = {
+      targetTicket: 'ABC-200',
+      modifiedAreas: ['login'],
+      generatedAt: '2026-05-16T08:00:00Z',
+      scenarios: [
+        { scenarioId: 'sc-1', ticketId: 'ABC-100', name: 'user signs in', priority: 'p0',
+          edgePath: [{ kind: 'modifies', from: 'ABC-200', to: 'login' }, { kind: 'uses', from: 'sc-1', to: 'pom-login' }],
+          riskScore: 8.5 },
+        { scenarioId: 'sc-2', ticketId: 'ABC-145', name: 'user resets password', priority: 'p1',
+          edgePath: [{ kind: 'modifies', from: 'ABC-200', to: 'login' }, { kind: 'uses', from: 'sc-2', to: 'pom-login' }],
+          riskScore: 5.2 },
+      ],
+    };
+    const md = renderImpactMarkdown(report);
+    expect(md).toContain('# Impact Analysis — ABC-200');
+    expect(md).toContain('Modified areas');
+    expect(md).toContain('login');
+    expect(md).toContain('## High-risk');
+    expect(md).toContain('ABC-100');
+    expect(md).toContain('user signs in');
+    expect(md).toContain('## Re-run commands');
+    expect(md).toContain('xera:exec --from-impact ABC-200');
+  });
+
+  test('shows empty state when no scenarios impacted', () => {
+    const md = renderImpactMarkdown({
+      targetTicket: 'ABC-200', modifiedAreas: ['new-feature'],
+      generatedAt: '2026-05-16T08:00:00Z', scenarios: [],
+    });
+    expect(md).toContain('# Impact Analysis — ABC-200');
+    expect(md).toMatch(/no prior scenarios/i);
   });
 });
