@@ -78,9 +78,6 @@ describe('xera init --shape api', () => {
     expect(pw).not.toContain('browserName');
     expect(pw).toContain("projects: [{ name: 'http' }]");
 
-    // SAMPLE-HTTP-001 (http sample) seeded
-    expect(existsSync(join(cwd, '.xera/SAMPLE-HTTP-001/meta.json'))).toBe(true);
-
     // auth-setup exports only http
     const authSetup = readFileSync(join(cwd, 'shared/auth-setup.ts'), 'utf8');
     expect(authSetup).toContain("from '@xera-ai/http'");
@@ -90,7 +87,7 @@ describe('xera init --shape api', () => {
 });
 
 describe('xera init --shape mixed', () => {
-  test('scaffolds both web and http blocks + both samples', async () => {
+  test('scaffolds both web and http blocks', async () => {
     const cwd = await runInit('mixed');
 
     expect(existsSync(join(cwd, 'xera.config.ts'))).toBe(true);
@@ -102,9 +99,6 @@ describe('xera init --shape mixed', () => {
     expect(cfg).toContain("adapters: ['web', 'http']");
     expect(cfg).toContain('web: {');
     expect(cfg).toContain('http: {');
-
-    // HTTP sample seeded
-    expect(existsSync(join(cwd, '.xera/SAMPLE-HTTP-001/meta.json'))).toBe(true);
 
     // auth-setup exports BOTH web and http
     const authSetup = readFileSync(join(cwd, 'shared/auth-setup.ts'), 'utf8');
