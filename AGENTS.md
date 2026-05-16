@@ -4,13 +4,16 @@ Instructions for AI coding agents (Claude Code, Codex, Cursor, etc.) working in 
 
 ## Project at a glance
 
-xera is an **AI-native test framework** that lets QA engineers generate, run, and diagnose Playwright tests by invoking Claude Code skills against Jira tickets. The end-user surface is two CLI commands (`xera init`, `xera doctor`) plus seven Claude Code skills (`/xera-run`, `/xera-fetch`, `/xera-feature`, `/xera-script`, `/xera-exec`, `/xera-report`, `/xera-promote`). Everything else is internal plumbing invoked by skills via `bun run xera:*` scripts.
+xera is an **AI-native test framework** that lets QA engineers generate, run, and diagnose Playwright tests by invoking Claude Code skills against Jira tickets. The end-user surface is two CLI commands (`xera init`, `xera doctor`) plus eight Claude Code skills (`/xera-run`, `/xera-fetch`, `/xera-feature`, `/xera-script`, `/xera-exec`, `/xera-report`, `/xera-impact`, `/xera-promote`). Everything else is internal plumbing invoked by skills via `bun run xera:*` scripts (19 `xera-internal` subcommands as of v0.6.4).
 
-**Tech**: Bun ≥1.1, TypeScript 6.0 strict, Playwright 1.60, zod 4, biome 2, vitest-compatible `bun:test`. ESM-only.
+Since v0.6, xera maintains a **project knowledge graph** — an event-sourced, repo-local data layer that records every fetch / script / exec / report / promote, derives a snapshot, and powers TEST_OUTDATED classification, `/xera-impact` analysis, an HTML viewer, and dispute capture. Graph events are sharded one-file-per-skill-invocation so concurrent QA causes no git merge conflicts.
+
+**Tech**: Bun ≥1.1, TypeScript 6.0 strict, Playwright 1.60, zod 4, biome 2, vitest-compatible `bun:test`. ESM-only. Vendored `vis-network` (Apache-2.0) for the HTML viewer.
 
 **Authoritative docs**:
-- Design spec: `docs/superpowers/specs/2026-05-14-xera-core-web-design.md`
-- Implementation plans: `docs/superpowers/plans/`
+- Core design spec: `docs/superpowers/specs/2026-05-14-xera-core-web-design.md`
+- v0.6 knowledge graph spec: `docs/superpowers/specs/2026-05-16-xera-v06-project-knowledge-graph-design.md`
+- All implementation plans: `docs/superpowers/plans/`
 - Architecture overview: `docs/ARCHITECTURE.md`
 - Configuration reference: `docs/CONFIGURATION.md`
 
@@ -20,17 +23,24 @@ When in doubt about *why* something is shaped a certain way, the design spec is 
 
 ```
 packages/
-  core/         # @xera-ai/core — config, paths, hashing, lock, log, Jira client, classifier, auth state, xera-internal binary
+  core/         # @xera-ai/core — config, paths, hashing, lock, log, Jira client,
+                # 5-bucket classifier, auth state, graph/ module (v0.6+),
+                # xera-internal binary (19 subcommands)
   cli/          # @xera-ai/cli — public CLI: init + doctor only
-  web/          # @xera-ai/web — Playwright adapter (executor, trace normalizer, secret scrubber, generator helpers)
-  skills/       # @xera-ai/skills — Claude Code skill .md files
-  prompts/      # @xera-ai/prompts — versioned LLM prompt templates
+                # templates/ includes xera-graph.yml (CI viewer scaffold)
+  web/          # @xera-ai/web — Playwright adapter
+                # (executor with --grep, trace normalizer, secret scrubber, generator)
+  skills/       # @xera-ai/skills — 8 Claude Code skill .md files
+  prompts/      # @xera-ai/prompts — 7 versioned LLM prompt templates
 fixtures/
   sample-app/   # Next.js app for integration tests
   mock-jira/    # Bun.serve mock for offline Jira
-  golden-tickets/ # Classifier-test fixtures
+  golden-tickets/ # Classifier-test fixtures (v0.1)
+  golden-eval/  # /xera-eval rubric fixtures (v0.2 + EVAL-007/008/009)
+  golden-graph/ # snapshot/dedup/corrupt + TEST_OUTDATED scenarios (v0.6)
+  golden-impact/ # impact-prepare BFS scenarios (depth-1/2/empty) (v0.6)
 docs/
-.github/workflows/
+.github/workflows/  # ci.yml (incl. graph-viewer job), nightly-e2e.yml, publish.yml
 ```
 
 ## Running things
@@ -94,9 +104,25 @@ When bumping a package version, also bump the caret range in any sibling that de
 
 ## Adapter pattern
 
-The `TestAdapter` interface in `packages/core/src/adapter/types.ts` is the extension point. v0.1 has one adapter (`WebAdapter` in `@xera-ai/web`). Future adapters (mobile, API, performance, security) each get their own package + spec + plan and implement `TestAdapter`. The classifier framework, status writer, Jira comment builder, and skills are adapter-agnostic.
+The `TestAdapter` interface in `packages/core/src/adapter/types.ts` is the extension point. v0.1 has one adapter (`WebAdapter` in `@xera-ai/web`). Future adapters (mobile, API, performance, security) each get their own package + spec + plan and implement `TestAdapter`. The classifier framework, status writer, Jira comment builder, **graph layer**, and skills are adapter-agnostic — a new adapter inherits TEST_OUTDATED, `/xera-impact`, and the HTML viewer for free.
 
 **Do not add adapter implementations into `@xera-ai/core`.** They belong in their own package.
+
+## Project knowledge graph (v0.6+)
+
+Three architectural invariants to internalize:
+
+1. **Skills are the orchestrator, binaries are deterministic.** AI calls for graph features (`extract-areas.md`, `similarity-match.md`, `classify-outdated.md`) happen in the skill `.md` workflow — the skill writes the LLM output to a JSON file (`graph-input.json`, `enrichment-input.json`, `outdated-decisions.json`), then `xera-internal graph-*` reads + validates + emits events. Never make a `xera-internal` subcommand call Claude.
+
+2. **Shard-by-session events.** `appendEvents()` writes ONE file per skill invocation under `.xera/graph/events/<yyyy-mm>/<ULID>-<skill>-<ticket>.jsonl`. Never append into a shared file. This is what makes concurrent QA conflict-free.
+
+3. **Snapshot is gitignored, regenerable.** Events are the source of truth (committed). Snapshot is derived (gitignored, < 1 s rebuild via `xera-internal graph-snapshot`).
+
+When adding any new event type:
+- Update `packages/core/src/graph/types.ts` (EventPayloadMap + Event union)
+- Update `packages/core/src/graph/schema.ts` Zod discriminated union
+- Update `deriveSnapshot()` in `store.ts` if the event materializes into a node/edge
+- Add a golden fixture under `fixtures/golden-graph/` if the behavior is observable
 
 ## Things to be careful about
 
@@ -159,13 +185,20 @@ For any non-trivial change:
 
 Bug fixes, dep bumps, refactors of code you're already touching, and doc tweaks don't need this flow. Use judgment.
 
-## What's already shipped (v0.1)
+## What's already shipped
 
-- 5 packages on npm under `@xera-ai/*`
-- Repo at `xera-ai/xera`, public, MIT
-- Starter template repo at `xera-ai/xera-starter`
-- GitHub release: https://github.com/xera-ai/xera/releases/tag/v0.1.0
-- 102 unit tests across `@xera-ai/core` + `@xera-ai/web`
-- Web adapter, Jira REST + MCP, encrypted auth state, 4-bucket failure classifier, deterministic secret scrubber, Next.js + mock-Jira fixtures, nightly E2E workflow.
+| Version | Highlights |
+|---|---|
+| **v0.1** | Core platform + Web adapter, Jira REST + MCP, encrypted auth state, 4-bucket classifier, deterministic secret scrubber, sample-app + mock-jira fixtures, nightly E2E |
+| **v0.2** | AI gen evaluation harness (`/xera-eval`), `golden-eval/` rubric fixtures |
+| **v0.3** | Prompt injection defense (boundary tags `<XR_*>` + `injection-follow` refusal label across all prompts) |
+| **v0.5** | Self-healing selector drift — `/xera-report` auto-proposes POM heal, applies, re-runs, stages on pass / reverts on fail |
+| **v0.6.0** | Graph foundation — event store, snapshot, 4 graph subcommands, cost telemetry, 5 skill emission patches |
+| **v0.6.1** | TEST_OUTDATED classifier (5th bucket), lazy similarity enrichment, dispute event capture, Jira sub-task routing |
+| **v0.6.2** | `/xera-impact` skill, auto-trigger in `/xera-run`, `RunSchema.autoImpact` config |
+| **v0.6.3** | HTML viewer (vendored vis-network), CI artifact + sticky PR comment, consumer scaffold `xera-graph.yml` |
+| **v0.6.4** | QA polish — `--grep` per-scenario filter, priority auto-detect from AC keywords, threshold tuning, disputed marker in viewer, `xera doctor --auto-enrich`, `xera-internal disputes` CLI |
 
-What's not yet shipped: CI mode, self-healing auto-fix, AI gen evaluation rubric, Mobile/API/Performance/Security adapters. Each is a separate future spec.
+Repo at `xera-ai/xera`, public, MIT. 5 packages on npm under `@xera-ai/*`. Starter template at `xera-ai/xera-starter`. ~350 unit tests across `@xera-ai/core` + `@xera-ai/web`.
+
+**Not yet shipped** (each is a separate future spec): `/xera-sprint` multi-ticket orchestration, production trace → test backfill, Mobile/API/Performance/Security adapters, live dashboard.
