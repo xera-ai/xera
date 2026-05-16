@@ -1,5 +1,17 @@
 # @xera-ai/cli
 
+## 0.9.0
+
+### Minor Changes
+
+- [#38](https://github.com/xera-ai/xera/pull/38) [`b3bb9b4`](https://github.com/xera-ai/xera/commit/b3bb9b46c6b304a49ba4b8e19c6eed1cc9faded5) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - add non-interactive flags and shortcuts to xera init (auto-generated from [#38](https://github.com/xera-ai/xera/issues/38))
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xera-ai/core@0.9.0
+  - @xera-ai/skills@0.9.0
+
 ## 0.8.1
 
 ### Patch Changes
