@@ -79,3 +79,30 @@ describe('graph-record promote', () => {
     expect(events[0]!.type).toBe('pom.promoted');
   });
 });
+
+describe('graph-record dispute', () => {
+  test('emits classification.disputed event', async () => {
+    const exit = await graphRecordCmd([
+      'dispute',
+      '--run-id', 'r1',
+      '--scenario-id', 'sc-1',
+      '--from', 'TEST_OUTDATED',
+      '--to', 'REAL_BUG',
+      '--actor', 'qa@example.com',
+      '--reason', 'AI got it wrong; this IS a real bug',
+    ]);
+    expect(exit).toBe(0);
+    const events = loadAllEvents(root);
+    const dispute = events.find((e) => e.type === 'classification.disputed');
+    expect(dispute).toBeDefined();
+    expect((dispute!.payload as any).originalClassification).toBe('TEST_OUTDATED');
+    expect((dispute!.payload as any).disputedTo).toBe('REAL_BUG');
+    expect((dispute!.payload as any).qaActor).toBe('qa@example.com');
+    expect((dispute!.payload as any).qaReason).toBe('AI got it wrong; this IS a real bug');
+  });
+
+  test('dispute exits 1 when required flags missing', async () => {
+    const exit = await graphRecordCmd(['dispute', '--run-id', 'r1']);
+    expect(exit).toBe(1);
+  });
+});
