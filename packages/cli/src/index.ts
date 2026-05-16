@@ -40,12 +40,19 @@ export default async function main(): Promise<void> {
     // HTTP flags
     .option('--au, --api-base-url <url>', 'API base URL')
     .option('--op, --openapi-path <path>', 'OpenAPI spec path or URL')
-    .option('--as, --auth-strategy <strategy>', `API auth strategy: ${VALID_AUTH_STRATEGIES.join(' | ')}`)
+    .option(
+      '--as, --auth-strategy <strategy>',
+      `API auth strategy: ${VALID_AUTH_STRATEGIES.join(' | ')}`,
+    )
     .option('--hr, --http-roles <roles>', 'HTTP test roles, comma-separated (default: user)')
     .example('xera init')
     .example('xera init -y --shape web')
-    .example('xera init -y --shape api --pk MYPROJ --ju https://myco.atlassian.net --au https://api.staging.example.com --as bearer')
-    .example('xera init -y --shape mixed --pk PROJ --ju https://myco.atlassian.net --su https://staging.example.com --au https://api.staging.example.com')
+    .example(
+      'xera init -y --shape api --pk MYPROJ --ju https://myco.atlassian.net --au https://api.staging.example.com --as bearer',
+    )
+    .example(
+      'xera init -y --shape mixed --pk PROJ --ju https://myco.atlassian.net --su https://staging.example.com --au https://api.staging.example.com',
+    )
     .action(
       async (opts: {
         update?: boolean;
