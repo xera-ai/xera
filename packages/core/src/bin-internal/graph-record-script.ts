@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
+import { resolveArtifactPaths } from '../artifact/paths';
 import { appendEvents } from '../graph/store';
 import type {
   EdgeDiscoveredPayload,
@@ -132,10 +133,9 @@ function extractPomUsage(specContent: string): string[] {
 }
 
 export async function recordScriptImpl(repoRoot: string, ticket: string): Promise<number> {
-  const ticketDir = join(repoRoot, '.xera', ticket);
-  const featurePath = join(ticketDir, 'feature', `${ticket}.feature`);
-  const specPath = join(ticketDir, 'tests', `${ticket}.spec.ts`);
-  const pomDir = join(ticketDir, 'poms');
+  const paths = resolveArtifactPaths(repoRoot, ticket);
+  const { ticketDir, featurePath, specPath } = paths;
+  const pomDir = join(ticketDir, 'page-objects');
 
   if (!existsSync(featurePath)) {
     console.error(`[graph-record script] feature missing`);

@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { parse as parseYaml } from 'yaml';
+import { resolveArtifactPaths } from '../artifact/paths';
 import { appendEvents } from '../graph/store';
 import type {
   Classification,
@@ -143,9 +144,10 @@ async function recordExec(repoRoot: string, ticket: string, runId: string): Prom
 }
 
 async function recordClassify(repoRoot: string, ticket: string, runId: string): Promise<number> {
-  const classifyPath = join(repoRoot, '.xera', ticket, 'runs', runId, 'classifier-output.json');
+  const { ticketDir } = resolveArtifactPaths(repoRoot, ticket);
+  const classifyPath = join(ticketDir, 'classifier-input.json');
   if (!existsSync(classifyPath)) {
-    console.error(`[graph-record classify] classifier-output.json missing`);
+    console.error(`[graph-record classify] classifier-input.json missing`);
     return 1;
   }
   const data = JSON.parse(readFileSync(classifyPath, 'utf8')) as {
