@@ -22,3 +22,11 @@ The user invoked `/xera-promote <TICKET> <PomClassName>`.
    git add shared/page-objects/{{POM}}.ts .xera/{{TICKET}}/
    git commit -m "tests: promote {{POM}} from {{TICKET}}"
    ```
+
+## Step 6 — Record graph events (v0.6)
+
+```bash
+bun run xera:graph-record promote --pom-id <ID> --from <OLD> --to <NEW>
+```
+
+`<ID>` is the sha1 of the POM filename basename (the bin-internal can compute this if `--pom-id` is omitted). Non-fatal.

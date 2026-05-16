@@ -128,3 +128,11 @@ After the heal sub-flow finishes (whether it applied, refused, or errored), cont
    - Else run `bun run xera:post {{TICKET}}` (uses REST credentials from `.env`).
 
 8. **Summarize** to the user: overall classification, scenario pass/fail counts, the reproduce command (`bunx xera-internal exec {{TICKET}} --replay=<runId>`), and the Jira comment URL if available.
+
+## Step 9 — Record graph classification events (v0.6)
+
+```bash
+bun run xera:graph-record classify <TICKET> --run-id <RUN_ID>
+```
+
+Non-fatal. Note: TEST_OUTDATED detection ships in v0.6.1 — for v0.6.0 this just emits `run.classified` events with existing 4-bucket classifications.
