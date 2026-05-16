@@ -14,7 +14,14 @@ refused\` and stop.`;
 
 function seedPrompts(
   root: string,
-  opts: { feature?: string; script?: string; heal?: string; extractAreas?: string } = {},
+  opts: {
+    feature?: string;
+    script?: string;
+    heal?: string;
+    extractAreas?: string;
+    similarityMatch?: string;
+    classifyOutdated?: string;
+  } = {},
 ): void {
   const dir = join(root, 'packages/prompts');
   mkdirSync(dir, { recursive: true });
@@ -37,6 +44,16 @@ function seedPrompts(
     join(dir, 'extract-areas.md'),
     opts.extractAreas ??
       `---\nname: extract-areas\nversion: 1.0.0\n---\n\n${GOOD_PREAMBLE}\n\n## Output format\n\n\`\`\`json\n{ "modifiesAreas": [] }\n\`\`\`\n`,
+  );
+  writeFileSync(
+    join(dir, 'similarity-match.md'),
+    opts.similarityMatch ??
+      `---\nname: similarity-match\nversion: 1.0.0\n---\n\n${GOOD_PREAMBLE}\n\n## Decision rules\nbody`,
+  );
+  writeFileSync(
+    join(dir, 'classify-outdated.md'),
+    opts.classifyOutdated ??
+      `---\nname: classify-outdated\nversion: 1.0.0\n---\n\n${GOOD_PREAMBLE}\n\n## Decision rules\nbody`,
   );
   // Out-of-scope prompts that must NOT be validated:
   writeFileSync(
@@ -150,6 +167,13 @@ describe('verifyPrompts (pure)', () => {
     seedPrompts(cwd);
     const results = verifyPrompts(cwd);
     expect(results.some((r) => r.message.includes('extract-areas.md'))).toBe(false);
+  });
+
+  test('similarity-match.md and classify-outdated.md pass validation when correctly seeded', () => {
+    seedPrompts(cwd);
+    const results = verifyPrompts(cwd);
+    expect(results.some((r) => r.message.includes('similarity-match.md'))).toBe(false);
+    expect(results.some((r) => r.message.includes('classify-outdated.md'))).toBe(false);
   });
 });
 

@@ -52,6 +52,14 @@ function seedGoodRepo(root: string): void {
     join(root, 'packages/prompts/extract-areas.md'),
     `---\nname: extract-areas\nversion: 1.0.0\n---\n\n${goodPreamble}\n\n## Output format\n\n\`\`\`json\n{ "modifiesAreas": [] }\n\`\`\`\n`,
   );
+  writeFileSync(
+    join(root, 'packages/prompts/similarity-match.md'),
+    `---\nname: similarity-match\nversion: 1.0.0\n---\n\n${goodPreamble}\n\n## Decision rules\nbody`,
+  );
+  writeFileSync(
+    join(root, 'packages/prompts/classify-outdated.md'),
+    `---\nname: classify-outdated\nversion: 1.0.0\n---\n\n${goodPreamble}\n\n## Decision rules\nbody`,
+  );
   mkdirSync(join(root, 'packages/skills'), { recursive: true });
   writeFileSync(
     join(root, 'packages/skills/xera-eval.md'),
