@@ -101,7 +101,16 @@ Tests live at `packages/<pkg>/test/<area>/<name>.test.ts` mirroring `src/`. Use 
 
 The six packages reference each other with **explicit caret semver** (`"@xera-ai/core": "^0.1.4"`), **not** `workspace:*`. This was a deliberate fix after `bun publish`'s `workspace:*` substitution lagged by one lockfile version on first launch. Keep using explicit semver until Bun fixes that.
 
-When bumping a package version, also bump the caret range in any sibling that depends on it, run `bun install`, then `bun publish`.
+**Versions are bumped by [changesets](https://github.com/changesets/changesets), not by hand.** For any PR that should ship to npm, add a changeset:
+
+```bash
+bunx changeset            # pick affected packages + bump type (patch/minor/major)
+git add .changeset/*.md
+```
+
+The changeset is committed alongside the code change. On merge to `main`, the `release.yml` workflow opens (or updates) a "Version Packages" PR that applies the bumps + regenerates `CHANGELOG.md`. Merging that PR triggers the same workflow's publish step (`bun run release`) which builds + publishes any package whose version isn't already on npm. `updateInternalDependencies: patch` in `.changeset/config.json` means: bump web → cli gets an automatic patch bump (so `packages/cli/templates/versions.json` regenerates from fresh sibling versions via the `prebuild` hook).
+
+Do not hand-bump `version` fields or push `v*` tags — changesets owns the bump path. The legacy `publish.yml` workflow is kept as a manual fallback (workflow_dispatch only).
 
 `bun` exports condition in each package's `package.json` points at `./src/index.ts` for monorepo dev, `./dist/index.js` for published consumers. This is why tests work without a pre-build step.
 
@@ -160,23 +169,16 @@ Commits should be small and focused. If you're about to do a multi-line summary,
 
 ## Publish flow
 
-```bash
-# In dep order
-cd packages/web  && rm -rf dist && bun run build && bunx tsc --declaration --emitDeclarationOnly --outDir dist && bun publish --access public
-cd packages/http && rm -rf dist && bun run build && bunx tsc --declaration --emitDeclarationOnly --outDir dist && bun publish --access public
-cd packages/core && rm -rf dist && bun run build && bunx tsc --emitDeclarationOnly && bun publish --access public
-cd packages/cli  && rm -rf dist && bun run build && bun publish --access public
-# Skills + prompts have no build step
-cd packages/skills  && bun publish --access public
-cd packages/prompts && bun publish --access public
-```
+Normal path: changesets handles it (see [Workspace deps](#workspace-deps) above). Push a PR with a `.changeset/*.md`, merge it, then merge the bot-opened "Version Packages" PR — `release.yml` builds + publishes automatically and creates per-package git tags (`@xera-ai/<pkg>@<version>`).
 
-**Always `bun publish`, never `npm publish`.** npm doesn't substitute `workspace:*` (we use explicit semver now, but the publish tool still differs in handling other Bun-specific fields).
-
-After publishing, verify:
+Verify after a release:
 ```bash
 curl -s https://registry.npmjs.org/@xera-ai/cli/latest | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['version'], d['dependencies'])"
 ```
+
+### Emergency / manual fallback
+
+If `release.yml` fails mid-publish or you need to re-push a specific package, dispatch `publish.yml` from the Actions tab (`workflow_dispatch`). It runs the same build-then-`bun publish` per package and skips any version already on npm.
 
 ## Spec → plan → implement
 

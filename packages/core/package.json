@@ -26,7 +26,8 @@
   ],
   "scripts": {
     "build": "bun build ./src/index.ts ./bin/internal.ts --outdir ./dist --target bun --external @playwright/test --external @xera-ai/web --external @xera-ai/http --external zod",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "bun run build"
   },
   "dependencies": {
     "zod": "4.4.3",
