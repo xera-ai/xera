@@ -2,6 +2,7 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium } from '@playwright/test';
 import { runAuthSetup, runPlaywright, stagePlaywrightState } from '@xera-ai/web';
+import { readMeta } from '../artifact/meta';
 import { generateRunId, resolveArtifactPaths } from '../artifact/paths';
 import { needsRefresh } from '../auth/refresh';
 import { readAuthState } from '../auth/state';
@@ -42,6 +43,28 @@ export async function execCmd(argv: string[]): Promise<number> {
 
   const t0 = Date.now();
   try {
+    const meta = readMeta(paths.metaPath);
+    const adapter = meta?.adapter ?? 'web';
+
+    if (adapter === 'http') {
+      if (!config.http) {
+        throw new Error('http adapter requires http config block');
+      }
+      const env = process.env['XERA_ENV'] ?? config.http.defaultEnv;
+      const { HttpAdapter } = await import('@xera-ai/http');
+      const result = await HttpAdapter.execute({
+        ticketDir: paths.ticketDir,
+        config,
+        runId,
+        env,
+      });
+      log.log({ step: 'exec.complete', runId, outcome: result.outcome, elapsedMs: Date.now() - t0 });
+      console.log(`[xera:exec] runId=${runId} outcome=${result.outcome}`);
+      // Exit 3 means "test failed" (expected vs infra error); lock released in finally
+      return result.outcome === 'PASS' ? 0 : 3;
+    }
+
+    // adapter === 'web' — existing path below unchanged
     if (!config.web) {
       throw new Error('web adapter requires web config block');
     }

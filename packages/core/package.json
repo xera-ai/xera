@@ -25,12 +25,13 @@
     "bin"
   ],
   "scripts": {
-    "build": "bun build ./src/index.ts ./bin/internal.ts --outdir ./dist --target bun --external @playwright/test --external @xera-ai/web --external zod",
+    "build": "bun build ./src/index.ts ./bin/internal.ts --outdir ./dist --target bun --external @playwright/test --external @xera-ai/web --external @xera-ai/http --external zod",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "zod": "4.4.3",
     "@xera-ai/web": "^0.2.0",
+    "@xera-ai/http": "^0.1.0",
     "@playwright/test": "1.60.0",
     "fflate": "0.8.3",
     "yaml": "2.9.0"
