@@ -133,9 +133,17 @@ function extractPomUsage(specContent: string): string[] {
 
 export async function recordScriptImpl(repoRoot: string, ticket: string): Promise<number> {
   const ticketDir = join(repoRoot, '.xera', ticket);
-  const featurePath = join(ticketDir, 'feature', `${ticket}.feature`);
-  const specPath = join(ticketDir, 'tests', `${ticket}.spec.ts`);
-  const pomDir = join(ticketDir, 'poms');
+
+  // Try new layout first, fall back to pre-v0.6 layout for backfill compatibility
+  const featurePath = existsSync(join(ticketDir, 'test.feature'))
+    ? join(ticketDir, 'test.feature')
+    : join(ticketDir, 'feature', `${ticket}.feature`);
+  const specPath = existsSync(join(ticketDir, 'spec.ts'))
+    ? join(ticketDir, 'spec.ts')
+    : join(ticketDir, 'tests', `${ticket}.spec.ts`);
+  const pomDir = existsSync(join(ticketDir, 'page-objects'))
+    ? join(ticketDir, 'page-objects')
+    : join(ticketDir, 'poms');
 
   if (!existsSync(featurePath)) {
     console.error(`[graph-record script] feature missing`);

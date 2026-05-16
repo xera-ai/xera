@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { parse as parseYaml } from 'yaml';
+import { resolveArtifactPaths } from '../artifact/paths';
 import { appendEvents } from '../graph/store';
 import type {
   Classification,
@@ -118,24 +119,24 @@ async function recordScript(repoRoot: string, ticket: string): Promise<number> {
 }
 
 async function recordExec(repoRoot: string, ticket: string, runId: string): Promise<number> {
-  const reporterPath = join(repoRoot, '.xera', ticket, 'runs', runId, 'reporter.json');
-  if (!existsSync(reporterPath)) {
-    console.error(`[graph-record exec] reporter.json missing`);
+  const { normalizedPath } = resolveArtifactPaths(repoRoot, ticket).runPath(runId);
+  if (!existsSync(normalizedPath)) {
+    console.error(`[graph-record exec] normalized.json missing`);
     return 1;
   }
-  const data = JSON.parse(readFileSync(reporterPath, 'utf8')) as {
-    scenarios: Array<{ name: string; status: 'pass' | 'fail'; runtime: number; traceId?: string }>;
+  const data = JSON.parse(readFileSync(normalizedPath, 'utf8')) as {
+    scenarios: Array<{ name: string; outcome: 'PASS' | 'FAIL' | 'SKIPPED' }>;
   };
   const events: Event[] = [];
   for (const s of data.scenarios) {
+    if (s.outcome === 'SKIPPED') continue;
     const p: RunCompletedPayload = {
       scenarioId: scenarioId(ticket, s.name),
       ticketId: ticket,
       runId,
-      status: s.status,
-      runtime: s.runtime,
+      status: s.outcome === 'PASS' ? 'pass' : 'fail',
+      runtime: 0,
     };
-    if (s.traceId) p.traceId = s.traceId;
     events.push(makeEvent('xera-exec', 'run.completed', p));
   }
   appendEvents(repoRoot, events, { skill: 'xera-exec', ticketId: ticket });
@@ -143,9 +144,10 @@ async function recordExec(repoRoot: string, ticket: string, runId: string): Prom
 }
 
 async function recordClassify(repoRoot: string, ticket: string, runId: string): Promise<number> {
-  const classifyPath = join(repoRoot, '.xera', ticket, 'runs', runId, 'classifier-output.json');
+  const { ticketDir } = resolveArtifactPaths(repoRoot, ticket);
+  const classifyPath = join(ticketDir, 'classifier-input.json');
   if (!existsSync(classifyPath)) {
-    console.error(`[graph-record classify] classifier-output.json missing`);
+    console.error(`[graph-record classify] classifier-input.json missing`);
     return 1;
   }
   const data = JSON.parse(readFileSync(classifyPath, 'utf8')) as {
