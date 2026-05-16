@@ -1,6 +1,6 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { normalizeRun } from '@xera-ai/web';
+import { readMeta } from '../artifact/meta';
 import { resolveArtifactPaths } from '../artifact/paths';
 
 export async function normalizeCmd(argv: string[]): Promise<number> {
@@ -26,6 +26,18 @@ export async function normalizeCmd(argv: string[]): Promise<number> {
     console.error(`[xera:normalize] runs/${runId} missing`);
     return 1;
   }
+
+  const meta = readMeta(paths.metaPath);
+  const adapter = meta?.adapter ?? 'web';
+
+  if (adapter === 'http') {
+    const { normalizeHttpRun } = await import('@xera-ai/http');
+    await normalizeHttpRun({ runId, runDir });
+    console.log(`[xera:normalize] wrote normalized.json (http)`);
+    return 0;
+  }
+
+  const { normalizeRun } = await import('@xera-ai/web');
   const r = await normalizeRun({ runId, runDir });
   console.log(
     `[xera:normalize] wrote normalized.json (scrubbed_fields_count=${r.scrubbed_fields_count})`,

@@ -1,0 +1,21 @@
+{
+  "runId": "gold-004",
+  "outcome": "FAIL",
+  "scenarios": [
+    {
+      "name": "create user",
+      "outcome": "FAIL",
+      "failure": { "errorMessage": "expected 201, got 429" }
+    }
+  ],
+  "http": {
+    "calls": [
+      {
+        "method": "POST",
+        "url": "/users",
+        "status": 429,
+        "respBody": { "error": "Too Many Requests" }
+      }
+    ]
+  }
+}

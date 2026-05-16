@@ -8,6 +8,7 @@ The user invoked `/xera-exec <TICKET>`. If no key, ask.
 1. Verify `.xera/{{TICKET}}/spec.ts` exists. If not: "Generate the spec first with `/xera-script {{TICKET}}`." STOP.
 
 2. Run: `bun run xera:exec {{TICKET}}`
+   `bun run xera:exec` automatically picks the runner based on `meta.json.adapter` (web or http).
    - Exit 0 → all scenarios passed.
    - Exit 1 → user/config error (lock held, missing env var). Show the error verbatim and STOP.
    - Exit 3 → test failure. This is expected; continue.

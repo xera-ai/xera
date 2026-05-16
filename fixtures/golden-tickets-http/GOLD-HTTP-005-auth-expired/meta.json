@@ -1,0 +1,5 @@
+{
+  "ticket": "GOLD-HTTP-005",
+  "adapter": "http",
+  "title": "Auth expired — 401 + expired JWT in auth file"
+}

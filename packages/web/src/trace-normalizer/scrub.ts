@@ -1,4 +1,4 @@
-import { scrubBodyJson, scrubFreeText, scrubHeaders } from './scrub-rules';
+import { scrubBodyJson, scrubFreeText, scrubHeaders } from '@xera-ai/core';
 
 export interface NormalizedNetworkEntry {
   method: string;

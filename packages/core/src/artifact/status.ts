@@ -9,6 +9,9 @@ const ClassificationEnum = z.enum([
   'FLAKY',
   'TEST_BUG',
   'TEST_OUTDATED',
+  'CONTRACT_DRIFT',
+  'RATE_LIMITED',
+  'AUTH_EXPIRED',
 ]);
 const ResultEnum = z.enum(['PASS', 'FAIL']);
 const ConfidenceEnum = z.enum(['low', 'medium', 'high']);

@@ -44,8 +44,12 @@ function seedGoodRepo(root: string): void {
     `---\nid: feature-from-story\nversion: 2.0.0\n---\n\n# h\n\n${goodPreamble}\n\n## Hard rules\nbody`,
   );
   writeFileSync(
-    join(root, 'packages/prompts/script-from-feature.md'),
-    `---\nid: script-from-feature\nversion: 2.0.0\n---\n\n# h\n\n${goodPreamble}\n\n## Hard rules\nbody`,
+    join(root, 'packages/prompts/script-from-feature-web.md'),
+    `---\nid: script-from-feature-web\nversion: 2.1.0\n---\n\n# h\n\n${goodPreamble}\n\n## Hard rules\nbody`,
+  );
+  writeFileSync(
+    join(root, 'packages/prompts/script-from-feature-http.md'),
+    `---\nname: script-from-feature-http\nversion: 1.0.0\n---\n\n# h\n\n${goodPreamble}\n\n## Hard rules\nbody`,
   );
   writeFileSync(
     join(root, 'packages/prompts/heal-locator.md'),

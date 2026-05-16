@@ -100,6 +100,96 @@ describe('XeraConfigSchema', () => {
       web: { baseUrl: { staging: 'https://x.com' }, defaultEnv: 'staging' },
       adapters: ['web'],
     });
-    expect(parsed.web.auth.strategy).toBe('none');
+    expect(parsed.web?.auth.strategy).toBe('none');
+  });
+});
+
+describe('XeraConfigSchema http block', () => {
+  test('http block validates with bearer strategy and roles', () => {
+    const parsed = XeraConfigSchema.parse({
+      jira: {
+        baseUrl: 'https://x.atlassian.net',
+        projectKeys: ['PROJ'],
+        fields: { story: 'description' },
+      },
+      http: {
+        baseUrl: { dev: 'https://api.dev.x.com' },
+        defaultEnv: 'dev',
+        auth: {
+          strategy: 'bearer',
+          roles: { admin: { tokenEnv: 'ADMIN_BEARER_TOKEN' } },
+        },
+      },
+      adapters: ['http'],
+    });
+    expect(parsed.http?.auth.strategy).toBe('bearer');
+    expect(parsed.http?.auth.roles.admin?.tokenEnv).toBe('ADMIN_BEARER_TOKEN');
+  });
+
+  test('http block rejects defaultEnv not in baseUrl', () => {
+    expect(() =>
+      XeraConfigSchema.parse({
+        jira: {
+          baseUrl: 'https://x.atlassian.net',
+          projectKeys: ['PROJ'],
+          fields: { story: 'description' },
+        },
+        http: {
+          baseUrl: { dev: 'https://api.dev.x.com' },
+          defaultEnv: 'prod',
+          auth: { strategy: 'none' },
+        },
+        adapters: ['http'],
+      }),
+    ).toThrow();
+  });
+
+  test('web becomes optional; http alone is valid', () => {
+    const parsed = XeraConfigSchema.parse({
+      jira: {
+        baseUrl: 'https://x.atlassian.net',
+        projectKeys: ['PROJ'],
+        fields: { story: 'description' },
+      },
+      http: {
+        baseUrl: { dev: 'https://api.dev.x.com' },
+        defaultEnv: 'dev',
+        auth: { strategy: 'none' },
+      },
+      adapters: ['http'],
+    });
+    expect(parsed.web).toBeUndefined();
+    expect(parsed.http).toBeDefined();
+  });
+
+  test('rejects config with neither web nor http', () => {
+    expect(() =>
+      XeraConfigSchema.parse({
+        jira: {
+          baseUrl: 'https://x.atlassian.net',
+          projectKeys: ['PROJ'],
+          fields: { story: 'description' },
+        },
+        adapters: ['web'],
+      }),
+    ).toThrow(/At least one of/);
+  });
+
+  test('rejects adapters that reference unconfigured adapter', () => {
+    expect(() =>
+      XeraConfigSchema.parse({
+        jira: {
+          baseUrl: 'https://x.atlassian.net',
+          projectKeys: ['PROJ'],
+          fields: { story: 'description' },
+        },
+        web: {
+          baseUrl: { dev: 'https://app.dev.x.com' },
+          defaultEnv: 'dev',
+          auth: { strategy: 'none' },
+        },
+        adapters: ['web', 'http'],
+      }),
+    ).toThrow(/must have a corresponding/);
   });
 });

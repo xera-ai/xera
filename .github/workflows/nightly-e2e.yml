@@ -3,7 +3,7 @@ on:
   schedule: [{ cron: '17 2 * * *' }]
   workflow_dispatch:
 jobs:
-  e2e:
+  e2e-web:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -15,13 +15,38 @@ jobs:
         run: bun run build
       - name: Install Playwright browsers
         run: bunx playwright install --with-deps chromium
-      - name: Run integration tests
-        run: bun run test:integration
+      - name: Run web integration tests
+        run: bun test packages/cli/test/integration
       - name: Upload artifacts on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: xera-e2e-artifacts
+          name: xera-e2e-web-artifacts
           path: |
             **/.xera/**/runs/**
             **/playwright-report
+
+  # v0.7: HTTP adapter end-to-end against bundled mock-api (no browser needed)
+  e2e-http:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with: { bun-version: '1.3.x' }
+      - run: bun install --frozen-lockfile
+      - name: Build workspace
+        run: bun run build
+      - name: HTTP adapter integration tests (boots mock-api)
+        env:
+          XERA_RUN_INTEGRATION: '1'
+        run: bun test packages/http/test/integration
+      - name: Classifier golden HTTP tickets
+        run: bun test packages/core/test/classifier/golden-http.test.ts
+      - name: Upload artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xera-e2e-http-artifacts
+          path: |
+            **/.xera/**/runs/**

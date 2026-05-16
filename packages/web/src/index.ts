@@ -1,3 +1,16 @@
+export {
+  CREDIT_CARD_RE,
+  EMAIL_RE,
+  EMAIL_RE_G,
+  JWT_RE,
+  PHONE_RE,
+  PHONE_RE_G,
+  SENSITIVE_BODY_KEYS,
+  SENSITIVE_HEADERS,
+  scrubBodyJson,
+  scrubFreeText,
+  scrubHeaders,
+} from '@xera-ai/core';
 export * from './adapter';
 export * from './auth-setup/define';
 export * from './auth-setup/playwright-state';
@@ -13,5 +26,4 @@ export * from './generator/typecheck';
 export * from './trace-normalizer/normalize';
 export * from './trace-normalizer/parse';
 export * from './trace-normalizer/scrub';
-export * from './trace-normalizer/scrub-rules';
 export * from './trace-normalizer/unzip';

@@ -78,6 +78,9 @@ const classification = z.enum([
   'FLAKY',
   'PASS',
   'TEST_OUTDATED',
+  'CONTRACT_DRIFT',
+  'RATE_LIMITED',
+  'AUTH_EXPIRED',
 ]);
 
 const runClassified = z

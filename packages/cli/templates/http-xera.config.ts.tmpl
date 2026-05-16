@@ -1,0 +1,25 @@
+import { defineConfig } from '@xera-ai/core';
+
+export default defineConfig({
+  adapters: ['http'],
+  jira: {
+    baseUrl: '{{jiraBaseUrl}}',
+    projectKeys: [{{#each projectKeys}}'{{this}}',{{/each}}],
+    fields: {
+      story: '{{storyField}}',
+      {{#if acceptanceCriteriaField}}acceptanceCriteria: '{{acceptanceCriteriaField}}',{{/if}}
+    },
+  },
+  http: {
+    baseUrl: { dev: '{{apiBaseUrl}}' },
+    defaultEnv: 'dev',
+    {{#if openapiPath}}spec: '{{openapiPath}}',{{/if}}
+    auth: {
+      strategy: '{{authStrategy}}',
+      roles: {
+        {{#each httpRoles}}{{this}}: { tokenEnv: '{{upper this}}_BEARER_TOKEN' },
+        {{/each}}
+      },
+    },
+  },
+});

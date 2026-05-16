@@ -59,11 +59,12 @@ A repo-local event-sourced data layer running parallel to the v0.1 artifact pipe
 
 | Package | Responsibility | Public bin |
 |---|---|---|
-| `@xera-ai/core` | Config, paths, hashing, lock, log, Jira client, classifier framework (5 buckets incl. TEST_OUTDATED), auth state, **graph module** (types, schema, store, similarity, enrich, classify, traverse, impact, render, cost) | `xera-internal` |
-| `@xera-ai/cli` | Public CLI: `init`, `doctor` | `xera` |
-| `@xera-ai/web` | Playwright adapter (executor with `--grep` support) | — |
-| `@xera-ai/skills` | Claude Code skill `.md` files (8 user-facing skills) | — |
-| `@xera-ai/prompts` | Versioned LLM prompt templates (7 templates) | — |
+| `@xera-ai/core` | Config, paths, hashing, lock, log, Jira client, classifier (8 buckets incl. v0.7 `CONTRACT_DRIFT`, `RATE_LIMITED`, `AUTH_EXPIRED`), auth state, shared scrub rules (relocated from web in v0.7), **graph module** (types, schema, store, similarity, enrich, classify, traverse, impact, render, cost) | `xera-internal` |
+| `@xera-ai/cli` | Public CLI: `init` (with `--shape web\|api\|mixed` in v0.7), `doctor` | `xera` |
+| `@xera-ai/web` | Playwright adapter (browser-driven; executor with `--grep` support) | — |
+| `@xera-ai/http` | **v0.7 NEW** — HTTP API adapter (Playwright `APIRequestContext`, no browser). Pre-auth via `defineHttpAuthSetup` + `presetHttpAuth`; runtime `newAuthedContext` for generated `spec.ts`; OpenAPI loader for schema-aware generation + `CONTRACT_DRIFT` detection | — |
+| `@xera-ai/skills` | Claude Code skill `.md` files (dispatch by `meta.json.adapter` in v0.7) | — |
+| `@xera-ai/prompts` | Versioned LLM prompt templates: `script-from-feature-web.md` + `script-from-feature-http.md` (renamed/added in v0.7) | — |
 
 ## `xera-internal` subcommands (19)
 
@@ -83,7 +84,11 @@ A repo-local event-sourced data layer running parallel to the v0.1 artifact pipe
 - `impact-prepare <TICKET>` — risk-scored impact list
 - `disputes [--since --format]` — QA dispute report
 
-**Universal:** `verify-prompts`, `doctor` (with `--auto-enrich` for CI)
+**HTTP adapter (v0.7):**
+- `auth-setup [--role <name>] [--shape web|http|all]` — pre-authenticate, writes encrypted `.xera/.auth/{web,http}/<role>.json`
+- `exec`, `normalize`, `report` extended to dispatch by `meta.json.adapter`
+
+**Universal:** `verify-prompts`, `doctor` (with `--auto-enrich` for CI; `--shape`-aware HTTP auth file + OpenAPI checks in v0.7)
 
 ## Extension model
 

@@ -2,6 +2,7 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium } from '@playwright/test';
 import { runAuthSetup, runPlaywright, stagePlaywrightState } from '@xera-ai/web';
+import { readMeta } from '../artifact/meta';
 import { generateRunId, resolveArtifactPaths } from '../artifact/paths';
 import { needsRefresh } from '../auth/refresh';
 import { readAuthState } from '../auth/state';
@@ -42,16 +43,48 @@ export async function execCmd(argv: string[]): Promise<number> {
 
   const t0 = Date.now();
   try {
+    const meta = readMeta(paths.metaPath);
+    const adapter = meta?.adapter ?? 'web';
+
+    if (adapter === 'http') {
+      if (!config.http) {
+        throw new Error('http adapter requires http config block');
+      }
+      const env = process.env['XERA_ENV'] ?? config.http.defaultEnv;
+      const { HttpAdapter } = await import('@xera-ai/http');
+      const result = await HttpAdapter.execute({
+        ticketDir: paths.ticketDir,
+        config,
+        runId,
+        env,
+      });
+      log.log({
+        step: 'exec.complete',
+        runId,
+        outcome: result.outcome,
+        elapsedMs: Date.now() - t0,
+      });
+      console.log(`[xera:exec] runId=${runId} outcome=${result.outcome}`);
+      // Exit 3 means "test failed" (expected vs infra error); lock released in finally
+      return result.outcome === 'PASS' ? 0 : 3;
+    }
+
+    // adapter === 'web' — existing path below unchanged
+    if (!config.web) {
+      throw new Error('web adapter requires web config block');
+    }
+    const webConfig = config.web;
+
     // Auth refresh per role declared in xera.config.ts
-    if (config.web.auth.strategy === 'storageState' && config.web.auth.setupScript) {
+    if (webConfig.auth.strategy === 'storageState' && webConfig.auth.setupScript) {
       const browser = await chromium.launch();
       try {
-        for (const [roleName, roleCreds] of Object.entries(config.web.auth.roles)) {
+        for (const [roleName, roleCreds] of Object.entries(webConfig.auth.roles)) {
           const entry = readAuthState(paths.authDir, roleName);
           if (
             needsRefresh(entry, {
-              ttl: config.web.auth.ttl,
-              refreshBuffer: config.web.auth.refreshBuffer,
+              ttl: webConfig.auth.ttl,
+              refreshBuffer: webConfig.auth.refreshBuffer,
             })
           ) {
             const email = process.env[roleCreds.envEmail];
@@ -65,7 +98,7 @@ export async function execCmd(argv: string[]): Promise<number> {
             await runAuthSetup({
               role: roleName,
               creds: { email, password },
-              setupScriptPath: join(cwd, config.web.auth.setupScript),
+              setupScriptPath: join(cwd, webConfig.auth.setupScript),
               authDir: paths.authDir,
               browser,
             });
@@ -80,8 +113,8 @@ export async function execCmd(argv: string[]): Promise<number> {
     // Stage Playwright storageState files at predictable paths
     // (.xera/.auth/.cache/<role>.json) — generated spec.ts references these
     // via test.use({ storageState }) when an authenticated session is needed.
-    if (config.web.auth.strategy === 'storageState') {
-      for (const roleName of Object.keys(config.web.auth.roles)) {
+    if (webConfig.auth.strategy === 'storageState') {
+      for (const roleName of Object.keys(webConfig.auth.roles)) {
         if (readAuthState(paths.authDir, roleName)) {
           stagePlaywrightState(paths.authDir, roleName);
         }
@@ -101,8 +134,8 @@ export async function execCmd(argv: string[]): Promise<number> {
     const runDir = paths.runPath(runId).runDir;
     mkdirSync(runDir, { recursive: true });
 
-    const envName = process.env.XERA_ENV ?? config.web.defaultEnv;
-    const baseURL = config.web.baseUrl[envName] ?? config.web.baseUrl[config.web.defaultEnv]!;
+    const envName = process.env.XERA_ENV ?? webConfig.defaultEnv;
+    const baseURL = webConfig.baseUrl[envName] ?? webConfig.baseUrl[webConfig.defaultEnv]!;
 
     const reportJsonPath = join(runDir, 'report.json');
 

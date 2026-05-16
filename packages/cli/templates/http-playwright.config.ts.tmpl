@@ -1,0 +1,9 @@
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './.xera',
+  testMatch: '**/spec.ts',
+  reporter: [['json', { outputFile: './.xera/last-run.json' }]],
+  use: { baseURL: process.env.XERA_BASE_URL ?? '{{apiBaseUrl}}' },
+  projects: [{ name: 'http' }],
+});

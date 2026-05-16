@@ -8,7 +8,7 @@ import {
   scrubBodyJson,
   scrubFreeText,
   scrubHeaders,
-} from '../../src/trace-normalizer/scrub-rules';
+} from '../../src/scrub/rules';
 
 describe('SENSITIVE_HEADERS', () => {
   test('includes lowercase Authorization, Cookie, etc.', () => {

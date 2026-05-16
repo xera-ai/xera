@@ -17,6 +17,7 @@ function seedPrompts(
   opts: {
     feature?: string;
     script?: string;
+    scriptHttp?: string;
     heal?: string;
     extractAreas?: string;
     similarityMatch?: string;
@@ -31,9 +32,14 @@ function seedPrompts(
       `---\nid: feature-from-story\nversion: 2.0.0\n---\n\n# header\n\n${GOOD_PREAMBLE}\n\n## Hard rules\nbody`,
   );
   writeFileSync(
-    join(dir, 'script-from-feature.md'),
+    join(dir, 'script-from-feature-web.md'),
     opts.script ??
-      `---\nid: script-from-feature\nversion: 2.0.0\n---\n\n# header\n\n${GOOD_PREAMBLE}\n\n## Hard rules\nbody`,
+      `---\nid: script-from-feature-web\nversion: 2.1.0\n---\n\n# header\n\n${GOOD_PREAMBLE}\n\n## Hard rules\nbody`,
+  );
+  writeFileSync(
+    join(dir, 'script-from-feature-http.md'),
+    opts.scriptHttp ??
+      `---\nname: script-from-feature-http\nversion: 1.0.0\n---\n\n# header\n\n${GOOD_PREAMBLE}\n\n## Hard rules\nbody`,
   );
   writeFileSync(
     join(dir, 'heal-locator.md'),
@@ -101,17 +107,34 @@ describe('verifyPrompts (pure)', () => {
     ).toBe(true);
   });
 
-  test('flags script-from-feature when a required keyword is missing', () => {
+  test('flags script-from-feature-web when a required keyword is missing', () => {
     const badPreamble = GOOD_PREAMBLE.replaceAll('injection-follow', 'something-else');
     seedPrompts(cwd, {
-      script: `---\nid: script-from-feature\nversion: 2.0.0\n---\n\n# header\n\n${badPreamble}\n\n## Hard rules\nbody`,
+      script: `---\nid: script-from-feature-web\nversion: 2.1.0\n---\n\n# header\n\n${badPreamble}\n\n## Hard rules\nbody`,
     });
     const results = verifyPrompts(cwd);
     expect(results.length).toBeGreaterThan(0);
     expect(
       results.some(
         (r) =>
-          r.message.includes('script-from-feature.md') && r.message.includes('injection-follow'),
+          r.message.includes('script-from-feature-web.md') &&
+          r.message.includes('injection-follow'),
+      ),
+    ).toBe(true);
+  });
+
+  test('flags script-from-feature-http when a required keyword is missing', () => {
+    const badPreamble = GOOD_PREAMBLE.replaceAll('injection-follow', 'something-else');
+    seedPrompts(cwd, {
+      scriptHttp: `---\nname: script-from-feature-http\nversion: 1.0.0\n---\n\n# header\n\n${badPreamble}\n\n## Hard rules\nbody`,
+    });
+    const results = verifyPrompts(cwd);
+    expect(results.length).toBeGreaterThan(0);
+    expect(
+      results.some(
+        (r) =>
+          r.message.includes('script-from-feature-http.md') &&
+          r.message.includes('injection-follow'),
       ),
     ).toBe(true);
   });
@@ -134,7 +157,7 @@ describe('verifyPrompts (pure)', () => {
   test('flags when an in-scope prompt file is missing entirely', () => {
     const dir = join(cwd, 'packages/prompts');
     mkdirSync(dir, { recursive: true });
-    // only seed feature-from-story; script-from-feature missing
+    // only seed feature-from-story; script-from-feature-web and -http missing
     writeFileSync(
       join(dir, 'feature-from-story.md'),
       `---\nid: feature-from-story\nversion: 2.0.0\n---\n\n# header\n\n${GOOD_PREAMBLE}\n\n## Hard rules\nbody`,
@@ -143,7 +166,14 @@ describe('verifyPrompts (pure)', () => {
     expect(
       results.some(
         (r) =>
-          r.message.includes('script-from-feature.md') &&
+          r.message.includes('script-from-feature-web.md') &&
+          r.message.toLowerCase().includes('missing'),
+      ),
+    ).toBe(true);
+    expect(
+      results.some(
+        (r) =>
+          r.message.includes('script-from-feature-http.md') &&
           r.message.toLowerCase().includes('missing'),
       ),
     ).toBe(true);

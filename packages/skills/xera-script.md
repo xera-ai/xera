@@ -12,7 +12,19 @@ The user invoked `/xera-script <TICKET>`. If no key, ask.
 
 3. List existing shared POMs by reading `shared/page-objects/` (every `.ts` file, parse exported class names). Pass this list to yourself as context for reuse decisions.
 
-4. Read `node_modules/@xera-ai/prompts/script-from-feature.md`. Follow its hard rules.
+4. Read `.xera/{{TICKET}}/meta.json` to get the adapter (`adapter` field). Then read the appropriate prompt template:
+
+   - If `adapter === "web"` (or missing): use `node_modules/@xera-ai/prompts/script-from-feature-web.md`.
+   - If `adapter === "http"`: use `node_modules/@xera-ai/prompts/script-from-feature-http.md`.
+
+   Follow that prompt's hard rules.
+
+   When `adapter === "http"` AND `xera.config.ts` has `http.spec` configured, additionally:
+   - Load the OpenAPI spec at `http.spec` (path or URL).
+   - Find the operation referenced by the failing Gherkin step (matching method + path).
+   - Pass the dereferenced operation schema to your generation context as the `openapi` input.
+
+   When `adapter === "http"` and no `http.spec`: pass `openapi: null` to your generation context.
 
 5. Before reading the test.feature + story.md content into your generation context, mint a fresh per-invocation nonce by running:
 
