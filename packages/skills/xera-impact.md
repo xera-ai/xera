@@ -60,11 +60,19 @@ Ask the user: `Re-run impacted scenarios?  [Y]es / [p] P0 only / [s]elect / [n]o
 
 - **[n]:** STOP. The user can inspect `.xera/impact/{{TICKET}}.md` separately.
 
-- **[Y]:** Group impacted scenarios by their owner ticket (`scenario.ticketId`). For each owner ticket, invoke `bun run xera:exec <owner-ticket>` (the existing exec subcommand). Collect the `RUN_ID` from each. Note: this re-runs the ENTIRE spec for each impacted owner, not just the impacted scenarios — Playwright doesn't natively support per-test selection from a json list without test-name regex. Acceptable for v0.6.2; precise per-scenario selection is a v0.6.x patch.
+- **[Y]:** Group impacted scenarios by their owner ticket (`scenario.ticketId`). For each owner ticket, build a regex from the impacted scenario names — e.g. `"user signs in|user resets password"` — and invoke:
 
-- **[p]:** Filter `scenarios` array to `priority === 'p0'` only, then proceed as [Y].
+  ```bash
+  bun run xera:exec <owner-ticket> --grep "<NAME_REGEX>"
+  ```
 
-- **[s]:** Show numbered list with checkboxes; let the user pick. Then proceed as [Y] with the selected subset.
+  The `--grep` flag (added in v0.6.4) makes Playwright run **only the named scenarios**, not the entire spec. Build the regex by joining `impacted[].name` with `|` and escaping any regex special characters in the names. If a scenario name contains characters like `(`, `)`, or `|`, escape them with `\\`.
+
+  Collect each invocation's `RUN_ID` and surface them in the final summary.
+
+- **[p]:** Filter to `priority === 'p0'` scenarios, then proceed as [Y] above (use `--grep` per owner ticket).
+
+- **[s]:** Show numbered list with checkboxes; let the user pick a subset. Proceed as [Y] using the selected subset for the `--grep` regex.
 
 ## Step 5 — Recommend follow-up
 

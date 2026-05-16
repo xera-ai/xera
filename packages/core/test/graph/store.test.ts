@@ -139,6 +139,62 @@ describe('deriveSnapshot', () => {
   });
 });
 
+describe('deriveSnapshot dispute aggregation', () => {
+  test('marks latest_failures[scenarioId].disputed = true when classification.disputed event present', () => {
+    const failEvent: Event = {
+      event_id: '01H7BX2NXY3R8YQR6F9TKE0001',
+      schema_version: 1,
+      ts: '2026-05-16T08:00:00Z',
+      actor: 'xera-exec',
+      type: 'run.completed',
+      payload: {
+        scenarioId: 'sc-1',
+        ticketId: 'ABC-100',
+        runId: 'r1',
+        status: 'fail',
+        runtime: 1000,
+      },
+    };
+    const disputeEvent: Event = {
+      event_id: '01H7BX2NXY3R8YQR6F9TKE0002',
+      schema_version: 1,
+      ts: '2026-05-16T09:00:00Z',
+      actor: 'xera-report',
+      type: 'classification.disputed',
+      payload: {
+        runId: 'r1',
+        scenarioId: 'sc-1',
+        originalClassification: 'TEST_OUTDATED',
+        disputedTo: 'REAL_BUG',
+        qaActor: 'qa@example.com',
+      },
+    };
+    const snap = deriveSnapshot([failEvent, disputeEvent]);
+    expect(snap.latest_failures['sc-1']).toBeDefined();
+    expect(snap.latest_failures['sc-1']!.disputed).toBe(true);
+  });
+
+  test('disputed flag stays false when no classification.disputed event for the scenario', () => {
+    const failEvent: Event = {
+      event_id: '01H7BX2NXY3R8YQR6F9TKE0003',
+      schema_version: 1,
+      ts: '2026-05-16T08:00:00Z',
+      actor: 'xera-exec',
+      type: 'run.completed',
+      payload: {
+        scenarioId: 'sc-2',
+        ticketId: 'ABC-100',
+        runId: 'r2',
+        status: 'fail',
+        runtime: 1000,
+      },
+    };
+    const snap = deriveSnapshot([failEvent]);
+    expect(snap.latest_failures['sc-2']).toBeDefined();
+    expect(snap.latest_failures['sc-2']!.disputed).toBeUndefined();
+  });
+});
+
 describe('snapshot drift', () => {
   test('isSnapshotStale true when events newer than snapshot', () => {
     appendEvents(root, [mkEvent({ event_id: '01H7BX2NXY3R8YQR6F9TKE0001' })], {

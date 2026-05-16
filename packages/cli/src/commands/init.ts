@@ -142,8 +142,8 @@ export async function initCommand(opts: { yes: boolean }): Promise<void> {
   pkg.scripts['xera:graph-snapshot'] = 'xera-internal graph-snapshot';
   pkg.scripts['xera:graph-render'] = 'xera-internal graph-render';
   pkg.dependencies = pkg.dependencies ?? {};
-  pkg.dependencies['@xera-ai/core'] = '^0.4.3';
-  pkg.dependencies['@xera-ai/web'] = '^0.2.0';
+  pkg.dependencies['@xera-ai/core'] = '^0.4.4';
+  pkg.dependencies['@xera-ai/web'] = '^0.2.1';
   pkg.dependencies['@xera-ai/prompts'] = '^2.3.0';
   pkg.devDependencies = pkg.devDependencies ?? {};
   pkg.devDependencies['@playwright/test'] = '^1.60.0';

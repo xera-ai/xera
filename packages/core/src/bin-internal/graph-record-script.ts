@@ -30,18 +30,49 @@ const mk = <T extends Event['type']>(
     payload,
   }) as Event;
 
+const P0_KEYWORDS = [
+  'log in',
+  'login',
+  'sign in',
+  'signin',
+  'sign up',
+  'signup',
+  'auth',
+  'authentic',
+  'payment',
+  'pay ',
+  'checkout',
+  'purchase',
+  'charge',
+  'password',
+  'credential',
+  'admin',
+  'permission',
+  'role',
+  'must ',
+  'critical',
+];
+
+function inferPriority(name: string, gherkin: string): 'p0' | 'p1' {
+  const haystack = `${name} ${gherkin}`.toLowerCase();
+  for (const kw of P0_KEYWORDS) {
+    if (haystack.includes(kw)) return 'p0';
+  }
+  return 'p1';
+}
+
 function parseFeature(
   text: string,
 ): Array<{ name: string; priority: 'p0' | 'p1' | 'p2'; gherkin: string }> {
   const scenarios: Array<{ name: string; priority: 'p0' | 'p1' | 'p2'; gherkin: string }> = [];
   const lines = text.split('\n');
-  let currentTagPriority: 'p0' | 'p1' | 'p2' = 'p1';
+  let explicitTag: 'p0' | 'p1' | 'p2' | null = null;
   let i = 0;
   while (i < lines.length) {
     const line = lines[i]!.trim();
     if (line.startsWith('@')) {
       const tag = line.slice(1).split(/\s+/)[0]!.toLowerCase();
-      if (tag === 'p0' || tag === 'p1' || tag === 'p2') currentTagPriority = tag;
+      if (tag === 'p0' || tag === 'p1' || tag === 'p2') explicitTag = tag;
       i++;
       continue;
     }
@@ -55,12 +86,10 @@ function parseFeature(
         !lines[i]!.trim().startsWith('@')
       )
         i++;
-      scenarios.push({
-        name,
-        priority: currentTagPriority,
-        gherkin: lines.slice(start, i).join('\n'),
-      });
-      currentTagPriority = 'p1';
+      const gherkin = lines.slice(start, i).join('\n');
+      const priority = explicitTag !== null ? explicitTag : inferPriority(name, gherkin);
+      scenarios.push({ name, priority, gherkin });
+      explicitTag = null;
       continue;
     }
     i++;

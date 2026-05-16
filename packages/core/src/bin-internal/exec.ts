@@ -15,6 +15,8 @@ export async function execCmd(argv: string[]): Promise<number> {
     console.error('[xera:exec] usage: exec <TICKET>');
     return 1;
   }
+  const grepIdx = argv.indexOf('--grep');
+  const grep = grepIdx > -1 ? argv[grepIdx + 1] : undefined;
   const cwd = process.cwd();
   const config = await loadConfig(cwd);
   const paths = resolveArtifactPaths(cwd, ticket);
@@ -117,6 +119,7 @@ export async function execCmd(argv: string[]): Promise<number> {
         // path to read.
         PLAYWRIGHT_JSON_OUTPUT_NAME: reportJsonPath,
       },
+      ...(grep && { grep }),
     });
     log.log({ step: 'exec.done', runId, exit: r.exitCode, ms: Date.now() - t0 });
 

@@ -154,6 +154,7 @@ export interface FailureNode {
   runId: string;
   traceId?: string;
   ts: string;
+  disputed?: boolean;
 }
 
 export interface EdgeRecord {
