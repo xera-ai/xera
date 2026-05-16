@@ -11,7 +11,7 @@
       <div class="logo"></div>
       <span class="title">xera graph</span>
     </div>
-    <div id="stats-bar"></div>
+    <div id="stats-bar" data-stats="{{STATS}}"></div>
     <div class="topbar-controls">
       <input type="text" id="search" placeholder="search nodes…" autocomplete="off" />
       <div class="filter-group">
