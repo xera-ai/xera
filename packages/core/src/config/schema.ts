@@ -31,6 +31,37 @@ const WebSchema = z
     path: ['defaultEnv'],
   });
 
+const HttpAuthRoleSchema = z.object({
+  tokenEnv: z.string().optional(),
+  userEnv: z.string().optional(),
+  passEnv: z.string().optional(),
+  tokenUrl: z.string().url().optional(),
+  clientIdEnv: z.string().optional(),
+  clientSecretEnv: z.string().optional(),
+  scope: z.string().optional(),
+});
+
+const HttpAuthSchema = z.object({
+  strategy: z.enum(['bearer', 'apiKey', 'basic', 'oauth-cc', 'custom', 'none']).default('none'),
+  ttl: z.string().default('8h'),
+  refreshBuffer: z.string().default('30m'),
+  roles: z.record(z.string(), HttpAuthRoleSchema).default({}),
+});
+
+const HttpSchema = z
+  .object({
+    baseUrl: z.record(z.string(), z.string().url()).refine((m) => Object.keys(m).length > 0, {
+      message: 'baseUrl must have at least one environment',
+    }),
+    defaultEnv: z.string(),
+    spec: z.string().optional(),
+    auth: HttpAuthSchema.prefault({}),
+  })
+  .refine((h) => h.baseUrl[h.defaultEnv] !== undefined, {
+    message: 'defaultEnv must exist in baseUrl map',
+    path: ['defaultEnv'],
+  });
+
 const JiraSchema = z.object({
   baseUrl: z.string().url(),
   projectKeys: z.array(z.string().min(1)).min(1),
@@ -80,13 +111,25 @@ const RunSchema = z
   })
   .prefault({});
 
-export const XeraConfigSchema = z.object({
-  jira: JiraSchema,
-  web: WebSchema,
-  ai: AISchema,
-  reporting: ReportingSchema,
-  run: RunSchema.prefault({}),
-  adapters: z.array(z.string().min(1)).min(1).default(['web']),
-});
+export const XeraConfigSchema = z
+  .object({
+    jira: JiraSchema,
+    web: WebSchema.optional(),
+    http: HttpSchema.optional(),
+    ai: AISchema,
+    reporting: ReportingSchema,
+    run: RunSchema.prefault({}),
+    adapters: z
+      .array(z.enum(['web', 'http']))
+      .min(1)
+      .default(['web']),
+  })
+  .refine((c) => c.web !== undefined || c.http !== undefined, {
+    message: 'At least one of `web` or `http` must be configured',
+  })
+  .refine((c) => c.adapters.every((a) => (a === 'web' ? c.web : c.http) !== undefined), {
+    message: 'Every adapter in `adapters` must have a corresponding config block',
+    path: ['adapters'],
+  });
 
 export type XeraConfig = z.infer<typeof XeraConfigSchema>;

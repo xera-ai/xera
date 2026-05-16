@@ -22,21 +22,23 @@ export async function runChecks(cwd: string): Promise<Check[]> {
     const cfg = await loadConfig(cwd);
     checks.push({ name: 'xera.config.ts found and valid', ok: true });
 
-    // baseUrl reachable
-    const url = cfg.web.baseUrl[cfg.web.defaultEnv]!;
-    try {
-      const r = await fetch(url, { redirect: 'manual' });
-      checks.push({
-        name: `web baseUrl '${cfg.web.defaultEnv}' reachable`,
-        ok: r.status < 500,
-        message: `${url} → ${r.status}`,
-      });
-    } catch (e) {
-      checks.push({
-        name: `web baseUrl '${cfg.web.defaultEnv}' reachable`,
-        ok: false,
-        message: String(e),
-      });
+    // baseUrl reachable (web adapter only)
+    if (cfg.web) {
+      const url = cfg.web.baseUrl[cfg.web.defaultEnv]!;
+      try {
+        const r = await fetch(url, { redirect: 'manual' });
+        checks.push({
+          name: `web baseUrl '${cfg.web.defaultEnv}' reachable`,
+          ok: r.status < 500,
+          message: `${url} → ${r.status}`,
+        });
+      } catch (e) {
+        checks.push({
+          name: `web baseUrl '${cfg.web.defaultEnv}' reachable`,
+          ok: false,
+          message: String(e),
+        });
+      }
     }
   } catch (e) {
     checks.push({
