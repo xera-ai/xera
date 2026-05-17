@@ -1,5 +1,14 @@
 # @xera-ai/web
 
+## 0.11.4
+
+### Patch Changes
+
+- [#76](https://github.com/xera-ai/xera/pull/76) [`d097516`](https://github.com/xera-ai/xera/commit/d09751623137c3bc355af27bb6d6b8fca4a7cf02) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - Use bunx instead of npx to invoke tsc in typecheckTicket, fixing reliability in bun-managed workspaces
+
+- Updated dependencies []:
+  - @xera-ai/core@0.11.4
+
 ## 0.11.3
 
 ### Patch Changes
