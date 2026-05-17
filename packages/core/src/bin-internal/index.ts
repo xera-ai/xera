@@ -9,6 +9,8 @@ import { evalPrepareCmd } from './eval-prepare';
 import { evalReportCmd } from './eval-report';
 import { execCmd } from './exec';
 import { fetchCmd } from './fetch';
+import { fillGapFinalizeCmd } from './fill-gap-finalize';
+import { fillGapPrepareCmd } from './fill-gap-prepare';
 import { graphBackfillCmd } from './graph-backfill';
 import { graphEnrichCmd } from './graph-enrich';
 import { graphQueryCmd } from './graph-query';
@@ -39,6 +41,8 @@ const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
   'eval-prepare': evalPrepareCmd,
   'eval-report': evalReportCmd,
   exec: execCmd,
+  'fill-gap-finalize': fillGapFinalizeCmd,
+  'fill-gap-prepare': fillGapPrepareCmd,
   fetch: fetchCmd,
   'graph-backfill': graphBackfillCmd,
   'graph-enrich': graphEnrichCmd,
