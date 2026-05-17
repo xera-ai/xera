@@ -5,7 +5,6 @@
     <button data-subtab="trend">Trend</button>
   </nav>
   <div data-subpanel="map" class="active">
-    <p class="subpanel-hint">SUT areas as a heat-map. Tiles are colored by status (red = UNCOVERED, amber = STALE, green = COVERED) and sorted by risk. Border glow scales with risk score.</p>
     <main id="coverage-map-canvas"></main>
   </div>
   <div data-subpanel="list" hidden>
@@ -17,4 +16,14 @@
     <p class="subpanel-hint">UNCOVERED + STALE area count over time (one point per day, latest snapshot wins).</p>
     <div id="coverage-trend-svg"></div>
   </div>
+  <aside id="cov-drawer" class="cov-drawer hidden" aria-hidden="true">
+    <header class="cov-drawer-head">
+      <div class="cov-drawer-head-text">
+        <span id="cov-drawer-status" class="cov-drawer-status"></span>
+        <h3 id="cov-drawer-title"></h3>
+      </div>
+      <button id="cov-drawer-close" aria-label="Close" type="button">&times;</button>
+    </header>
+    <div class="cov-drawer-body" id="cov-drawer-body"></div>
+  </aside>
 </section>

@@ -408,6 +408,19 @@
   ['filter-pass', 'filter-fail', 'filter-p0'].forEach((id) => {
     document.getElementById(id).onchange = applyFilters;
   });
+
+  // ── Cross-tab navigation hook (used by Coverage drawer) ───
+  window.__xeraFocus = (id) => {
+    if (!id || !nodes.get(id)) return;
+    network.unselectAll();
+    network.selectNodes([id]);
+    showPanel(id);
+    scheduleDim(id);
+    network.focus(id, {
+      scale: 1.3,
+      animation: { duration: 450, easingFunction: 'easeInOutQuad' },
+    });
+  };
 })();
 
 // v0.8.1 — top-level tab switching
@@ -468,69 +481,297 @@ function renderCoverageOnce() {
   renderCoverageMap();
 }
 
-// Task 27 — coverage map: areas as a heat-map grid
+// Task 27 — coverage map: QA action queue (3 sections + drawer)
+const COV_STATUS_THEME = {
+  UNCOVERED: { fill: '#3d1515', border: '#f87171', glow: 'rgba(239, 68, 68, 0.45)' },
+  STALE: { fill: '#3d2c0d', border: '#fbbf24', glow: 'rgba(245, 158, 11, 0.45)' },
+  COVERED: { fill: '#0d3320', border: '#34d399', glow: 'rgba(16, 185, 129, 0.4)' },
+  ATRISK: { fill: '#2a1e0a', border: '#fb923c', glow: 'rgba(251, 146, 60, 0.45)' },
+};
+
+function covEscape(s) {
+  return String(s).replace(
+    /[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+  );
+}
+
+function covTile(a, opts) {
+  const theme = COV_STATUS_THEME[opts.themeKey || a.status] || COV_STATUS_THEME.COVERED;
+  const heat = opts.heat;
+  const pulse = opts.pulse ? ' data-pulse="true"' : '';
+  const id = covEscape(a.id);
+  return (
+    `<article class="cov-tile" data-area-id="${id}" data-status="${a.status}"${pulse} ` +
+    `style="--fill:${theme.fill};--border:${theme.border};--glow:${theme.glow};--heat:${heat}" ` +
+    `tabindex="0" role="button" aria-label="${id} — ${a.status.toLowerCase()}, risk ${a.risk}">` +
+    `<header class="cov-tile-head"><span class="cov-tile-status">${opts.statusLabel || a.status.toLowerCase()}</span>` +
+    `<span class="cov-tile-risk" title="risk score">${a.risk}</span></header>` +
+    `<h4 class="cov-tile-name">${id}</h4>` +
+    `<dl class="cov-tile-meta">` +
+    `<div><dt>tickets</dt><dd>${a.breakdown.recentTickets}</dd></div>` +
+    `<div><dt>bugs</dt><dd>${a.breakdown.recentBugs}</dd></div>` +
+    `</dl></article>`
+  );
+}
+
+function covSection(opts) {
+  const tilesHtml = opts.tiles.join('');
+  const head =
+    `<header class="cov-section-head"><span class="cov-section-icon ${opts.iconClass}"></span>` +
+    `<h3 class="cov-section-title">${opts.title}</h3>` +
+    `<span class="cov-section-count">${opts.count}</span>` +
+    `<span class="cov-section-desc">${opts.desc}</span></header>`;
+  if (opts.collapsed) {
+    return `<details class="cov-section cov-section-collapsible"><summary>${head}</summary><div class="cov-grid">${tilesHtml}</div></details>`;
+  }
+  return `<section class="cov-section">${head}<div class="cov-grid">${tilesHtml}</div></section>`;
+}
+
 function renderCoverageMap() {
   const cov = window.__COVERAGE__;
-  if (!cov || !window.__GRAPH__) return;
+  if (!cov) return;
   const canvas = document.getElementById('coverage-map-canvas');
   if (!canvas) return;
-
-  const STATUS_THEME = {
-    UNCOVERED: { fill: '#3d1515', border: '#f87171', glow: 'rgba(239, 68, 68, 0.45)' },
-    STALE: { fill: '#3d2c0d', border: '#fbbf24', glow: 'rgba(245, 158, 11, 0.45)' },
-    COVERED: { fill: '#0d3320', border: '#34d399', glow: 'rgba(16, 185, 129, 0.4)' },
-  };
-
-  // Clear any previous render (subtab switching may re-invoke us)
   canvas.innerHTML = '';
 
   if (!cov.report.areas.length) {
     canvas.innerHTML =
-      '<p style="padding:48px;text-align:center;color:#64748b;font-size:13px">' +
-      'No SUT areas tracked yet — run /xera-fetch on a ticket with acceptance criteria to populate.' +
-      '</p>';
+      '<p class="cov-empty">No SUT areas tracked yet — run <code>/xera-fetch</code> on a ticket with acceptance criteria to populate.</p>';
     return;
   }
 
-  // Sort: UNCOVERED first, then STALE, then COVERED — within each by risk desc
-  const STATUS_RANK = { UNCOVERED: 0, STALE: 1, COVERED: 2 };
-  const areas = [...cov.report.areas].sort((a, b) => {
-    const r = STATUS_RANK[a.status] - STATUS_RANK[b.status];
-    if (r !== 0) return r;
-    return b.risk - a.risk;
+  const areas = cov.report.areas;
+  const needs = areas
+    .filter((a) => a.status === 'UNCOVERED' || a.status === 'STALE')
+    .sort((a, b) => b.risk - a.risk);
+  const covered = areas.filter((a) => a.status === 'COVERED').sort((a, b) => b.risk - a.risk);
+  // "At risk": top 1/3 of covered by risk (min 1, only if risk > 0)
+  const atRiskCount = covered.length ? Math.max(1, Math.ceil(covered.length / 3)) : 0;
+  const atRisk = covered.slice(0, atRiskCount).filter((a) => a.risk > 0);
+  const healthy = covered.filter((a) => !atRisk.includes(a));
+  const topRisk = areas.reduce((m, a) => (a.risk > m.risk ? a : m), areas[0]);
+  const maxRisk = Math.max(...areas.map((a) => a.risk), 1);
+  const heatFor = (a) => 0.35 + 0.65 * (a.risk / maxRisk);
+
+  // Summary bar
+  const urgent = needs.length ? ' cov-summary-stat-urgent' : '';
+  const summary =
+    `<div class="cov-summary">` +
+    `<div class="cov-summary-stat${urgent}"><span class="cov-summary-num">${needs.length}</span><span class="cov-summary-label">need action</span></div>` +
+    `<div class="cov-summary-divider"></div>` +
+    `<div class="cov-summary-stat"><span class="cov-summary-num">${atRisk.length}</span><span class="cov-summary-label">at risk</span></div>` +
+    `<div class="cov-summary-divider"></div>` +
+    `<div class="cov-summary-stat"><span class="cov-summary-num">${healthy.length}</span><span class="cov-summary-label">healthy</span></div>` +
+    `<div class="cov-summary-top">` +
+    `<span class="cov-summary-top-label">top risk</span>` +
+    `<button class="cov-summary-top-btn" data-area-id="${covEscape(topRisk.id)}">${covEscape(topRisk.id)} <span class="cov-summary-top-risk">${topRisk.risk}</span></button>` +
+    `</div>` +
+    `</div>`;
+
+  let html = summary;
+
+  if (needs.length) {
+    const tiles = needs.map((a, idx) =>
+      covTile(a, { heat: heatFor(a), pulse: idx === 0 && a.risk > 0 }),
+    );
+    html += covSection({
+      title: 'Needs attention',
+      desc: 'Write new tests or refresh stale ones',
+      iconClass: 'cov-section-icon-urgent',
+      count: needs.length,
+      tiles,
+    });
+  }
+
+  if (atRisk.length) {
+    const tiles = atRisk.map((a) =>
+      covTile(a, {
+        themeKey: 'ATRISK',
+        statusLabel: 'at risk',
+        heat: heatFor(a),
+      }),
+    );
+    html += covSection({
+      title: 'At risk',
+      desc: 'Covered, but recently changed — re-run scenarios after each merge',
+      iconClass: 'cov-section-icon-warn',
+      count: atRisk.length,
+      tiles,
+    });
+  }
+
+  if (healthy.length) {
+    const tiles = healthy.map((a) => covTile(a, { heat: heatFor(a) }));
+    html += covSection({
+      title: 'Healthy',
+      desc: 'Low recent activity, well-covered',
+      iconClass: 'cov-section-icon-ok',
+      count: healthy.length,
+      tiles,
+      collapsed: needs.length > 0 || atRisk.length > 0, // collapse if there's anything actionable above
+    });
+  }
+
+  canvas.innerHTML = html;
+  attachCovHandlers();
+}
+
+// ── Coverage drawer ──────────────────────────────────────
+function attachCovHandlers() {
+  document.querySelectorAll('.cov-tile').forEach((t) => {
+    t.addEventListener('click', () => openCovDrawer(t.dataset.areaId));
+    t.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openCovDrawer(t.dataset.areaId);
+      }
+    });
+  });
+  document.querySelectorAll('.cov-summary-top-btn').forEach((b) => {
+    b.addEventListener('click', () => openCovDrawer(b.dataset.areaId));
+  });
+  const closeBtn = document.getElementById('cov-drawer-close');
+  if (closeBtn && !closeBtn.dataset.bound) {
+    closeBtn.dataset.bound = '1';
+    closeBtn.addEventListener('click', closeCovDrawer);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeCovDrawer();
+    });
+  }
+}
+
+function openCovDrawer(areaId) {
+  const cov = window.__COVERAGE__;
+  const graph = window.__GRAPH__;
+  if (!cov || !graph) return;
+  const area = cov.report.areas.find((a) => a.id === areaId);
+  if (!area) return;
+
+  const drawer = document.getElementById('cov-drawer');
+  const status = document.getElementById('cov-drawer-status');
+  const title = document.getElementById('cov-drawer-title');
+  const body = document.getElementById('cov-drawer-body');
+  if (!drawer || !status || !title || !body) return;
+
+  const theme = COV_STATUS_THEME[area.status] || COV_STATUS_THEME.COVERED;
+  status.textContent = area.status.toLowerCase();
+  status.style.color = theme.border;
+  status.style.background = `${theme.fill}`;
+  status.style.borderColor = theme.border;
+  title.textContent = area.id;
+
+  // Find connected nodes (1-hop) from graph
+  const connected = new Set();
+  for (const e of graph.edges) {
+    if (e.from === areaId) connected.add(e.to);
+    if (e.to === areaId) connected.add(e.from);
+  }
+  const nodesById = {};
+  for (const n of graph.nodes) nodesById[n.id] = n;
+  const connectedTickets = [...connected].filter((id) => nodesById[id]?.group === 'Ticket');
+  const connectedScenarios = [...connected].filter((id) => nodesById[id]?.group === 'Scenario');
+
+  const passCount = connectedScenarios.filter((id) => nodesById[id]?.color !== '#EF4444').length;
+  const failCount = connectedScenarios.length - passCount;
+
+  // AC gaps among connected tickets
+  const acGaps = (cov.report.tickets || []).filter(
+    (t) => connectedTickets.includes(t.id) && t.unsatisfiedAcs?.length,
+  );
+
+  const riskBreakdown = `
+    <section class="cov-drawer-section">
+      <h4>Risk breakdown</h4>
+      <div class="cov-drawer-risk">
+        <div class="cov-drawer-risk-num">${area.risk}</div>
+        <ul class="cov-drawer-risk-meta">
+          <li><span>${area.breakdown.recentTickets}</span> recent tickets</li>
+          <li><span>${area.breakdown.recentBugs}</span> recent bugs</li>
+          ${area.breakdown.criticalBoost ? '<li class="cov-drawer-risk-crit">⚠ critical area</li>' : ''}
+        </ul>
+      </div>
+    </section>`;
+
+  const scenariosSection = connectedScenarios.length
+    ? `<section class="cov-drawer-section">
+        <h4>Scenarios <span class="cov-drawer-count">${connectedScenarios.length}</span></h4>
+        <div class="cov-drawer-pillrow">
+          ${passCount ? `<span class="cov-drawer-pill cov-pill-pass">${passCount} passing</span>` : ''}
+          ${failCount ? `<span class="cov-drawer-pill cov-pill-fail">${failCount} failing</span>` : ''}
+        </div>
+        <ul class="cov-drawer-list">
+          ${connectedScenarios
+            .map((id) => {
+              const n = nodesById[id];
+              const fail = n?.color === '#EF4444';
+              return `<li><button class="cov-drawer-item" data-focus-id="${covEscape(id)}"><i class="cov-dot ${fail ? 'cov-dot-fail' : 'cov-dot-pass'}"></i><span>${covEscape(n?.label || id)}</span></button></li>`;
+            })
+            .join('')}
+        </ul>
+      </section>`
+    : '';
+
+  const ticketsSection = connectedTickets.length
+    ? `<section class="cov-drawer-section">
+        <h4>Tickets touching this area <span class="cov-drawer-count">${connectedTickets.length}</span></h4>
+        <ul class="cov-drawer-list">
+          ${connectedTickets
+            .map((id) => {
+              const n = nodesById[id];
+              return `<li><button class="cov-drawer-item" data-focus-id="${covEscape(id)}"><i class="cov-dot cov-dot-ticket"></i><span>${covEscape(id)}${n?.title ? ` — ${covEscape(n.title.replace(/^[A-Z]+-\d+\s*[—–-]\s*/, ''))}` : ''}</span></button></li>`;
+            })
+            .join('')}
+        </ul>
+      </section>`
+    : '';
+
+  const acSection = acGaps.length
+    ? `<section class="cov-drawer-section">
+        <h4>AC gaps <span class="cov-drawer-count">${acGaps.reduce((s, t) => s + t.unsatisfiedAcs.length, 0)}</span></h4>
+        <ul class="cov-drawer-list cov-drawer-list-stack">
+          ${acGaps
+            .map(
+              (t) =>
+                `<li><div class="cov-drawer-ac"><strong>${covEscape(t.id)}</strong> — ${t.satisfiedCount}/${t.acCount} covered<div class="cov-drawer-ac-tags">${t.unsatisfiedAcs.map((ac) => `<span class="cov-drawer-ac-tag">AC-${ac.index}</span>`).join('')}</div></div></li>`,
+            )
+            .join('')}
+        </ul>
+      </section>`
+    : '';
+
+  const actions = `
+    <section class="cov-drawer-actions">
+      <button class="cov-drawer-action" data-focus-id="${covEscape(area.id)}">
+        <span>View in graph</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>
+      </button>
+    </section>`;
+
+  body.innerHTML = riskBreakdown + scenariosSection + ticketsSection + acSection + actions;
+
+  // Wire focus buttons → switch to Knowledge tab and select node
+  body.querySelectorAll('[data-focus-id]').forEach((b) => {
+    b.addEventListener('click', () => {
+      const id = b.dataset.focusId;
+      closeCovDrawer();
+      const knowledgeBtn = document.querySelector('.toplevel-tabs button[data-tab="knowledge"]');
+      if (knowledgeBtn && !knowledgeBtn.classList.contains('active')) knowledgeBtn.click();
+      requestAnimationFrame(() => {
+        if (typeof window.__xeraFocus === 'function') window.__xeraFocus(id);
+      });
+    });
   });
 
-  const maxRisk = Math.max(...areas.map((a) => a.risk), 1);
+  drawer.classList.remove('hidden');
+  drawer.setAttribute('aria-hidden', 'false');
+}
 
-  const tiles = areas
-    .map((a) => {
-      const theme = STATUS_THEME[a.status] || STATUS_THEME.COVERED;
-      const heat = 0.35 + 0.65 * (a.risk / maxRisk); // 0.35–1.0
-      return `
-        <article class="cov-tile" data-status="${a.status}" style="--fill:${theme.fill};--border:${theme.border};--glow:${theme.glow};--heat:${heat}">
-          <header class="cov-tile-head">
-            <span class="cov-tile-status">${a.status.toLowerCase()}</span>
-            <span class="cov-tile-risk" title="risk score">${a.risk}</span>
-          </header>
-          <h4 class="cov-tile-name">${a.id}</h4>
-          <dl class="cov-tile-meta">
-            <div><dt>tickets</dt><dd>${a.breakdown.recentTickets}</dd></div>
-            <div><dt>bugs</dt><dd>${a.breakdown.recentBugs}</dd></div>
-          </dl>
-        </article>`;
-    })
-    .join('');
-
-  // Legend
-  const legend = `
-    <div class="cov-legend">
-      <span><i class="cov-dot" style="--c:#ef4444"></i>uncovered</span>
-      <span><i class="cov-dot" style="--c:#f59e0b"></i>stale</span>
-      <span><i class="cov-dot" style="--c:#10b981"></i>covered</span>
-      <span class="cov-legend-hint">size & glow ∝ risk</span>
-    </div>`;
-
-  canvas.innerHTML = legend + `<div class="cov-grid">${tiles}</div>`;
+function closeCovDrawer() {
+  const drawer = document.getElementById('cov-drawer');
+  if (!drawer) return;
+  drawer.classList.add('hidden');
+  drawer.setAttribute('aria-hidden', 'true');
 }
 
 // Task 28 — coverage list: sortable area + AC gap tables
