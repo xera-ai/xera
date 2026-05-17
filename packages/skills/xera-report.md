@@ -65,14 +65,15 @@ For every scenario in `classifier-input.json` whose `outcome === "FAIL"`:
 
 **If lazy similarity is needed** (a candidate ticket exists but has no `similar` edges and is hot for many scenarios):
 
-1. Read `node_modules/@xera-ai/prompts/similarity-match.md`. Follow its rules to produce a JSON object `{ "similar": [{ "ticketId": "...", "confidence": 0.0–1.0, "reason": "..." }] }`. Write that object to `.xera/<CANDIDATE>/enrichment-input.json`.
-2. Then run:
+1. **Pre-check**: confirm `<CANDIDATE>` is in the graph by running `bun run xera:graph-query --ticket <CANDIDATE> --format json`. If the response lacks a `tickets.<CANDIDATE>` entry, skip lazy similarity for this candidate — `xera:graph-enrich` will refuse a ticket that hasn't been fetched and will give you the actionable error directly.
+2. Read `node_modules/@xera-ai/prompts/similarity-match.md`. Follow its rules to produce a JSON object `{ "similar": [{ "ticketId": "...", "confidence": 0.0–1.0, "reason": "..." }] }`. Use the **Write tool** to create `.xera/<CANDIDATE>/enrichment-input.json` (Write auto-creates parent directories — important because the candidate dir may not exist locally yet).
+3. Then run:
 
 ```bash
 bun run xera:graph-enrich --ticket <CANDIDATE>
 ```
 
-This populates `similar` edges so future graph queries are richer. Skip entirely if not needed.
+This populates `similar` edges so future graph queries are richer. The CLI deletes `enrichment-input.json` after a successful enrich, so stale similarity data can't accidentally re-drive enrich on a later invocation. Skip the entire lazy-similarity sub-flow if not needed.
 
 4a. **Heal sub-flow (only if SELECTOR_DRIFT present).** If the user passed `--no-heal` in the invocation, skip this entire sub-flow and proceed directly to step 5.
 

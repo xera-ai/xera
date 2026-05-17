@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { enrichTicket } from '../../src/graph/enrich';
@@ -109,5 +109,25 @@ describe('enrichTicket', () => {
   test('throws if enrichment-input.json missing', async () => {
     seedTicket('ABC-100');
     await expect(enrichTicket(root, 'ABC-100', {})).rejects.toThrow(/enrichment-input.json/);
+  });
+
+  test('throws actionable error when ticket not in graph (before file check)', async () => {
+    // No seedTicket call — the candidate is not in the graph at all.
+    // The error should point at /xera-fetch, not at the missing file.
+    await expect(enrichTicket(root, 'ABC-999', {})).rejects.toThrow(
+      /not in graph.*\/xera-fetch ABC-999/,
+    );
+  });
+
+  test('removes enrichment-input.json after a successful enrich', async () => {
+    seedTicket('ABC-100');
+    seedTicket('ABC-200');
+    writeEnrichmentInput('ABC-100', [
+      { ticketId: 'ABC-200', confidence: 0.85, reason: 'cleanup test' },
+    ]);
+    const inputPath = join(root, '.xera', 'ABC-100', 'enrichment-input.json');
+    expect(existsSync(inputPath)).toBe(true);
+    await enrichTicket(root, 'ABC-100', {});
+    expect(existsSync(inputPath)).toBe(false);
   });
 });
