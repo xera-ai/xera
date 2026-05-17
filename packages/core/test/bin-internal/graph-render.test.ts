@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { graphRenderCmd } from '../../src/bin-internal/graph-render';
@@ -114,5 +114,50 @@ describe('graph-render', () => {
     const exit = await graphRenderCmd([]);
     expect(exit).toBe(0);
     expect(existsSync(join(root, '.xera/graph.html'))).toBe(true);
+  });
+
+  test('--include-coverage embeds coverage data when report.json present', async () => {
+    mkdirSync(join(root, '.xera/coverage'), { recursive: true });
+    writeFileSync(
+      join(root, '.xera/coverage/report.json'),
+      JSON.stringify({
+        generatedAt: '2026-05-17T10:00:00.000Z',
+        windowDays: 30,
+        areas: [
+          {
+            id: 'checkout',
+            status: 'UNCOVERED',
+            risk: 1,
+            breakdown: { recentTickets: 1, recentBugs: 0, criticalBoost: 1 },
+          },
+        ],
+        tickets: [],
+        acBackfillNeeded: false,
+      }),
+    );
+    const exit = await graphRenderCmd(['--include-coverage', '--out', join(root, 'out.html')]);
+    expect(exit).toBe(0);
+    const html = readFileSync(join(root, 'out.html'), 'utf8');
+    expect(html).toContain('data-tab="coverage"');
+    expect(html).toContain('coverage-map-canvas');
+    expect(html).toContain('UNCOVERED');
+  });
+
+  test('without --include-coverage, no coverage tab even if report.json exists', async () => {
+    mkdirSync(join(root, '.xera/coverage'), { recursive: true });
+    writeFileSync(
+      join(root, '.xera/coverage/report.json'),
+      JSON.stringify({
+        generatedAt: '2026-05-17T10:00:00.000Z',
+        windowDays: 30,
+        areas: [],
+        tickets: [],
+        acBackfillNeeded: false,
+      }),
+    );
+    const exit = await graphRenderCmd(['--out', join(root, 'out.html')]);
+    expect(exit).toBe(0);
+    const html = readFileSync(join(root, 'out.html'), 'utf8');
+    expect(html).not.toContain('data-tab="coverage"');
   });
 });
