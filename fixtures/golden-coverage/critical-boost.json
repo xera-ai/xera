@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-17T10:00:00.000Z",
+  "event_count": 0,
+  "events_hash": "sha256:",
+  "tickets": {
+    "PROJ-A": {
+      "id": "PROJ-A",
+      "summary": "x",
+      "ac": [],
+      "storyHash": "h",
+      "modifiesAreas": ["checkout"],
+      "fetchedAt": "2026-05-15T10:00:00.000Z"
+    },
+    "PROJ-B": {
+      "id": "PROJ-B",
+      "summary": "y",
+      "ac": [],
+      "storyHash": "h",
+      "modifiesAreas": ["admin"],
+      "fetchedAt": "2026-05-15T10:00:00.000Z"
+    }
+  },
+  "scenarios": {},
+  "poms": {},
+  "areas": { "checkout": { "id": "checkout" }, "admin": { "id": "admin" } },
+  "edges": [
+    {
+      "kind": "modifies",
+      "from": "PROJ-A",
+      "to": "checkout",
+      "source": "xera-fetch",
+      "discoveredAt": "2026-05-15T10:00:00.000Z"
+    },
+    {
+      "kind": "modifies",
+      "from": "PROJ-B",
+      "to": "admin",
+      "source": "xera-fetch",
+      "discoveredAt": "2026-05-15T10:00:00.000Z"
+    }
+  ],
+  "latest_failures": {},
+  "acNodes": {},
+  "classifications": []
+}

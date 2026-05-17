@@ -20,4 +20,12 @@ describe('golden-coverage fixtures', () => {
     const r = buildCoverageReport(snap, DEFAULT_COVERAGE_CONFIG, now);
     expect(r).toEqual(expected as ReturnType<typeof buildCoverageReport>);
   });
+
+  test('critical-boost', () => {
+    const snap = loadSnap('critical-boost') as Snapshot;
+    const expected = loadExpected('critical-boost');
+    const config = { ...DEFAULT_COVERAGE_CONFIG, criticalAreas: ['checkout'] };
+    const r = buildCoverageReport(snap, config, now);
+    expect(r).toEqual(expected as ReturnType<typeof buildCoverageReport>);
+  });
 });
