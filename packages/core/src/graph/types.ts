@@ -102,6 +102,37 @@ export interface EdgeDiscoveredPayload {
   source: string;
 }
 
+export interface CoverageSnapshotPayload {
+  ts: string; // ISO8601
+  windowDays: number;
+  areas: Array<{
+    id: string;
+    status: 'UNCOVERED' | 'STALE' | 'COVERED';
+    risk: number;
+    breakdown: {
+      recentTickets: number;
+      recentBugs: number;
+      criticalBoost: 1 | 2;
+    };
+  }>;
+  tickets: Array<{
+    id: string;
+    acCount: number;
+    satisfiedCount: number;
+    gapScore: number;
+  }>;
+}
+
+export interface AcCoverageBackfilledPayload {
+  ts: string;
+  ticketId: string;
+  mappings: Array<{
+    scenarioId: string;
+    satisfiesAcs: number[];
+    confidence: number;
+  }>;
+}
+
 export type EventPayloadMap = {
   'ticket.fetched': TicketFetchedPayload;
   'ticket.enriched': TicketEnrichedPayload;
@@ -112,6 +143,8 @@ export type EventPayloadMap = {
   'run.classified': RunClassifiedPayload;
   'classification.disputed': ClassificationDisputedPayload;
   'edge.discovered': EdgeDiscoveredPayload;
+  'coverage.snapshot': CoverageSnapshotPayload; // NEW
+  'ac-coverage.backfilled': AcCoverageBackfilledPayload; // NEW
 };
 
 export type EventType = keyof EventPayloadMap;
