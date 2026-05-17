@@ -13,4 +13,11 @@ describe('golden-coverage fixtures', () => {
     const r = buildCoverageReport(snap, DEFAULT_COVERAGE_CONFIG, now);
     expect(r).toEqual(expected as ReturnType<typeof buildCoverageReport>);
   });
+
+  test('mixed', () => {
+    const snap = loadSnap('mixed') as Snapshot;
+    const expected = loadExpected('mixed');
+    const r = buildCoverageReport(snap, DEFAULT_COVERAGE_CONFIG, now);
+    expect(r).toEqual(expected as ReturnType<typeof buildCoverageReport>);
+  });
 });

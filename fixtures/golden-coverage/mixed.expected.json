@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-05-17T10:00:00.000Z",
+  "windowDays": 30,
+  "areas": [
+    {
+      "id": "checkout",
+      "status": "UNCOVERED",
+      "risk": 1,
+      "breakdown": { "recentTickets": 1, "recentBugs": 0, "criticalBoost": 1 }
+    },
+    {
+      "id": "search",
+      "status": "STALE",
+      "risk": 0,
+      "breakdown": { "recentTickets": 0, "recentBugs": 0, "criticalBoost": 1 }
+    },
+    {
+      "id": "login",
+      "status": "COVERED",
+      "risk": 1,
+      "breakdown": { "recentTickets": 1, "recentBugs": 0, "criticalBoost": 1 }
+    }
+  ],
+  "tickets": [
+    {
+      "id": "PROJ-101",
+      "summary": "Add Apple Pay to checkout",
+      "acCount": 2,
+      "satisfiedCount": 0,
+      "gapScore": 4,
+      "unsatisfiedAcs": [
+        { "index": 0, "text": "User selects Apple Pay" },
+        { "index": 1, "text": "Order confirms" }
+      ]
+    }
+  ],
+  "acBackfillNeeded": false
+}
