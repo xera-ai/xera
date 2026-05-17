@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { acCoverageBackfillPrepareCmd } from '../../src/bin-internal/ac-coverage-backfill-prepare';
 import { appendEvents } from '../../src/graph/store';
 import type { Event } from '../../src/graph/types';
 
-const CORE_DEFINE_PATH = '/home/user/xera/packages/core/src/config/define.ts';
+const CORE_DEFINE_PATH = resolve(__dirname, '../../src/config/define.ts');
 
 function eid(seed: string): string {
   const digits = seed
