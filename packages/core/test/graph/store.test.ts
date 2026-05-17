@@ -226,6 +226,145 @@ describe('deriveSnapshot dispute aggregation', () => {
     expect(snap.latest_failures['sc-1']!.disputed).toBe(true);
   });
 
+  test('latest_failures joins run.classified onto the failure (classified after completed)', () => {
+    const failEvent: Event = {
+      event_id: '01H7BX2NXY3R8YQR6F9TKE0010',
+      schema_version: 1,
+      ts: '2026-05-16T08:00:00Z',
+      actor: 'xera-exec',
+      type: 'run.completed',
+      payload: {
+        scenarioId: 'sc-J1',
+        ticketId: 'ABC-100',
+        runId: 'r-J1',
+        status: 'fail',
+        runtime: 1000,
+      },
+    };
+    const classifiedEvent: Event = {
+      event_id: '01H7BX2NXY3R8YQR6F9TKE0011',
+      schema_version: 1,
+      ts: '2026-05-16T08:05:00Z',
+      actor: 'xera-report',
+      type: 'run.classified',
+      payload: {
+        scenarioId: 'sc-J1',
+        runId: 'r-J1',
+        classification: 'REAL_BUG',
+        confidence: 'high',
+      },
+    };
+    const snap = deriveSnapshot([failEvent, classifiedEvent]);
+    expect(snap.latest_failures['sc-J1']!.classification).toBe('REAL_BUG');
+    expect(snap.latest_failures['sc-J1']!.confidence).toBe('high');
+  });
+
+  test('latest_failures joins run.classified onto the failure (classified before completed)', () => {
+    const classifiedEvent: Event = {
+      event_id: '01H7BX2NXY3R8YQR6F9TKE0012',
+      schema_version: 1,
+      ts: '2026-05-16T08:00:00Z',
+      actor: 'xera-report',
+      type: 'run.classified',
+      payload: {
+        scenarioId: 'sc-J2',
+        runId: 'r-J2',
+        classification: 'FLAKY',
+        confidence: 'medium',
+      },
+    };
+    const failEvent: Event = {
+      event_id: '01H7BX2NXY3R8YQR6F9TKE0013',
+      schema_version: 1,
+      ts: '2026-05-16T08:05:00Z',
+      actor: 'xera-exec',
+      type: 'run.completed',
+      payload: {
+        scenarioId: 'sc-J2',
+        ticketId: 'ABC-100',
+        runId: 'r-J2',
+        status: 'fail',
+        runtime: 500,
+      },
+    };
+    const snap = deriveSnapshot([classifiedEvent, failEvent]);
+    expect(snap.latest_failures['sc-J2']!.classification).toBe('FLAKY');
+    expect(snap.latest_failures['sc-J2']!.confidence).toBe('medium');
+  });
+
+  test('latest_failures has no classification when no run.classified event exists', () => {
+    const failEvent: Event = {
+      event_id: '01H7BX2NXY3R8YQR6F9TKE0014',
+      schema_version: 1,
+      ts: '2026-05-16T08:00:00Z',
+      actor: 'xera-exec',
+      type: 'run.completed',
+      payload: {
+        scenarioId: 'sc-J3',
+        ticketId: 'ABC-100',
+        runId: 'r-J3',
+        status: 'fail',
+        runtime: 200,
+      },
+    };
+    const snap = deriveSnapshot([failEvent]);
+    expect(snap.latest_failures['sc-J3']!.classification).toBeUndefined();
+    expect(snap.latest_failures['sc-J3']!.confidence).toBeUndefined();
+  });
+
+  test('latest_failures does not bleed classification across different runIds', () => {
+    // Run 1: fail + classified REAL_BUG
+    // Run 2: fail again with a different runId, no classification yet
+    // latest_failures should track Run 2 with no classification.
+    const events: Event[] = [
+      {
+        event_id: '01H7BX2NXY3R8YQR6F9TKE0015',
+        schema_version: 1,
+        ts: '2026-05-16T08:00:00Z',
+        actor: 'xera-exec',
+        type: 'run.completed',
+        payload: {
+          scenarioId: 'sc-J4',
+          ticketId: 'ABC-100',
+          runId: 'r-J4-a',
+          status: 'fail',
+          runtime: 200,
+        },
+      },
+      {
+        event_id: '01H7BX2NXY3R8YQR6F9TKE0016',
+        schema_version: 1,
+        ts: '2026-05-16T08:05:00Z',
+        actor: 'xera-report',
+        type: 'run.classified',
+        payload: {
+          scenarioId: 'sc-J4',
+          runId: 'r-J4-a',
+          classification: 'REAL_BUG',
+          confidence: 'high',
+        },
+      },
+      {
+        event_id: '01H7BX2NXY3R8YQR6F9TKE0017',
+        schema_version: 1,
+        ts: '2026-05-16T09:00:00Z',
+        actor: 'xera-exec',
+        type: 'run.completed',
+        payload: {
+          scenarioId: 'sc-J4',
+          ticketId: 'ABC-100',
+          runId: 'r-J4-b',
+          status: 'fail',
+          runtime: 200,
+        },
+      },
+    ];
+    const snap = deriveSnapshot(events);
+    expect(snap.latest_failures['sc-J4']!.runId).toBe('r-J4-b');
+    expect(snap.latest_failures['sc-J4']!.classification).toBeUndefined();
+    expect(snap.latest_failures['sc-J4']!.confidence).toBeUndefined();
+  });
+
   test('disputed flag stays false when no classification.disputed event for the scenario', () => {
     const failEvent: Event = {
       event_id: '01H7BX2NXY3R8YQR6F9TKE0003',
