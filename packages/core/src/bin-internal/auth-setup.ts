@@ -50,11 +50,17 @@ export async function authSetupCmd(argv: string[]): Promise<number> {
     config.web &&
     typeof mod.web === 'function'
   ) {
+    const webConfig = config.web;
+    const envName = process.env.XERA_ENV ?? webConfig.defaultEnv;
+    const baseURL =
+      process.env.XERA_BASE_URL ??
+      webConfig.baseUrl[envName] ??
+      webConfig.baseUrl[webConfig.defaultEnv];
     const { runAuthSetup } = await import('@xera-ai/web');
     const { chromium } = await import('@playwright/test');
     const browser = await chromium.launch();
     try {
-      for (const [roleName, roleCreds] of Object.entries(config.web.auth.roles)) {
+      for (const [roleName, roleCreds] of Object.entries(webConfig.auth.roles)) {
         if (opts.role && roleName !== opts.role) continue;
         const email = process.env[roleCreds.envEmail];
         const password = process.env[roleCreds.envPassword];
@@ -72,6 +78,7 @@ export async function authSetupCmd(argv: string[]): Promise<number> {
             setupScriptPath: authSetupScript,
             authDir: join(cwd, '.xera', '.auth'),
             browser,
+            ...(baseURL ? { baseURL } : {}),
           });
           console.log(`[xera:auth-setup] ✓ ${roleName}.json (web)`);
         } catch (e) {

@@ -9,6 +9,7 @@ export interface RunAuthSetupInput {
   setupScriptPath: string;
   authDir: string;
   browser: Browser;
+  baseURL?: string;
   now?: Date;
 }
 
@@ -22,7 +23,9 @@ export async function runAuthSetup(input: RunAuthSetupInput): Promise<void> {
       `Auth setup script at ${input.setupScriptPath} must export a defineAuthSetup function as default or named "web" export.`,
     );
   }
-  const context = await input.browser.newContext();
+  // baseURL lets the user write `page.goto('/login')` in shared/auth-setup.ts.
+  // playwright.config.ts isn't loaded here — Playwright is launched directly.
+  const context = await input.browser.newContext(input.baseURL ? { baseURL: input.baseURL } : {});
   try {
     const page = await context.newPage();
     const result = (await fn(page, input.role, input.creds)) ?? {};
