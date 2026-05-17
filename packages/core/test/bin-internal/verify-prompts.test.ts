@@ -22,6 +22,7 @@ function seedPrompts(
     extractAreas?: string;
     similarityMatch?: string;
     classifyOutdated?: string;
+    mapAcToScenarios?: string;
   } = {},
 ): void {
   const dir = join(root, 'packages/prompts');
@@ -60,6 +61,11 @@ function seedPrompts(
     join(dir, 'classify-outdated.md'),
     opts.classifyOutdated ??
       `---\nname: classify-outdated\nversion: 1.0.0\n---\n\n${GOOD_PREAMBLE}\n\n## Decision rules\nbody`,
+  );
+  writeFileSync(
+    join(dir, 'map-ac-to-scenarios.md'),
+    opts.mapAcToScenarios ??
+      `---\nid: map-ac-to-scenarios\nversion: 1.0.0\n---\n\n${GOOD_PREAMBLE}\n\n## Output shape\nbody`,
   );
   // Out-of-scope prompts that must NOT be validated:
   writeFileSync(
