@@ -70,10 +70,14 @@ describe('CoverageSnapshotPayload', () => {
     const payload: CoverageSnapshotPayload = {
       ts: '2026-05-17T10:00:00.000Z',
       windowDays: 30,
-      areas: [{
-        id: 'checkout', status: 'UNCOVERED', risk: 8,
-        breakdown: { recentTickets: 3, recentBugs: 2, criticalBoost: 2 },
-      }],
+      areas: [
+        {
+          id: 'checkout',
+          status: 'UNCOVERED',
+          risk: 8,
+          breakdown: { recentTickets: 3, recentBugs: 2, criticalBoost: 2 },
+        },
+      ],
       tickets: [{ id: 'PROJ-105', acCount: 5, satisfiedCount: 3, gapScore: 4 }],
     };
     expect(payload.windowDays).toBe(30);
@@ -135,8 +139,12 @@ describe('Snapshot with v0.8 projections', () => {
       generated_at: '2026-05-17T10:00:00.000Z',
       event_count: 0,
       events_hash: 'sha256:',
-      tickets: {}, scenarios: {}, poms: {}, areas: {},
-      edges: [], latest_failures: {},
+      tickets: {},
+      scenarios: {},
+      poms: {},
+      areas: {},
+      edges: [],
+      latest_failures: {},
       acNodes: {},
       classifications: [],
     };
