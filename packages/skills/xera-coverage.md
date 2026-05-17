@@ -96,14 +96,18 @@ Read `.xera/coverage/report.md` and print it verbatim to the terminal.
 
 ## Step 5 — Handle --viewer
 
-If the user passed `--viewer`, print:
+If the user passed `--viewer`, run:
+
+```bash
+bun run xera:graph-render --include-coverage
+```
+
+This regenerates `.xera/graph.html` with a top-level Coverage tab (Map / List / Trend). Print the path so the user knows where to open it:
 
 ```
-HTML viewer for coverage is planned for v0.8.1.
-For now, the report.md above is the full output.
+Coverage HTML viewer ready: .xera/graph.html
+Open in any browser. The Coverage tab is at the top right.
 ```
-
-(Plan 04 will wire `--viewer` through to `bun run xera:graph-render --include-coverage`.)
 
 ## Step 6 — Print next-step hints
 
