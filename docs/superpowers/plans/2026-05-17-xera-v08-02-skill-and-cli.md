@@ -1,41 +1,73 @@
-# xera v0.8 — Plan 02: Coverage CLI Surface & Skill
+# xera v0.8 — Plan 02: Coverage CLI Surface & Skill (REVISED)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add the `coverage.*` block to `xera.config.ts` schema, build the `coverage-prepare` xera-internal subcommand (computes report, writes JSON + markdown, optionally emits `coverage.snapshot` event), ship the `/xera-coverage` skill `.md` (default list / `--why` / `--all` / `--json` / `--viewer` flag pass-through; `--viewer` is no-op stub until Plan 04), and extend `cli/doctor` with coverage-related warnings. End state: a user in a v0.8.0-alpha project can run `/xera-coverage` and see the area-level + AC-level report. AC backfill auto-trigger is a stub here (prints a warning when `acBackfillNeeded`); Plan 03 wires up the real backfill flow.
+> **REVISION NOTE (2026-05-17):** Initial Plan 02 referenced incorrect v0.6 internals (wrong helper names, wrong `defineConfig` semantics, mismatched skill frontmatter shape, separate edge arrays in seed data). This revision uses the actual patterns from `packages/core/src/bin-internal/impact-prepare.ts` (binary template), `packages/skills/xera-impact.md` (skill template), `packages/cli/src/checks.ts` (doctor extension point), and `packages/core/src/config/schema.ts` (`.prefault({})` pattern).
 
-**Architecture:** Config schema gains an optional `coverage` block validated by Zod; defaults match `DEFAULT_COVERAGE_CONFIG` from Plan 01. The binary lives at `packages/core/src/bin-internal/coverage-prepare.ts` and follows the same args-parsing + JSON-I/O pattern as the existing `impact-prepare` binary; it imports the pure functions from `@xera-ai/core/coverage` (Plan 01 barrel). The skill is a single `packages/skills/xera-coverage.md` file that points at the binary via `bun run xera:coverage-prepare`. Doctor checks live in `packages/cli/src/commands/doctor.ts`.
+**Goal:** Add the optional `coverage` sub-schema to `XeraConfigSchema`, build the `coverage-prepare` xera-internal subcommand, ship the `/xera-coverage` skill `.md` (default list / `--why` / `--json` / `--all` / `--viewer` flag pass-through; `--viewer` is no-op stub until Plan 04), and extend `runChecks` in `packages/cli/src/checks.ts` with coverage-related checks. End state: a user in a v0.8.0-alpha project can run `/xera-coverage` and see the area-level + AC-level report. AC backfill orchestration is a stub (skill warns if `acBackfillNeeded=true`); Plan 03 wires the real flow.
 
-**Tech Stack:** TypeScript, `bun:test`, Zod, existing args-parsing utility.
+**Architecture:** Config block validated by Zod (`.prefault({})` style, parsed in `loadConfig`). Binary follows `impact-prepare.ts` exactly: `xxxCmd(argv: string[]): Promise<number>` signature, imports from `@xera-ai/core` (Plan 01 barrel) + `deriveSnapshot(loadAllEvents(repoRoot))`, writes JSON + markdown via `node:fs`, emits event via `appendEvents` helper. Subcommand is registered in `bin-internal/index.ts` `COMMANDS` map. Skill .md mirrors `xera-impact.md` frontmatter shape (just `name` + `description`). Doctor checks live in `packages/cli/src/checks.ts` `runChecks` function.
 
-**Prereqs:** Plan 01 complete (`@xera-ai/core/coverage` module exists and passes its unit tests).
+**Tech Stack:** TypeScript, `bun:test`, Zod.
 
-**Plan scope:** v0.8.0 user-facing surface for area + AC coverage reporting, minus the AC backfill orchestration. `--viewer` flag is wired through the skill but its effect (open HTML) is no-op until Plan 04 ships `graph-render --include-coverage`. Generative `/xera-fill-gap` is Plan 05.
+**Prereqs:** Plan 01 complete (`@xera-ai/core/coverage` barrel exists and exports `CoverageConfig`, `DEFAULT_COVERAGE_CONFIG`, `buildCoverageReport`, `renderMarkdown`, `buildWhyArea`, `buildWhyTicket`). The following v0.6 helpers are also used:
+
+- `deriveSnapshot(events)`, `loadAllEvents(repoRoot)`, `appendEvents(repoRoot, events, opts)` from `packages/core/src/graph/store.ts`
+- `graphPaths(repoRoot)` returns `{ snapshotFile, eventsDir, eventsMonthDir, eventFile }` from `packages/core/src/graph/paths.ts`
+- `ulid()` from `packages/core/src/graph/ulid.ts` (re-exported via `@xera-ai/core`)
+- `loadConfig(cwd)` from `packages/core/src/config/load.ts` returns `XeraConfig`
+- `XeraConfigSchema` from `packages/core/src/config/schema.ts`
+- `runChecks(cwd)` from `packages/cli/src/checks.ts`
+
+**Naming conventions (from v0.6):**
+
+| Concept | Name |
+|---|---|
+| Config type | `XeraConfig` (NOT `Config`) |
+| Config schema | `XeraConfigSchema` |
+| `defineConfig` | identity function (no Zod parse); parse happens in `loadConfig` |
+| Subcommand fn signature | `xxxCmd(argv: string[]): Promise<number>` |
+| Event shape | `{ event_id, schema_version, ts, actor, type, payload }` |
+| Event discriminator | `type` |
+| Snapshot file path | `graphPaths(cwd).snapshotFile` (NOT `paths.snapshot`) |
+| Doctor extension | `runChecks` in `packages/cli/src/checks.ts` (NOT `runDoctor`) |
+
+**Plan scope:** v0.8.0 user-facing surface for area + AC coverage reporting. `--viewer` flag is wired through skill, but the viewer effect is no-op until Plan 04 ships `graph-render --include-coverage`. AC backfill is Plan 03. Generative `/xera-fill-gap` is Plan 05.
 
 ---
 
-## Phase 11 — Config schema additions
+## Phase 11 — Config schema addition
 
-### Task 11.1: Add `CoverageConfigSchema` to config Zod schema
+### Task 11.1: Add `coverage` block to `XeraConfigSchema`
 
 **Files:**
 - Modify: `packages/core/src/config/schema.ts`
-- Test: `packages/core/test/config/schema.test.ts`
+- Test: `packages/core/test/config/schema.test.ts` (create if absent)
 
 - [ ] **Step 1: Write the failing test**
 
-Add to `packages/core/test/config/schema.test.ts`:
-
 ```ts
 import { describe, test, expect } from 'bun:test';
-import { ConfigSchema } from '../../src/config/schema';
+import { XeraConfigSchema } from '../../src/config/schema';
 
-describe('Config.coverage', () => {
-  test('coverage is optional; defaults populate when absent', () => {
-    const parsed = ConfigSchema.parse({
-      adapters: ['web'],
-      // no coverage block
-    });
+function validBase() {
+  return {
+    jira: {
+      baseUrl: 'https://example.atlassian.net',
+      projectKeys: ['PROJ'],
+      fields: { story: 'description' },
+    },
+    web: {
+      baseUrl: { local: 'http://localhost:3000' },
+      defaultEnv: 'local',
+    },
+    adapters: ['web'],
+  };
+}
+
+describe('XeraConfigSchema.coverage', () => {
+  test('coverage block is optional; defaults fill when absent', () => {
+    const parsed = XeraConfigSchema.parse(validBase());
     expect(parsed.coverage).toEqual({
       staleAfterDays: 30,
       criticalAreas: [],
@@ -44,8 +76,8 @@ describe('Config.coverage', () => {
   });
 
   test('user-supplied coverage overrides defaults', () => {
-    const parsed = ConfigSchema.parse({
-      adapters: ['web'],
+    const parsed = XeraConfigSchema.parse({
+      ...validBase(),
       coverage: {
         staleAfterDays: 14,
         criticalAreas: ['checkout', 'auth'],
@@ -59,8 +91,8 @@ describe('Config.coverage', () => {
 
   test('rejects negative staleAfterDays', () => {
     expect(() =>
-      ConfigSchema.parse({
-        adapters: ['web'],
+      XeraConfigSchema.parse({
+        ...validBase(),
         coverage: { staleAfterDays: -1 },
       }),
     ).toThrow();
@@ -68,8 +100,8 @@ describe('Config.coverage', () => {
 
   test('rejects criticalAreas containing non-slug strings', () => {
     expect(() =>
-      ConfigSchema.parse({
-        adapters: ['web'],
+      XeraConfigSchema.parse({
+        ...validBase(),
         coverage: { criticalAreas: ['Has Space'] },
       }),
     ).toThrow();
@@ -83,33 +115,38 @@ describe('Config.coverage', () => {
 cd packages/core && bun test test/config/schema.test.ts
 ```
 
-Expected: `coverage` property missing on parsed result OR validation accepts invalid input.
+Expected: `coverage` undefined on parsed object.
 
-- [ ] **Step 3: Implement schema additions**
+- [ ] **Step 3: Add `CoverageSchema` + extend `XeraConfigSchema`**
 
-Open `packages/core/src/config/schema.ts`. Near the top (after existing imports), import the slug regex if it's defined as a constant elsewhere; otherwise re-declare:
+In `packages/core/src/config/schema.ts`, BEFORE the top-level `XeraConfigSchema`:
 
 ```ts
-const AREA_SLUG_REGEX = /^[a-z0-9-]+$/;
+const CoverageSchema = z
+  .object({
+    staleAfterDays: z.number().int().positive().default(30),
+    criticalAreas: z.array(z.string().regex(/^[a-z0-9-]+$/)).default([]),
+    autoSnapshotOnCoverage: z.boolean().default(true),
+  })
+  .prefault({});
 ```
 
-Add the coverage block schema (just before the top-level `ConfigSchema`):
+In `XeraConfigSchema`'s inner `z.object({...})`, add a new property:
 
 ```ts
-const CoverageConfigSchema = z.object({
-  staleAfterDays: z.number().int().positive().default(30),
-  criticalAreas: z.array(z.string().regex(AREA_SLUG_REGEX)).default([]),
-  autoSnapshotOnCoverage: z.boolean().default(true),
-}).default({});
-```
-
-In the top-level `ConfigSchema` object, append the `coverage` property:
-
-```ts
-export const ConfigSchema = z.object({
-  // ... existing fields ...
-  coverage: CoverageConfigSchema,
-});
+export const XeraConfigSchema = z
+  .object({
+    jira: JiraSchema,
+    web: WebSchema.optional(),
+    http: HttpSchema.optional(),
+    ai: AISchema,
+    reporting: ReportingSchema,
+    run: RunSchema.prefault({}),
+    coverage: CoverageSchema,                      // NEW
+    adapters: z.array(z.enum(['web', 'http'])).min(1).default(['web']),
+  })
+  .refine((c) => c.web !== undefined || c.http !== undefined, { /* unchanged */ })
+  .refine((c) => c.adapters.every((a) => (a === 'web' ? c.web : c.http) !== undefined), { /* unchanged */ });
 ```
 
 - [ ] **Step 4: Verify pass**
@@ -118,101 +155,37 @@ export const ConfigSchema = z.object({
 cd packages/core && bun test test/config/schema.test.ts
 ```
 
-Expected: 4 new passes + existing tests still green.
+Expected: 4 passes + existing tests still green.
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add packages/core/src/config/schema.ts packages/core/test/config/schema.test.ts
-git commit -m "feat(core): add coverage config block to ConfigSchema"
+git commit -m "feat(core): add coverage block to XeraConfigSchema"
 ```
 
 ---
 
-### Task 11.2: Update `defineConfig` TypeScript signature
+## Phase 12 — `coverage-prepare` binary scaffold
 
-**Files:**
-- Modify: `packages/core/src/config/define-config.ts` (or wherever `defineConfig` is exported)
-- Test: type-only assertion in `packages/core/test/config/define-config.test.ts`
-
-- [ ] **Step 1: Write the failing test**
-
-```ts
-import { describe, test, expect } from 'bun:test';
-import { defineConfig } from '../../src/config/define-config';
-
-describe('defineConfig', () => {
-  test('accepts coverage block', () => {
-    const cfg = defineConfig({
-      adapters: ['web'],
-      coverage: {
-        criticalAreas: ['checkout'],
-      },
-    });
-    // After parsing, defaults fill in:
-    expect(cfg.coverage.staleAfterDays).toBe(30);
-    expect(cfg.coverage.criticalAreas).toEqual(['checkout']);
-  });
-});
-```
-
-- [ ] **Step 2: Verify failure**
-
-```bash
-cd packages/core && bun test test/config/define-config.test.ts
-```
-
-Expected: TypeScript error on `coverage` field (if input type is not Zod-derived).
-
-- [ ] **Step 3: Verify or update `defineConfig` to derive its input type from `ConfigSchema`**
-
-If `defineConfig` is already typed as `z.input<typeof ConfigSchema>` → `z.infer<typeof ConfigSchema>`, no change needed (it picks up the new field automatically). Otherwise, ensure:
-
-```ts
-// packages/core/src/config/define-config.ts
-import { ConfigSchema, type Config, type ConfigInput } from './schema';
-
-export type ConfigInput = z.input<typeof ConfigSchema>;
-export type Config = z.infer<typeof ConfigSchema>;
-
-export function defineConfig(input: ConfigInput): Config {
-  return ConfigSchema.parse(input);
-}
-```
-
-- [ ] **Step 4: Verify pass**
-
-```bash
-cd packages/core && bun test test/config/define-config.test.ts
-```
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add packages/core/src/config/define-config.ts packages/core/test/config/define-config.test.ts
-git commit -m "feat(core): propagate coverage block to defineConfig types"
-```
-
----
-
-## Phase 12 — `coverage-prepare` binary
-
-### Task 12.1: Stub the subcommand and register in dispatcher
+### Task 12.1: Stub the subcommand + register in dispatcher
 
 **Files:**
 - Create: `packages/core/src/bin-internal/coverage-prepare.ts`
-- Modify: `packages/core/src/bin-internal/index.ts` (or wherever subcommand dispatch lives)
+- Modify: `packages/core/src/bin-internal/index.ts`
 - Test: `packages/core/test/bin-internal/coverage-prepare.test.ts`
 
 - [ ] **Step 1: Write the failing test**
 
 ```ts
 import { describe, test, expect } from 'bun:test';
-import { runCoveragePrepare } from '../../src/bin-internal/coverage-prepare';
+import { coveragePrepareCmd } from '../../src/bin-internal/coverage-prepare';
 
 describe('coverage-prepare subcommand', () => {
-  test('exports runCoveragePrepare entry point', () => {
-    expect(typeof runCoveragePrepare).toBe('function');
+  test('exports coveragePrepareCmd that returns Promise<number>', () => {
+    expect(typeof coveragePrepareCmd).toBe('function');
+    const r = coveragePrepareCmd(['--help']);
+    expect(r).toBeInstanceOf(Promise);
   });
 });
 ```
@@ -225,67 +198,34 @@ cd packages/core && bun test test/bin-internal/coverage-prepare.test.ts
 
 Expected: module not found.
 
-- [ ] **Step 3: Stub implementation**
+- [ ] **Step 3: Stub + register**
 
 Create `packages/core/src/bin-internal/coverage-prepare.ts`:
 
 ```ts
-export type CoveragePrepareArgs = {
-  outputDir?: string;          // default: .xera/coverage
-  snapshotTs?: string;         // ISO8601 override for "now" (testing)
-  emitEvent?: boolean;         // default: from config.coverage.autoSnapshotOnCoverage
-  why?: string;                // area slug or ticket ID for drill-down
-  json?: boolean;              // print report JSON to stdout instead of writing files
-  all?: boolean;               // include COVERED section in markdown
-};
-
-export type CoveragePrepareResult = {
-  reportJsonPath: string;
-  reportMdPath: string;
-  eventPath?: string;
-};
-
-export async function runCoveragePrepare(_args: CoveragePrepareArgs): Promise<CoveragePrepareResult> {
-  throw new Error('not implemented');
+export async function coveragePrepareCmd(_argv: string[]): Promise<number> {
+  // implemented in Task 12.2+
+  console.error('[coverage-prepare] not implemented');
+  return 4;
 }
 ```
 
-Wire into the dispatcher in `packages/core/src/bin-internal/index.ts`:
+In `packages/core/src/bin-internal/index.ts`, add import + register in `COMMANDS`:
 
 ```ts
-// In the switch over subcommand name:
-case 'coverage-prepare': {
-  const args = parseCoveragePrepareArgs(process.argv.slice(3));
-  return runCoveragePrepare(args);
-}
+import { coveragePrepareCmd } from './coverage-prepare';
+
+const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
+  // ... existing entries ...
+  'coverage-prepare': coveragePrepareCmd,
+};
 ```
 
-Add CLI arg parsing helper (top of `coverage-prepare.ts` or in `bin-internal/util/`):
-
-```ts
-export function parseCoveragePrepareArgs(argv: string[]): CoveragePrepareArgs {
-  const args: CoveragePrepareArgs = {};
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a === '--output-dir') { args.outputDir = argv[++i]; }
-    else if (a === '--snapshot-ts') { args.snapshotTs = argv[++i]; }
-    else if (a === '--no-emit-event') { args.emitEvent = false; }
-    else if (a === '--why') { args.why = argv[++i]; }
-    else if (a === '--json') { args.json = true; }
-    else if (a === '--all') { args.all = true; }
-    else throw new Error(`Unknown coverage-prepare flag: ${a}`);
-  }
-  return args;
-}
-```
-
-- [ ] **Step 4: Verify the type-only test passes**
+- [ ] **Step 4: Verify pass**
 
 ```bash
 cd packages/core && bun test test/bin-internal/coverage-prepare.test.ts
 ```
-
-Expected: 1 pass.
 
 - [ ] **Step 5: Commit**
 
@@ -296,7 +236,7 @@ git commit -m "feat(core): scaffold coverage-prepare subcommand"
 
 ---
 
-### Task 12.2: Implement core flow — load graph, compute report, write JSON + markdown
+### Task 12.2: Core flow — load config + snapshot, compute report, write JSON + markdown
 
 **Files:**
 - Modify: `packages/core/src/bin-internal/coverage-prepare.ts`
@@ -305,45 +245,41 @@ git commit -m "feat(core): scaffold coverage-prepare subcommand"
 - [ ] **Step 1: Write the failing test**
 
 ```ts
-import { mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-function makeTempProject(): string {
+function makeProject(snapshotJson: object): string {
   const dir = mkdtempSync(join(tmpdir(), 'xera-coverage-'));
   mkdirSync(join(dir, '.xera', 'graph'), { recursive: true });
-  // Seed a minimal config and graph snapshot
   writeFileSync(
     join(dir, 'xera.config.ts'),
-    `import { defineConfig } from '@xera-ai/core';\nexport default defineConfig({ adapters: ['web'] });\n`,
+    `import { defineConfig } from '@xera-ai/core';\n` +
+    `export default defineConfig({\n` +
+    `  jira: { baseUrl: 'https://example.atlassian.net', projectKeys: ['PROJ'], fields: { story: 'description' } },\n` +
+    `  web: { baseUrl: { local: 'http://localhost:3000' }, defaultEnv: 'local' },\n` +
+    `  adapters: ['web'],\n` +
+    `});\n`,
   );
-  writeFileSync(
-    join(dir, '.xera', 'graph', 'snapshot.json'),
-    JSON.stringify({
-      tickets: {}, scenarios: {}, poms: {}, areas: {},
-      ticketEdges: [], scenarioPomEdges: [], pomAreaEdges: [],
-      ticketAreaEdges: [], jiraLinkEdges: [], similarEdges: [],
-      failureEdges: [], latestFailures: {},
-      acNodes: {}, satisfiesEdges: [], classificationEvents: [],
-    }),
-  );
+  // Coverage-prepare reads events (via loadAllEvents) and derives snapshot on the fly.
+  // For test fixtures, we seed events JSONL instead of snapshot.json (since deriveSnapshot
+  // is the canonical builder).
+  // Empty events => empty snapshot is fine for the smoke test.
   return dir;
 }
 
 describe('coverage-prepare end-to-end', () => {
-  test('writes report.json and report.md to .xera/coverage/', async () => {
-    const dir = makeTempProject();
+  test('writes report.json + report.md to .xera/coverage/ with empty events', async () => {
+    const dir = makeProject({});
     const prevCwd = process.cwd();
     process.chdir(dir);
     try {
-      const result = await runCoveragePrepare({
-        snapshotTs: '2026-05-17T10:00:00.000Z',
-        emitEvent: false,
-      });
-      const json = JSON.parse(readFileSync(result.reportJsonPath, 'utf8'));
+      const code = await coveragePrepareCmd(['--snapshot-ts', '2026-05-17T10:00:00.000Z', '--no-emit-event']);
+      expect(code).toBe(0);
+      const json = JSON.parse(readFileSync(join(dir, '.xera/coverage/report.json'), 'utf8'));
       expect(json.windowDays).toBe(30);
       expect(json.areas).toEqual([]);
-      const md = readFileSync(result.reportMdPath, 'utf8');
+      const md = readFileSync(join(dir, '.xera/coverage/report.md'), 'utf8');
       expect(md).toContain('Coverage report');
     } finally {
       process.chdir(prevCwd);
@@ -353,7 +289,7 @@ describe('coverage-prepare end-to-end', () => {
 });
 ```
 
-Note: this test calls `process.chdir`. **Restore in `afterEach` or `finally`** per the CLAUDE.md reflex about cwd leaks.
+Note: this test calls `process.chdir(dir)` then restores in `finally`. CLAUDE.md flags `fixtures/golden-tickets/` resolution as cwd-sensitive — restoring cwd is non-negotiable.
 
 - [ ] **Step 2: Verify failure**
 
@@ -361,41 +297,80 @@ Note: this test calls `process.chdir`. **Restore in `afterEach` or `finally`** p
 cd packages/core && bun test test/bin-internal/coverage-prepare.test.ts
 ```
 
-Expected: "not implemented".
+Expected: returns 4 / "not implemented".
 
 - [ ] **Step 3: Implement core flow**
 
-In `packages/core/src/bin-internal/coverage-prepare.ts`:
+Replace `packages/core/src/bin-internal/coverage-prepare.ts` with:
 
 ```ts
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { loadConfig } from '../config/loader';                // existing v0.6 helper
-import { buildCoverageReport, renderMarkdown, DEFAULT_COVERAGE_CONFIG } from '../coverage';
-import { resolveGraphPaths } from '../graph/paths';           // existing v0.6 helper
+import { loadConfig } from '../config/load';
+import {
+  buildCoverageReport,
+  renderMarkdown,
+  type RenderOptions,
+} from '../coverage';
+import { deriveSnapshot, loadAllEvents } from '../graph/store';
 
-const DEFAULT_OUTPUT_DIR = '.xera/coverage';
+interface ParsedArgs {
+  snapshotTs?: string;
+  emitEvent: boolean;
+  why?: string;
+  json: boolean;
+  all: boolean;
+}
 
-export async function runCoveragePrepare(args: CoveragePrepareArgs): Promise<CoveragePrepareResult> {
+function parseArgs(argv: string[]): ParsedArgs {
+  const args: ParsedArgs = { emitEvent: true, json: false, all: false };
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === '--snapshot-ts') args.snapshotTs = argv[++i];
+    else if (a === '--no-emit-event') args.emitEvent = false;
+    else if (a === '--why') args.why = argv[++i];
+    else if (a === '--json') args.json = true;
+    else if (a === '--all') args.all = true;
+    else {
+      console.error(`[coverage-prepare] unknown flag: ${a}`);
+      return { ...args, emitEvent: false };
+    }
+  }
+  return args;
+}
+
+export async function coveragePrepareCmd(argv: string[]): Promise<number> {
+  const args = parseArgs(argv);
+
   const cwd = process.cwd();
-  const config = await loadConfig(cwd);
-  const coverageCfg = { ...DEFAULT_COVERAGE_CONFIG, ...config.coverage };
+  let config;
+  try {
+    config = await loadConfig(cwd);
+  } catch (e) {
+    console.error(`[coverage-prepare] ${(e as Error).message}`);
+    return 2;
+  }
 
-  const paths = resolveGraphPaths(cwd);
-  const snapshotRaw = readFileSync(paths.snapshot, 'utf8');
-  const graph = JSON.parse(snapshotRaw);    // shape validated by buildCoverageReport callers' tests
+  const events = loadAllEvents(cwd);
+  const snap = deriveSnapshot(events);
 
   const now = args.snapshotTs ? new Date(args.snapshotTs) : new Date();
-  const report = buildCoverageReport(graph, coverageCfg, now);
+  const report = buildCoverageReport(snap, config.coverage, now);
 
-  const outDir = join(cwd, args.outputDir ?? DEFAULT_OUTPUT_DIR);
+  if (args.json) {
+    process.stdout.write(JSON.stringify(report, null, 2) + '\n');
+    return 0;
+  }
+
+  const outDir = join(cwd, '.xera/coverage');
   mkdirSync(outDir, { recursive: true });
   const reportJsonPath = join(outDir, 'report.json');
   const reportMdPath = join(outDir, 'report.md');
   writeFileSync(reportJsonPath, JSON.stringify(report, null, 2));
-  writeFileSync(reportMdPath, renderMarkdown(report));
+  const renderOpts: RenderOptions = { includeCovered: args.all };
+  writeFileSync(reportMdPath, renderMarkdown(report, renderOpts));
 
-  return { reportJsonPath, reportMdPath };
+  return 0;
 }
 ```
 
@@ -409,88 +384,14 @@ cd packages/core && bun test test/bin-internal/coverage-prepare.test.ts
 
 ```bash
 git add packages/core/src/bin-internal/coverage-prepare.ts packages/core/test/bin-internal/coverage-prepare.test.ts
-git commit -m "feat(core): coverage-prepare writes report.json + report.md"
-```
-
----
-
-### Task 12.3: `--json` flag prints report to stdout instead of writing files
-
-**Files:**
-- Modify: `packages/core/src/bin-internal/coverage-prepare.ts`
-- Modify: `packages/core/test/bin-internal/coverage-prepare.test.ts`
-
-- [ ] **Step 1: Write the failing test**
-
-```ts
-test('--json flag prints report to stdout, no files written', async () => {
-  const dir = makeTempProject();
-  const prevCwd = process.cwd();
-  process.chdir(dir);
-
-  const writeCalls: string[] = [];
-  const origWrite = process.stdout.write.bind(process.stdout);
-  // @ts-expect-error mocking
-  process.stdout.write = (chunk: string | Uint8Array) => {
-    writeCalls.push(typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString('utf8'));
-    return true;
-  };
-
-  try {
-    await runCoveragePrepare({
-      snapshotTs: '2026-05-17T10:00:00.000Z',
-      emitEvent: false,
-      json: true,
-    });
-    const stdout = writeCalls.join('');
-    expect(stdout).toContain('"windowDays": 30');
-    expect(stdout).toContain('"areas":');
-  } finally {
-    process.stdout.write = origWrite;
-    process.chdir(prevCwd);
-    rmSync(dir, { recursive: true, force: true });
-  }
-});
-```
-
-- [ ] **Step 2: Verify failure**
-
-```bash
-cd packages/core && bun test test/bin-internal/coverage-prepare.test.ts
-```
-
-Expected: stdout not captured / no JSON output.
-
-- [ ] **Step 3: Implement `--json`**
-
-In `runCoveragePrepare`, after computing `report`:
-
-```ts
-if (args.json) {
-  process.stdout.write(JSON.stringify(report, null, 2) + '\n');
-  return { reportJsonPath: '', reportMdPath: '' };
-}
-// ... existing mkdir/write flow ...
-```
-
-- [ ] **Step 4: Verify pass**
-
-```bash
-cd packages/core && bun test test/bin-internal/coverage-prepare.test.ts
-```
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add packages/core/src/bin-internal/coverage-prepare.ts packages/core/test/bin-internal/coverage-prepare.test.ts
-git commit -m "feat(core): coverage-prepare --json prints to stdout"
+git commit -m "feat(core): coverage-prepare loads snapshot + writes report.json/md"
 ```
 
 ---
 
 ## Phase 13 — `--why` drill-down
 
-### Task 13.1: `--why <area-or-ticket>` outputs drill-down markdown
+### Task 13.1: `--why <area-or-ticket>` prints drill-down to stdout
 
 **Files:**
 - Modify: `packages/core/src/bin-internal/coverage-prepare.ts`
@@ -498,101 +399,83 @@ git commit -m "feat(core): coverage-prepare --json prints to stdout"
 
 - [ ] **Step 1: Write the failing test**
 
+Add to the test file (and import a small helper to seed events):
+
 ```ts
-test('--why <area> outputs drill-down for an area', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'xera-coverage-'));
-  mkdirSync(join(dir, '.xera', 'graph'), { recursive: true });
-  writeFileSync(join(dir, 'xera.config.ts'),
-    `import { defineConfig } from '@xera-ai/core';\nexport default defineConfig({ adapters: ['web'] });\n`);
-  writeFileSync(join(dir, '.xera', 'graph', 'snapshot.json'), JSON.stringify({
-    tickets: {
-      'PROJ-1': {
-        kind: 'Ticket', id: 'PROJ-1', summary: 'Add feature',
-        acceptanceCriteria: [], storyHash: 'h', modifiesAreas: ['checkout'],
-        fetchedAt: '2026-05-15T10:00:00.000Z',
+import { appendEvents } from '../../src/graph/store';
+import type { Event } from '../../src/graph/types';
+
+function eid(seed: string): string {
+  return ('01HXYZ' + seed.replace(/[^0-9]/g, '')).padEnd(26, '0').slice(0, 26);
+}
+
+function captureStdout(fn: () => Promise<unknown>): Promise<string> {
+  const original = process.stdout.write.bind(process.stdout);
+  const captured: string[] = [];
+  (process.stdout as { write: typeof process.stdout.write }).write =
+    ((chunk: string | Uint8Array) => {
+      captured.push(typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString('utf8'));
+      return true;
+    }) as typeof process.stdout.write;
+  return fn().finally(() => {
+    (process.stdout as { write: typeof process.stdout.write }).write = original;
+  }).then(() => captured.join(''));
+}
+
+test('--why <area> prints area drill-down', async () => {
+  const dir = makeProject({});
+  const events: Event[] = [
+    {
+      event_id: eid('20260515100000a'), schema_version: 1,
+      ts: '2026-05-15T10:00:00.000Z', actor: 'test',
+      type: 'ticket.fetched',
+      payload: {
+        ticketId: 'PROJ-1', summary: 'Add feature', ac: [],
+        jiraLinks: [], storyHash: 'h', modifiesAreas: ['checkout'],
       },
     },
-    scenarios: {}, poms: {},
-    areas: { checkout: { kind: 'Area', id: 'checkout' } },
-    ticketEdges: [], scenarioPomEdges: [], pomAreaEdges: [],
-    ticketAreaEdges: [{
-      kind: 'modifies', source: 'PROJ-1', target: 'checkout',
-      discoveredAt: '2026-05-15T10:00:00.000Z', source_label: 'extract',
-    }],
-    jiraLinkEdges: [], similarEdges: [], failureEdges: [],
-    latestFailures: {}, acNodes: {}, satisfiesEdges: [], classificationEvents: [],
-  }));
+  ];
+  appendEvents(dir, events, { skill: 'fetch', ticketId: 'PROJ-1' });
   const prevCwd = process.cwd();
   process.chdir(dir);
-  const capture: string[] = [];
-  const origWrite = process.stdout.write.bind(process.stdout);
-  // @ts-expect-error mocking
-  process.stdout.write = (chunk: string | Uint8Array) => {
-    capture.push(typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString('utf8'));
-    return true;
-  };
   try {
-    await runCoveragePrepare({
-      snapshotTs: '2026-05-17T10:00:00.000Z',
-      emitEvent: false,
-      why: 'checkout',
-    });
-    const out = capture.join('');
-    expect(out).toContain('Area: checkout');
-    expect(out).toContain('UNCOVERED');
-    expect(out).toContain('PROJ-1');
+    const stdout = await captureStdout(() =>
+      coveragePrepareCmd(['--snapshot-ts', '2026-05-17T10:00:00.000Z', '--no-emit-event', '--why', 'checkout']),
+    );
+    expect(stdout).toContain('Area: checkout');
+    expect(stdout).toContain('UNCOVERED');
+    expect(stdout).toContain('PROJ-1');
   } finally {
-    process.stdout.write = origWrite;
     process.chdir(prevCwd);
     rmSync(dir, { recursive: true, force: true });
   }
 });
 
-test('--why <ticket> outputs drill-down for a ticket', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'xera-coverage-'));
-  mkdirSync(join(dir, '.xera', 'graph'), { recursive: true });
-  writeFileSync(join(dir, 'xera.config.ts'),
-    `import { defineConfig } from '@xera-ai/core';\nexport default defineConfig({ adapters: ['web'] });\n`);
-  writeFileSync(join(dir, '.xera', 'graph', 'snapshot.json'), JSON.stringify({
-    tickets: {
-      'PROJ-105': {
-        kind: 'Ticket', id: 'PROJ-105', summary: 'Add tax',
-        acceptanceCriteria: ['Subtotal shows', 'Tax shows'],
-        storyHash: 'h', modifiesAreas: [],
-        fetchedAt: '2026-05-12T10:00:00.000Z',
+test('--why <ticket-id> prints ticket drill-down', async () => {
+  const dir = makeProject({});
+  const events: Event[] = [
+    {
+      event_id: eid('20260512100000b'), schema_version: 1,
+      ts: '2026-05-12T10:00:00.000Z', actor: 'test',
+      type: 'ticket.fetched',
+      payload: {
+        ticketId: 'PROJ-105', summary: 'Add tax',
+        ac: ['Subtotal', 'Tax'],
+        jiraLinks: [], storyHash: 'h', modifiesAreas: [],
       },
     },
-    scenarios: {}, poms: {}, areas: {},
-    ticketEdges: [], scenarioPomEdges: [], pomAreaEdges: [],
-    ticketAreaEdges: [], jiraLinkEdges: [], similarEdges: [],
-    failureEdges: [], latestFailures: {},
-    acNodes: {
-      'PROJ-105#ac-0': { kind: 'AC', id: 'PROJ-105#ac-0', ticketId: 'PROJ-105', index: 0, text: 'Subtotal shows' },
-      'PROJ-105#ac-1': { kind: 'AC', id: 'PROJ-105#ac-1', ticketId: 'PROJ-105', index: 1, text: 'Tax shows' },
-    },
-    satisfiesEdges: [], classificationEvents: [],
-  }));
+  ];
+  appendEvents(dir, events, { skill: 'fetch', ticketId: 'PROJ-105' });
   const prevCwd = process.cwd();
   process.chdir(dir);
-  const capture: string[] = [];
-  const origWrite = process.stdout.write.bind(process.stdout);
-  // @ts-expect-error mocking
-  process.stdout.write = (chunk: string | Uint8Array) => {
-    capture.push(typeof chunk === 'string' ? chunk : Buffer.from(chunk).toString('utf8'));
-    return true;
-  };
   try {
-    await runCoveragePrepare({
-      snapshotTs: '2026-05-17T10:00:00.000Z',
-      emitEvent: false,
-      why: 'PROJ-105',
-    });
-    const out = capture.join('');
-    expect(out).toContain('Ticket: PROJ-105');
-    expect(out).toContain('0/2 ACs covered');
-    expect(out).toContain('✗ AC-0  Subtotal shows');
+    const stdout = await captureStdout(() =>
+      coveragePrepareCmd(['--snapshot-ts', '2026-05-17T10:00:00.000Z', '--no-emit-event', '--why', 'PROJ-105']),
+    );
+    expect(stdout).toContain('Ticket: PROJ-105');
+    expect(stdout).toContain('0/2 ACs covered');
+    expect(stdout).toContain('✗ AC-0  Subtotal');
   } finally {
-    process.stdout.write = origWrite;
     process.chdir(prevCwd);
     rmSync(dir, { recursive: true, force: true });
   }
@@ -607,20 +490,20 @@ cd packages/core && bun test test/bin-internal/coverage-prepare.test.ts
 
 - [ ] **Step 3: Implement `--why` dispatch**
 
-In `runCoveragePrepare`, after loading `graph` and `coverageCfg`:
+In `packages/core/src/bin-internal/coverage-prepare.ts`, AFTER computing `snap` and `now`, BEFORE the JSON / file-write branches, add:
 
 ```ts
 import { buildWhyArea, buildWhyTicket } from '../coverage';
 
-// Heuristic: if argument matches /^[A-Z][A-Z0-9_]*-\d+$/ → ticket; otherwise → area slug.
-const TICKET_REGEX = /^[A-Z][A-Z0-9_]*-\d+$/;
+const TICKET_RE = /^[A-Z][A-Z0-9]*-\d+$/;
 
+// ...inside coveragePrepareCmd, after `const now = ...`:
 if (args.why) {
-  const out = TICKET_REGEX.test(args.why)
-    ? buildWhyTicket(args.why, graph, coverageCfg, now)
-    : buildWhyArea(args.why, graph, coverageCfg, now);
+  const out = TICKET_RE.test(args.why)
+    ? buildWhyTicket(args.why, snap, config.coverage, now)
+    : buildWhyArea(args.why, snap, config.coverage, now);
   process.stdout.write(out);
-  return { reportJsonPath: '', reportMdPath: '' };
+  return 0;
 }
 ```
 
@@ -634,129 +517,14 @@ cd packages/core && bun test test/bin-internal/coverage-prepare.test.ts
 
 ```bash
 git add packages/core/src/bin-internal/coverage-prepare.ts packages/core/test/bin-internal/coverage-prepare.test.ts
-git commit -m "feat(core): coverage-prepare --why <area-or-ticket> drill-down"
+git commit -m "feat(core): coverage-prepare --why <area-or-ticket>"
 ```
 
 ---
 
-## Phase 14 — `--all` flag (include COVERED section)
+## Phase 14 — Snapshot event emission
 
-### Task 14.1: `renderMarkdown` accepts `includeCovered` option
-
-**Files:**
-- Modify: `packages/core/src/coverage/report.ts`
-- Modify: `packages/core/test/coverage/report.test.ts`
-- Modify: `packages/core/src/bin-internal/coverage-prepare.ts`
-- Modify: `packages/core/test/bin-internal/coverage-prepare.test.ts`
-
-- [ ] **Step 1: Write the failing test**
-
-```ts
-// In packages/core/test/coverage/report.test.ts:
-test('renderMarkdown(report, { includeCovered: true }) includes COVERED section', () => {
-  const md = renderMarkdown({
-    generatedAt: '2026-05-17T10:00:00.000Z',
-    windowDays: 30,
-    areas: [{
-      id: 'login', status: 'COVERED', risk: 0,
-      breakdown: { recentTickets: 0, recentBugs: 0, criticalBoost: 1 },
-    }],
-    tickets: [], acBackfillNeeded: false,
-  }, { includeCovered: true });
-  expect(md).toContain('COVERED');
-  expect(md).toContain('login');
-});
-
-test('renderMarkdown default omits COVERED section, shows collapsed line', () => {
-  const md = renderMarkdown({
-    generatedAt: '2026-05-17T10:00:00.000Z',
-    windowDays: 30,
-    areas: [{
-      id: 'login', status: 'COVERED', risk: 0,
-      breakdown: { recentTickets: 0, recentBugs: 0, criticalBoost: 1 },
-    }],
-    tickets: [], acBackfillNeeded: false,
-  });
-  expect(md).not.toContain('  #1');                // no area row
-  expect(md).toContain('COVERED — 1 area');         // summary count line
-  expect(md).toContain('show with --all');          // hint
-});
-```
-
-- [ ] **Step 2: Verify failure**
-
-```bash
-cd packages/core && bun test test/coverage/report.test.ts
-```
-
-- [ ] **Step 3: Extend `renderMarkdown`**
-
-In `packages/core/src/coverage/report.ts`:
-
-```ts
-export type RenderOptions = { includeCovered?: boolean };
-
-export function renderMarkdown(report: CoverageReport, options: RenderOptions = {}): string {
-  // ... existing UNCOVERED / STALE / AC GAPS rendering ...
-
-  const covered = report.areas.filter((a) => a.status === 'COVERED');
-  if (covered.length > 0) {
-    if (options.includeCovered) {
-      lines.push(`COVERED — ${covered.length} area${covered.length === 1 ? '' : 's'}`);
-      lines.push('');
-      covered.forEach((a, i) => {
-        lines.push(`  #${i + 1}  ${pad(a.id, 10)} ok`);
-      });
-      lines.push('');
-    } else {
-      lines.push(`COVERED — ${covered.length} area${covered.length === 1 ? '' : 's'} (collapsed; show with --all)`);
-      lines.push('');
-    }
-  }
-
-  return lines.join('\n');
-}
-```
-
-- [ ] **Step 4: Wire into binary**
-
-In `runCoveragePrepare`, when writing markdown:
-
-```ts
-writeFileSync(reportMdPath, renderMarkdown(report, { includeCovered: args.all === true }));
-```
-
-Add a test that the file content reflects the flag:
-
-```ts
-test('--all writes markdown with full COVERED section', async () => {
-  // ... fixture with one COVERED area ...
-  await runCoveragePrepare({
-    snapshotTs: '2026-05-17T10:00:00.000Z',
-    emitEvent: false,
-    all: true,
-  });
-  const md = readFileSync(result.reportMdPath, 'utf8');
-  expect(md).toContain('  #1');
-});
-```
-
-- [ ] **Step 5: Verify + commit**
-
-```bash
-cd packages/core && bun test test/coverage/report.test.ts test/bin-internal/coverage-prepare.test.ts
-```
-
-```bash
-git add packages/core/src/coverage/report.ts packages/core/src/bin-internal/coverage-prepare.ts packages/core/test/coverage/report.test.ts packages/core/test/bin-internal/coverage-prepare.test.ts
-git commit -m "feat(core): renderMarkdown gains includeCovered option (--all)"
-```
-
----
-
-## Phase 15 — Snapshot event emission
-
-### Task 15.1: Emit `coverage.snapshot` event JSONL after report
+### Task 14.1: Emit `coverage.snapshot` event via `appendEvents`
 
 **Files:**
 - Modify: `packages/core/src/bin-internal/coverage-prepare.ts`
@@ -765,84 +533,74 @@ git commit -m "feat(core): renderMarkdown gains includeCovered option (--all)"
 - [ ] **Step 1: Write the failing test**
 
 ```ts
-test('emits coverage.snapshot JSONL event when autoSnapshotOnCoverage=true', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'xera-coverage-'));
-  mkdirSync(join(dir, '.xera', 'graph'), { recursive: true });
-  writeFileSync(join(dir, 'xera.config.ts'),
-    `import { defineConfig } from '@xera-ai/core';\nexport default defineConfig({ adapters: ['web'], coverage: { autoSnapshotOnCoverage: true } });\n`);
-  writeFileSync(join(dir, '.xera', 'graph', 'snapshot.json'), JSON.stringify({
-    tickets: {}, scenarios: {}, poms: {}, areas: {},
-    ticketEdges: [], scenarioPomEdges: [], pomAreaEdges: [],
-    ticketAreaEdges: [], jiraLinkEdges: [], similarEdges: [],
-    failureEdges: [], latestFailures: {},
-    acNodes: {}, satisfiesEdges: [], classificationEvents: [],
-  }));
+import { readdirSync } from 'node:fs';
+
+test('emits coverage.snapshot event when emitEvent=true and config.autoSnapshotOnCoverage=true', async () => {
+  const dir = makeProject({});
   const prevCwd = process.cwd();
   process.chdir(dir);
   try {
-    const result = await runCoveragePrepare({
-      snapshotTs: '2026-05-17T10:00:00.000Z',
-    });
-    expect(result.eventPath).toBeDefined();
-    expect(result.eventPath).toContain('.xera/graph/events/2026-05/');
-    expect(result.eventPath).toContain('-coverage-');
-    expect(result.eventPath?.endsWith('.jsonl')).toBe(true);
-
-    const eventRaw = readFileSync(result.eventPath!, 'utf8');
-    const parsed = JSON.parse(eventRaw.trim());
-    expect(parsed.kind).toBe('coverage.snapshot');
-    expect(parsed.payload.windowDays).toBe(30);
+    const code = await coveragePrepareCmd(['--snapshot-ts', '2026-05-17T10:00:00.000Z']);
+    expect(code).toBe(0);
+    const monthDir = join(dir, '.xera/graph/events/2026-05');
+    const files = readdirSync(monthDir).filter((f) => f.endsWith('.jsonl'));
+    const coverageFile = files.find((f) => f.includes('-coverage-'));
+    expect(coverageFile).toBeDefined();
+    const content = readFileSync(join(monthDir, coverageFile!), 'utf8').trim();
+    const event = JSON.parse(content);
+    expect(event.type).toBe('coverage.snapshot');
+    expect(event.payload.windowDays).toBe(30);
   } finally {
     process.chdir(prevCwd);
     rmSync(dir, { recursive: true, force: true });
   }
 });
 
-test('does not emit event when --no-emit-event flag passed', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'xera-coverage-'));
-  mkdirSync(join(dir, '.xera', 'graph'), { recursive: true });
-  writeFileSync(join(dir, 'xera.config.ts'),
-    `import { defineConfig } from '@xera-ai/core';\nexport default defineConfig({ adapters: ['web'] });\n`);
-  writeFileSync(join(dir, '.xera', 'graph', 'snapshot.json'), JSON.stringify({
-    tickets: {}, scenarios: {}, poms: {}, areas: {},
-    ticketEdges: [], scenarioPomEdges: [], pomAreaEdges: [],
-    ticketAreaEdges: [], jiraLinkEdges: [], similarEdges: [],
-    failureEdges: [], latestFailures: {},
-    acNodes: {}, satisfiesEdges: [], classificationEvents: [],
-  }));
+test('does NOT emit when --no-emit-event', async () => {
+  const dir = makeProject({});
   const prevCwd = process.cwd();
   process.chdir(dir);
   try {
-    const result = await runCoveragePrepare({
-      snapshotTs: '2026-05-17T10:00:00.000Z',
-      emitEvent: false,
-    });
-    expect(result.eventPath).toBeUndefined();
+    await coveragePrepareCmd(['--snapshot-ts', '2026-05-17T10:00:00.000Z', '--no-emit-event']);
+    const monthDir = join(dir, '.xera/graph/events/2026-05');
+    let files: string[] = [];
+    try { files = readdirSync(monthDir); } catch { /* not created */ }
+    const coverageFile = files.find((f) => f.includes('-coverage-'));
+    expect(coverageFile).toBeUndefined();
   } finally {
     process.chdir(prevCwd);
     rmSync(dir, { recursive: true, force: true });
   }
 });
 
-test('does not emit when config.coverage.autoSnapshotOnCoverage=false', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'xera-coverage-'));
-  mkdirSync(join(dir, '.xera', 'graph'), { recursive: true });
-  writeFileSync(join(dir, 'xera.config.ts'),
-    `import { defineConfig } from '@xera-ai/core';\nexport default defineConfig({ adapters: ['web'], coverage: { autoSnapshotOnCoverage: false } });\n`);
-  writeFileSync(join(dir, '.xera', 'graph', 'snapshot.json'), JSON.stringify({
-    tickets: {}, scenarios: {}, poms: {}, areas: {},
-    ticketEdges: [], scenarioPomEdges: [], pomAreaEdges: [],
-    ticketAreaEdges: [], jiraLinkEdges: [], similarEdges: [],
-    failureEdges: [], latestFailures: {},
-    acNodes: {}, satisfiesEdges: [], classificationEvents: [],
-  }));
+test('does NOT emit when --why is used', async () => {
+  const dir = makeProject({});
   const prevCwd = process.cwd();
   process.chdir(dir);
   try {
-    const result = await runCoveragePrepare({
-      snapshotTs: '2026-05-17T10:00:00.000Z',
-    });
-    expect(result.eventPath).toBeUndefined();
+    await coveragePrepareCmd(['--snapshot-ts', '2026-05-17T10:00:00.000Z', '--why', 'nonexistent']);
+    const monthDir = join(dir, '.xera/graph/events/2026-05');
+    let files: string[] = [];
+    try { files = readdirSync(monthDir); } catch { /* not created */ }
+    expect(files.filter((f) => f.includes('-coverage-')).length).toBe(0);
+  } finally {
+    process.chdir(prevCwd);
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('does NOT emit when --json (machine-readable mode)', async () => {
+  const dir = makeProject({});
+  const prevCwd = process.cwd();
+  process.chdir(dir);
+  try {
+    await captureStdout(() =>
+      coveragePrepareCmd(['--snapshot-ts', '2026-05-17T10:00:00.000Z', '--json']),
+    );
+    const monthDir = join(dir, '.xera/graph/events/2026-05');
+    let files: string[] = [];
+    try { files = readdirSync(monthDir); } catch { /* not created */ }
+    expect(files.filter((f) => f.includes('-coverage-')).length).toBe(0);
   } finally {
     process.chdir(prevCwd);
     rmSync(dir, { recursive: true, force: true });
@@ -856,32 +614,28 @@ test('does not emit when config.coverage.autoSnapshotOnCoverage=false', async ()
 cd packages/core && bun test test/bin-internal/coverage-prepare.test.ts
 ```
 
-- [ ] **Step 3: Implement emission**
+- [ ] **Step 3: Implement event emission**
 
-In `runCoveragePrepare`, after writing report files, decide on event emission:
+Update `packages/core/src/bin-internal/coverage-prepare.ts`. After writing the report files, BEFORE `return 0`:
 
 ```ts
-import { ulid } from '../graph/ulid';   // existing helper
+import { appendEvents } from '../graph/store';
+import { ulid } from '../graph/ulid';
+import type { Event } from '../graph/types';
 
-// ... after writeFileSync of report.md ...
-
-const shouldEmit = args.emitEvent !== false && coverageCfg.autoSnapshotOnCoverage;
-let eventPath: string | undefined;
-if (shouldEmit) {
-  const yyyymm = now.toISOString().slice(0, 7);   // YYYY-MM
-  const eventsDir = join(cwd, '.xera', 'graph', 'events', yyyymm);
-  mkdirSync(eventsDir, { recursive: true });
-  const sessionId = process.env['XERA_SESSION_ID'] ?? 'local';
-  const id = ulid();
-  eventPath = join(eventsDir, `${id}-coverage-${sessionId}.jsonl`);
-  const event = {
-    kind: 'coverage.snapshot',
+// ...inside coveragePrepareCmd, after writing report.md, before return 0:
+if (args.emitEvent && config.coverage.autoSnapshotOnCoverage) {
+  const event: Event = {
+    event_id: ulid(),
+    schema_version: 1,
+    ts: now.toISOString(),
+    actor: 'xera-coverage',
+    type: 'coverage.snapshot',
     payload: {
       ts: now.toISOString(),
-      windowDays: coverageCfg.staleAfterDays,
+      windowDays: config.coverage.staleAfterDays,
       areas: report.areas.map((a) => ({
-        id: a.id, status: a.status, risk: a.risk,
-        breakdown: a.breakdown,
+        id: a.id, status: a.status, risk: a.risk, breakdown: a.breakdown,
       })),
       tickets: report.tickets.map((t) => ({
         id: t.id, acCount: t.acCount,
@@ -889,16 +643,11 @@ if (shouldEmit) {
       })),
     },
   };
-  // Atomic tmp + rename to mirror existing event-writer pattern
-  const tmpPath = `${eventPath}.tmp`;
-  writeFileSync(tmpPath, JSON.stringify(event) + '\n');
-  // (use fs.renameSync; importing here for completeness)
-  const { renameSync } = await import('node:fs');
-  renameSync(tmpPath, eventPath);
+  appendEvents(cwd, [event], { skill: 'coverage', ticketId: 'session', now });
 }
-
-return { reportJsonPath, reportMdPath, eventPath };
 ```
+
+Also: the existing code path that handles `--why` and `--json` must return BEFORE reaching the emission block (already does, since `--why` and `--json` early-return). Verify there are no code-flow issues.
 
 - [ ] **Step 4: Verify pass**
 
@@ -910,203 +659,300 @@ cd packages/core && bun test test/bin-internal/coverage-prepare.test.ts
 
 ```bash
 git add packages/core/src/bin-internal/coverage-prepare.ts packages/core/test/bin-internal/coverage-prepare.test.ts
-git commit -m "feat(core): coverage-prepare emits coverage.snapshot JSONL event"
+git commit -m "feat(core): coverage-prepare emits coverage.snapshot event via appendEvents"
 ```
 
 ---
 
-## Phase 16 — `/xera-coverage` skill `.md`
+## Phase 15 — `--all` flag end-to-end
 
-### Task 16.1: Author skill markdown
+The `--all` flag was wired in Task 12.2 (`RenderOptions.includeCovered = args.all`). This phase adds an end-to-end test.
+
+### Task 15.1: E2E test for `--all`
 
 **Files:**
-- Create: `packages/skills/xera-coverage.md`
-- Modify: `packages/skills/package.json` if it ships a file manifest (likely auto-exports `*.md`)
-- Test: `packages/core/test/verify-prompts/verify-prompts.test.ts` (or wherever skill manifest is asserted)
+- Modify: `packages/core/test/bin-internal/coverage-prepare.test.ts`
 
 - [ ] **Step 1: Write the failing test**
 
-Locate the existing skill-count assertion. Update it to expect the new skill:
-
 ```ts
-// e.g. packages/core/test/skill-manifest/skill-count.test.ts
-test('packages/skills/ exports 10 skills after v0.8', () => {
-  const files = readdirSync(join(__dirname, '../../../skills'))
-    .filter((f) => f.endsWith('.md') && !f.startsWith('README'));
-  expect(files.sort()).toEqual([
-    'xera-coverage.md',
-    'xera-eval.md',
-    'xera-exec.md',
-    'xera-feature.md',
-    'xera-fetch.md',
-    'xera-fill-gap.md',   // added in Plan 05 — see note
-    'xera-impact.md',
-    'xera-promote.md',
-    'xera-run.md',
-    'xera-script.md',
-  ]);
+test('--all includes COVERED rows in markdown', async () => {
+  const dir = makeProject({});
+  // Seed a COVERED area: ticket + scenario + POM + recent PASS classification
+  const events: Event[] = [
+    {
+      event_id: eid('20260510100000c'), schema_version: 1,
+      ts: '2026-05-10T10:00:00.000Z', actor: 'test',
+      type: 'ticket.fetched',
+      payload: { ticketId: 'PROJ-1', summary: 's', ac: [], jiraLinks: [], storyHash: 'h', modifiesAreas: ['login'] },
+    },
+    {
+      event_id: eid('20260510110000d'), schema_version: 1,
+      ts: '2026-05-10T11:00:00.000Z', actor: 'test',
+      type: 'scenario.generated',
+      payload: {
+        scenarioId: 'PROJ-1#scenario-0', ticketId: 'PROJ-1',
+        name: 'Login', gherkin: '...', priority: 'p1',
+        featureHash: 'h', generatedAt: '2026-05-10T11:00:00.000Z',
+      },
+    },
+    {
+      event_id: eid('20260510110001e'), schema_version: 1,
+      ts: '2026-05-10T11:00:01.000Z', actor: 'test',
+      type: 'pom.generated',
+      payload: {
+        pomId: 'LoginPage', ticketId: 'PROJ-1',
+        filePath: 'p.ts', route: '/login',
+        locators: [], scope: 'local',
+      },
+    },
+    {
+      event_id: eid('20260510110002f'), schema_version: 1,
+      ts: '2026-05-10T11:00:02.000Z', actor: 'test',
+      type: 'edge.discovered',
+      payload: { kind: 'uses',   from: 'PROJ-1#scenario-0', to: 'LoginPage', source: 'xera-script' },
+    },
+    {
+      event_id: eid('20260510110003g'), schema_version: 1,
+      ts: '2026-05-10T11:00:03.000Z', actor: 'test',
+      type: 'edge.discovered',
+      payload: { kind: 'covers', from: 'LoginPage', to: 'login', source: 'xera-script' },
+    },
+    {
+      event_id: eid('20260515100000h'), schema_version: 1,
+      ts: '2026-05-15T10:00:00.000Z', actor: 'test',
+      type: 'run.classified',
+      payload: { scenarioId: 'PROJ-1#scenario-0', runId: 'r1', classification: 'PASS', confidence: 'high' },
+    },
+  ];
+  appendEvents(dir, events, { skill: 'fetch', ticketId: 'PROJ-1' });
+  const prevCwd = process.cwd();
+  process.chdir(dir);
+  try {
+    await coveragePrepareCmd(['--snapshot-ts', '2026-05-17T10:00:00.000Z', '--no-emit-event', '--all']);
+    const md = readFileSync(join(dir, '.xera/coverage/report.md'), 'utf8');
+    expect(md).toContain('COVERED — 1 area');
+    expect(md).toMatch(/#1\s+login/);
+  } finally {
+    process.chdir(prevCwd);
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('default (no --all) shows collapsed COVERED line', async () => {
+  // Same seed data, no --all flag
+  // ... (copy above seed) ...
+  const dir = makeProject({});
+  const events: Event[] = [/* same as above */];
+  appendEvents(dir, events, { skill: 'fetch', ticketId: 'PROJ-1' });
+  const prevCwd = process.cwd();
+  process.chdir(dir);
+  try {
+    await coveragePrepareCmd(['--snapshot-ts', '2026-05-17T10:00:00.000Z', '--no-emit-event']);
+    const md = readFileSync(join(dir, '.xera/coverage/report.md'), 'utf8');
+    expect(md).toContain('COVERED — 1 area (collapsed; show with --all)');
+    expect(md).not.toMatch(/#1\s+login/);
+  } finally {
+    process.chdir(prevCwd);
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 ```
 
-For Plan 02's checkpoint, the list should NOT include `xera-fill-gap.md` yet (Plan 05). Adjust:
-
-```ts
-test('packages/skills/ exports 9 skills after Plan 02', () => {
-  const files = readdirSync(join(__dirname, '../../../skills'))
-    .filter((f) => f.endsWith('.md') && !f.startsWith('README'));
-  expect(files.sort()).toEqual([
-    'xera-coverage.md',     // NEW v0.8 Plan 02
-    'xera-eval.md',
-    'xera-exec.md',
-    'xera-feature.md',
-    'xera-fetch.md',
-    'xera-impact.md',
-    'xera-promote.md',
-    'xera-run.md',
-    'xera-script.md',
-  ]);
-});
-```
-
-- [ ] **Step 2: Verify failure**
+- [ ] **Step 2: Verify failure** (should be PASS already after Task 12.2 wired the flag)
 
 ```bash
-cd packages/core && bun test test/skill-manifest/skill-count.test.ts
+cd packages/core && bun test test/bin-internal/coverage-prepare.test.ts
 ```
 
-Expected: `xera-coverage.md` missing.
+If both PASS without further changes, skip to Step 5. If they fail, investigate — `args.all` may not be flowing through to `RenderOptions`.
 
-- [ ] **Step 3: Author `packages/skills/xera-coverage.md`**
+- [ ] **Step 3-4: (no implementation change expected)**
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add packages/core/test/bin-internal/coverage-prepare.test.ts
+git commit -m "test(core): coverage-prepare --all flag end-to-end"
+```
+
+---
+
+## Phase 16 — `/xera-coverage` skill
+
+### Task 16.1: Author `packages/skills/xera-coverage.md`
+
+**Files:**
+- Create: `packages/skills/xera-coverage.md`
+
+- [ ] **Step 1: Write the file**
+
+Frontmatter mirrors `xera-impact.md` style (just `name` + `description`):
 
 ```markdown
 ---
 name: xera-coverage
-description: Show area-level and AC-level coverage report for the current xera project; sort by risk; drill-down via --why; optional HTML viewer.
-version: 0.8.0
-inputs:
-  - flag (optional): --why <area-or-ticket>
-  - flag (optional): --all
-  - flag (optional): --json
-  - flag (optional): --viewer
-outputs:
-  - .xera/coverage/report.json
-  - .xera/coverage/report.md (printed to terminal)
-  - .xera/graph/events/<YYYY-MM>/<ULID>-coverage-<session>.jsonl (when autoSnapshotOnCoverage=true)
+description: Show area-level and AC-level coverage report for the current xera project; sort by risk; drill-down via --why; optional HTML viewer (v0.8.1+). Available v0.8.0+.
 ---
 
-# /xera-coverage
+The user invoked `/xera-coverage [--why <area-or-TICKET>] [--all] [--json] [--viewer]`. Read flag arguments and forward to the binary.
 
-You are running inside a xera consumer project. Use this skill to show the
-coverage report.
+This skill walks the project knowledge graph (`.xera/graph/`) to identify untested areas and unsatisfied acceptance criteria. It does NOT modify graph state or run tests — strictly read-only reporting plus an optional snapshot event for trend history.
 
-## Workflow
+## Step 1 — Verify project layout
 
-1. **Validate the project layout.** Confirm `xera.config.ts` exists in the
-   current working directory and that `.xera/graph/snapshot.json` is present.
-   If the snapshot is missing, stop and tell the user:
+Confirm the cwd is a xera project: `xera.config.ts` exists. If not, surface:
 
-   > Graph snapshot not found. Run `bun run xera:graph-backfill` first to
-   > materialize it from event history.
-
-2. **Run coverage-prepare.** Invoke the binary with any flags the user passed:
-
-   ```
-   bun run xera:coverage-prepare [--why <id>] [--all] [--json] [--no-emit-event]
-   ```
-
-   - For `--why <id>`, just pass it through; the binary handles area-vs-ticket
-     detection and prints the drill-down to stdout. Return that stdout to the
-     user; no further steps.
-   - For `--json`, the binary prints JSON to stdout. Return it; no further
-     steps.
-   - Otherwise, the binary writes `.xera/coverage/report.json` and
-     `.xera/coverage/report.md`.
-
-3. **Read `.xera/coverage/report.json`.** If `acBackfillNeeded === true`,
-   print this warning before the report:
-
-   > AC backfill is needed for legacy scenarios. AC-level coverage may be
-   > incomplete until backfill is wired up (planned for v0.8.0-beta).
-
-   (Plan 03 will replace this stub with the actual backfill orchestration.)
-
-4. **Print `.xera/coverage/report.md`** to the terminal.
-
-5. **If `--viewer` was passed**, print:
-
-   > HTML viewer for coverage is planned for v0.8.1. For now, this flag is
-   > a no-op.
-
-   (Plan 04 will wire `--viewer` through to `graph-render --include-coverage`.)
-
-6. **Print next-step hints:**
-
-   ```
-   Next:
-     /xera-coverage --why <area-or-TICKET>   full breakdown
-     /xera-coverage --viewer                  HTML viewer (v0.8.1)
-     /xera-fill-gap <area>                    draft scenarios (v0.8.2)
-     /xera-fill-gap --ticket <TICKET>         draft AC gap scenarios (v0.8.2)
-   ```
-
-## Exit codes
-
-| Code | Meaning |
-|---|---|
-| 0    | Report generated, no errors |
-| 1    | Graph snapshot missing or corrupt |
-| 2    | Config invalid (e.g. `coverage.criticalAreas` slug malformed) |
+```
+xera.config.ts not found — this command must run inside a xera project.
 ```
 
-- [ ] **Step 4: Verify pass**
+And STOP.
+
+## Step 2 — Run coverage-prepare
+
+Pass through the user's flags:
 
 ```bash
-cd packages/core && bun test test/skill-manifest/skill-count.test.ts
+bun run xera:coverage-prepare [--why <id>] [--all] [--json] [--no-emit-event]
 ```
 
-If `verify-prompts` validates skill frontmatter shape, run that too:
+Flag handling:
+
+- **`--why <id>`** — binary prints drill-down to stdout, no files written. Return that output to the user; do not continue to Step 3.
+- **`--json`** — binary prints `report.json` to stdout. Return as-is.
+- **No flag (default), or `--all`** — binary writes `.xera/coverage/report.json` and `.xera/coverage/report.md`, plus emits a `coverage.snapshot` event (unless config disables it).
+
+Exit codes:
+
+- `0` — report generated.
+- `1` — unknown flag passed.
+- `2` — `xera.config.ts` missing or invalid; surface stderr and STOP.
+- `4` — internal error; surface stderr and STOP.
+
+## Step 3 — Read report.json
+
+If a normal (non-`--why`, non-`--json`) run, read `.xera/coverage/report.json`. Check `acBackfillNeeded`:
+
+- If `true`: print this warning BEFORE the report (the actual backfill flow ships in v0.8.0-beta / Plan 03):
+
+  ```
+  ⚠ AC backfill is needed for legacy scenarios. AC-level coverage may be
+    incomplete until /xera-coverage backfill runs (planned v0.8.0-beta).
+  ```
+
+## Step 4 — Print report.md
+
+Read `.xera/coverage/report.md` and print it verbatim to the terminal.
+
+## Step 5 — Handle --viewer
+
+If the user passed `--viewer`, print:
+
+```
+HTML viewer for coverage is planned for v0.8.1.
+For now, the report.md above is the full output.
+```
+
+(Plan 04 will wire `--viewer` through to `bun run xera:graph-render --include-coverage`.)
+
+## Step 6 — Print next-step hints
+
+After the report (skip for `--why` and `--json` runs):
+
+```
+Next:
+  /xera-coverage --why <area-or-TICKET>   full breakdown
+  /xera-coverage --viewer                  HTML viewer (v0.8.1)
+  /xera-fill-gap <area>                    draft scenarios (v0.8.2)
+  /xera-fill-gap --ticket <TICKET>         draft AC gap scenarios (v0.8.2)
+```
+
+## Edge cases
+
+- Graph snapshot not present yet: `loadAllEvents` returns `[]` → empty report. That's fine; surface "no events yet, run /xera-fetch on a ticket first" hint after Step 6.
+- Config has invalid `coverage.criticalAreas` slug → binary exits 2 with parse error; surface and STOP.
+```
+
+- [ ] **Step 2: Verify the file is present**
+
+```bash
+ls packages/skills/xera-coverage.md
+```
+
+- [ ] **Step 3: Verify with `xera:verify-prompts` (if it inspects skills)**
 
 ```bash
 bun run xera:verify-prompts
 ```
 
-Expected: no errors (skill frontmatter parses; in-scope prompt count unchanged at 9 until Plan 03 adds `map-ac-to-scenarios`).
+Expected: existing in-scope prompt count unchanged (skills are separate; `map-ac-to-scenarios.md` lands in Plan 03). No errors.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add packages/skills/xera-coverage.md packages/core/test/skill-manifest/skill-count.test.ts
-git commit -m "feat(skills): add xera-coverage skill .md (v0.8.0 Plan 02)"
+git add packages/skills/xera-coverage.md
+git commit -m "feat(skills): add xera-coverage skill (v0.8.0 Plan 02)"
 ```
 
 ---
 
-## Phase 17 — `cli/doctor` checks
+## Phase 17 — Doctor checks (CLI consumer side)
 
-### Task 17.1: Warn if `coverage.staleAfterDays > 90`
+### Task 17.1: Warn when `coverage.staleAfterDays > 90`
 
 **Files:**
-- Modify: `packages/cli/src/commands/doctor.ts`
-- Test: `packages/cli/test/doctor.test.ts`
+- Modify: `packages/cli/src/checks.ts`
+- Test: `packages/cli/test/checks.test.ts` (create if absent)
 
 - [ ] **Step 1: Write the failing test**
 
 ```ts
 import { describe, test, expect } from 'bun:test';
-import { runDoctor } from '../src/commands/doctor';
-// reuse existing makeTempProject helper (or inline)
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { runChecks } from '../src/checks';
 
-describe('doctor coverage checks', () => {
-  test('warns when staleAfterDays > 90', async () => {
-    // ... set up project with coverage.staleAfterDays: 120 ...
-    const result = await runDoctor({ cwd: dir });
-    expect(result.warnings.some(w => w.includes('staleAfterDays') && w.includes('large window'))).toBe(true);
+function makeProject(coverageConfig?: string): string {
+  const dir = mkdtempSync(join(tmpdir(), 'xera-checks-'));
+  mkdirSync(join(dir, '.xera'), { recursive: true });
+  const coverageBlock = coverageConfig ? `, coverage: ${coverageConfig}` : '';
+  writeFileSync(
+    join(dir, 'xera.config.ts'),
+    `import { defineConfig } from '@xera-ai/core';\n` +
+    `export default defineConfig({\n` +
+    `  jira: { baseUrl: 'https://example.atlassian.net', projectKeys: ['PROJ'], fields: { story: 'description' } },\n` +
+    `  web: { baseUrl: { local: 'http://localhost:3000' }, defaultEnv: 'local' },\n` +
+    `  adapters: ['web']${coverageBlock}\n` +
+    `});\n`,
+  );
+  return dir;
+}
+
+describe('runChecks coverage warnings', () => {
+  test('warns when coverage.staleAfterDays > 90', async () => {
+    const dir = makeProject(`{ staleAfterDays: 120 }`);
+    try {
+      const checks = await runChecks(dir);
+      const warning = checks.find((c) => c.name.includes('coverage.staleAfterDays'));
+      expect(warning).toBeDefined();
+      expect(warning!.ok).toBe(false);
+      expect(warning!.message ?? '').toContain('large window');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   test('no warning when staleAfterDays <= 90', async () => {
-    // ... project with staleAfterDays: 60 ...
-    const result = await runDoctor({ cwd: dir });
-    expect(result.warnings.some(w => w.includes('staleAfterDays'))).toBe(false);
+    const dir = makeProject(`{ staleAfterDays: 60 }`);
+    try {
+      const checks = await runChecks(dir);
+      const warning = checks.find((c) => c.name.includes('coverage.staleAfterDays'));
+      expect(warning).toBeUndefined();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 ```
@@ -1114,141 +960,221 @@ describe('doctor coverage checks', () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/cli && bun test test/doctor.test.ts
+cd packages/cli && bun test test/checks.test.ts
 ```
 
-- [ ] **Step 3: Implement**
+- [ ] **Step 3: Implement check**
 
-In `packages/cli/src/commands/doctor.ts`, locate where other config-based warnings are pushed. Add:
+In `packages/cli/src/checks.ts`, INSIDE `runChecks` after the existing `xera.config.ts found and valid` check (the `try { const cfg = await loadConfig(cwd); ...` block), append a coverage-related check inside that same `try` block:
 
 ```ts
-if (config.coverage.staleAfterDays > 90) {
-  result.warnings.push(
-    `coverage.staleAfterDays = ${config.coverage.staleAfterDays} is a very large window — coverage will be slow to react to drift`,
-  );
+// inside the existing try block, after web/http checks:
+if (cfg.coverage.staleAfterDays > 90) {
+  checks.push({
+    name: 'coverage.staleAfterDays sanity',
+    ok: false,
+    message: `${cfg.coverage.staleAfterDays}d is a very large window — coverage will be slow to react to drift`,
+  });
 }
 ```
 
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/cli && bun test test/doctor.test.ts
+cd packages/cli && bun test test/checks.test.ts
 ```
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add packages/cli/src/commands/doctor.ts packages/cli/test/doctor.test.ts
+git add packages/cli/src/checks.ts packages/cli/test/checks.test.ts
 git commit -m "feat(cli): doctor warns when coverage.staleAfterDays > 90"
 ```
 
 ---
 
-### Task 17.2: Warn when `criticalAreas` contains a slug not present as AreaNode
+### Task 17.2: Warn when `criticalAreas` contains a slug not present in graph
 
 **Files:**
-- Modify: `packages/cli/src/commands/doctor.ts`
-- Modify: `packages/cli/test/doctor.test.ts`
+- Modify: `packages/cli/src/checks.ts`
+- Modify: `packages/cli/test/checks.test.ts`
 
 - [ ] **Step 1: Write the failing test**
 
 ```ts
-test('warns when criticalAreas contains a slug missing from graph', async () => {
-  // project with coverage.criticalAreas: ['typo'], snapshot has no 'typo' area
-  const result = await runDoctor({ cwd: dir });
-  expect(result.warnings.some(w => w.includes('typo') && w.includes('marked critical') && w.includes('check spelling'))).toBe(true);
-});
-
-test('no warning when all critical areas exist in graph', async () => {
-  // project with criticalAreas: ['checkout'], snapshot has areas.checkout
-  const result = await runDoctor({ cwd: dir });
-  expect(result.warnings.some(w => w.includes('marked critical'))).toBe(false);
-});
-```
-
-- [ ] **Step 2: Verify failure**
-
-```bash
-cd packages/cli && bun test test/doctor.test.ts
-```
-
-- [ ] **Step 3: Implement**
-
-In `runDoctor`, after loading the snapshot:
-
-```ts
-import { readFileSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
-
-const snapshotPath = join(cwd, '.xera', 'graph', 'snapshot.json');
-if (existsSync(snapshotPath)) {
-  const snap = JSON.parse(readFileSync(snapshotPath, 'utf8'));
-  const areaIds = new Set(Object.keys(snap.areas ?? {}));
-  for (const slug of config.coverage.criticalAreas) {
-    if (!areaIds.has(slug)) {
-      result.warnings.push(
-        `"${slug}" is marked critical but no ticket modifies this area; check spelling`,
-      );
-    }
-  }
-}
-```
-
-- [ ] **Step 4: Verify pass**
-
-```bash
-cd packages/cli && bun test test/doctor.test.ts
-```
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add packages/cli/src/commands/doctor.ts packages/cli/test/doctor.test.ts
-git commit -m "feat(cli): doctor warns on unknown criticalAreas slug"
-```
-
----
-
-### Task 17.3: Warn when `acceptanceCriteria.length > 0` but no `ACNode` materialized
-
-**Files:**
-- Modify: `packages/cli/src/commands/doctor.ts`
-- Modify: `packages/cli/test/doctor.test.ts`
-
-- [ ] **Step 1: Write the failing test**
-
-```ts
-test('warns when ticket has ACs but no ACNode materialized (snapshot stale)', async () => {
-  // snapshot: tickets['PROJ-1'].acceptanceCriteria = ['x'], but acNodes = {}
-  const result = await runDoctor({ cwd: dir });
-  expect(result.warnings.some(w => w.includes('PROJ-1') && w.includes('ACNode not materialized'))).toBe(true);
-});
-
-test('no warning when ACNodes match acceptanceCriteria', async () => {
-  // snapshot with acNodes['PROJ-1#ac-0']
-  const result = await runDoctor({ cwd: dir });
-  expect(result.warnings.some(w => w.includes('ACNode not materialized'))).toBe(false);
-});
-```
-
-- [ ] **Step 2: Verify failure**
-
-```bash
-cd packages/cli && bun test test/doctor.test.ts
-```
-
-- [ ] **Step 3: Implement**
-
-```ts
-for (const ticket of Object.values(snap.tickets ?? {}) as Array<{ id: string; acceptanceCriteria: string[] }>) {
-  if (ticket.acceptanceCriteria.length === 0) continue;
-  const hasAnyAcNode = Object.values(snap.acNodes ?? {}).some(
-    (n: any) => n.ticketId === ticket.id,
+test('warns when criticalAreas contains a slug missing from snapshot', async () => {
+  const dir = makeProject(`{ criticalAreas: ['typo-area'] }`);
+  // Seed a snapshot with no 'typo-area'
+  mkdirSync(join(dir, '.xera/graph'), { recursive: true });
+  writeFileSync(
+    join(dir, '.xera/graph/snapshot.json'),
+    JSON.stringify({
+      schema_version: 1, generated_at: '2026-05-17T10:00:00.000Z',
+      event_count: 0, events_hash: 'sha256:',
+      tickets: {}, scenarios: {}, poms: {},
+      areas: { checkout: { id: 'checkout' } },
+      edges: [], latest_failures: {},
+      acNodes: {}, classifications: [],
+    }),
   );
-  if (!hasAnyAcNode) {
-    result.warnings.push(
-      `${ticket.id}: ACNode not materialized in snapshot — run "bun run xera:graph-backfill" to refresh`,
-    );
+  try {
+    const checks = await runChecks(dir);
+    const w = checks.find((c) => c.name.includes('typo-area'));
+    expect(w).toBeDefined();
+    expect(w!.ok).toBe(false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('no warning when all criticalAreas exist in snapshot', async () => {
+  const dir = makeProject(`{ criticalAreas: ['checkout'] }`);
+  mkdirSync(join(dir, '.xera/graph'), { recursive: true });
+  writeFileSync(
+    join(dir, '.xera/graph/snapshot.json'),
+    JSON.stringify({
+      schema_version: 1, generated_at: '2026-05-17T10:00:00.000Z',
+      event_count: 0, events_hash: 'sha256:',
+      tickets: {}, scenarios: {}, poms: {},
+      areas: { checkout: { id: 'checkout' } },
+      edges: [], latest_failures: {},
+      acNodes: {}, classifications: [],
+    }),
+  );
+  try {
+    const checks = await runChecks(dir);
+    const w = checks.find((c) => c.name.toLowerCase().includes('critical'));
+    expect(w).toBeUndefined();
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+```
+
+- [ ] **Step 2: Verify failure**
+
+```bash
+cd packages/cli && bun test test/checks.test.ts
+```
+
+- [ ] **Step 3: Implement**
+
+In `packages/cli/src/checks.ts`, after the previous coverage check, add:
+
+```ts
+import { existsSync, readFileSync } from 'node:fs';
+
+// ... inside runChecks try block, after staleAfterDays check:
+const snapPath = join(cwd, '.xera/graph/snapshot.json');
+if (existsSync(snapPath) && cfg.coverage.criticalAreas.length > 0) {
+  try {
+    const snap = JSON.parse(readFileSync(snapPath, 'utf8')) as { areas?: Record<string, unknown> };
+    const known = new Set(Object.keys(snap.areas ?? {}));
+    for (const slug of cfg.coverage.criticalAreas) {
+      if (!known.has(slug)) {
+        checks.push({
+          name: `criticalArea "${slug}" exists`,
+          ok: false,
+          message: 'marked critical but no ticket modifies this area; check spelling',
+        });
+      }
+    }
+  } catch {
+    /* malformed snapshot — separate check covers this */
+  }
+}
+```
+
+(The `existsSync`/`readFileSync` imports already at the top of `checks.ts` — add them if missing.)
+
+- [ ] **Step 4: Verify pass**
+
+```bash
+cd packages/cli && bun test test/checks.test.ts
+```
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add packages/cli/src/checks.ts packages/cli/test/checks.test.ts
+git commit -m "feat(cli): doctor warns when criticalAreas slug missing from snapshot"
+```
+
+---
+
+### Task 17.3: Warn when ticket has `ac.length > 0` but no `ACNode` materialized
+
+**Files:**
+- Modify: `packages/cli/src/checks.ts`
+- Modify: `packages/cli/test/checks.test.ts`
+
+- [ ] **Step 1: Write the failing test**
+
+```ts
+test('warns when ticket has acs but no ACNode (snapshot stale)', async () => {
+  const dir = makeProject();
+  mkdirSync(join(dir, '.xera/graph'), { recursive: true });
+  writeFileSync(
+    join(dir, '.xera/graph/snapshot.json'),
+    JSON.stringify({
+      schema_version: 1, generated_at: '2026-05-17T10:00:00.000Z',
+      event_count: 0, events_hash: 'sha256:',
+      tickets: {
+        'PROJ-1': {
+          id: 'PROJ-1', summary: 's', ac: ['x'],
+          storyHash: 'h', modifiesAreas: [], fetchedAt: '2026-05-01T10:00:00.000Z',
+        },
+      },
+      scenarios: {}, poms: {}, areas: {},
+      edges: [], latest_failures: {},
+      acNodes: {},
+      classifications: [],
+    }),
+  );
+  try {
+    const checks = await runChecks(dir);
+    const w = checks.find((c) => c.name.includes('PROJ-1') && c.name.toLowerCase().includes('ac'));
+    expect(w).toBeDefined();
+    expect(w!.ok).toBe(false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+```
+
+- [ ] **Step 2: Verify failure**
+
+```bash
+cd packages/cli && bun test test/checks.test.ts
+```
+
+- [ ] **Step 3: Implement**
+
+In `packages/cli/src/checks.ts`, after the criticalAreas check:
+
+```ts
+if (existsSync(snapPath)) {
+  try {
+    const snap = JSON.parse(readFileSync(snapPath, 'utf8')) as {
+      tickets?: Record<string, { id: string; ac?: string[] }>;
+      acNodes?: Record<string, { ticketId: string }>;
+    };
+    const acByTicket: Record<string, number> = {};
+    for (const node of Object.values(snap.acNodes ?? {})) {
+      acByTicket[node.ticketId] = (acByTicket[node.ticketId] ?? 0) + 1;
+    }
+    for (const ticket of Object.values(snap.tickets ?? {})) {
+      const acCount = ticket.ac?.length ?? 0;
+      if (acCount > 0 && (acByTicket[ticket.id] ?? 0) === 0) {
+        checks.push({
+          name: `${ticket.id}: ACNodes materialized`,
+          ok: false,
+          message: 'ticket has acceptance criteria but no ACNode in snapshot — rebuild via xera:graph-backfill',
+        });
+      }
+    }
+  } catch {
+    /* malformed snapshot */
   }
 }
 ```
@@ -1256,21 +1182,21 @@ for (const ticket of Object.values(snap.tickets ?? {}) as Array<{ id: string; ac
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/cli && bun test test/doctor.test.ts
+cd packages/cli && bun test test/checks.test.ts
 ```
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add packages/cli/src/commands/doctor.ts packages/cli/test/doctor.test.ts
-git commit -m "feat(cli): doctor warns on missing ACNode materialization"
+git add packages/cli/src/checks.ts packages/cli/test/checks.test.ts
+git commit -m "feat(cli): doctor warns when ACNodes not materialized for tickets with ACs"
 ```
 
 ---
 
-## Phase 18 — Integration: coverage-prepare against golden fixtures
+## Phase 18 — Integration against golden fixtures
 
-### Task 18.1: E2E test — coverage-prepare loads `mixed.json` and writes expected report
+### Task 18.1: E2E test — coverage-prepare against `mixed.json`
 
 **Files:**
 - Create: `packages/core/test/bin-internal/coverage-prepare-golden.test.ts`
@@ -1279,65 +1205,77 @@ git commit -m "feat(cli): doctor warns on missing ACNode materialization"
 
 ```ts
 import { describe, test, expect } from 'bun:test';
-import { runCoveragePrepare } from '../../src/bin-internal/coverage-prepare';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, copyFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { coveragePrepareCmd } from '../../src/bin-internal/coverage-prepare';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fixtureDir = join(here, '../../../../fixtures/golden-coverage');
 
-function setupGoldenProject(fixtureName: string): string {
+function setupGoldenProject(fixtureName: string, coverageConfig = ''): string {
   const dir = mkdtempSync(join(tmpdir(), `xera-coverage-${fixtureName}-`));
-  mkdirSync(join(dir, '.xera', 'graph'), { recursive: true });
+  mkdirSync(join(dir, '.xera/graph'), { recursive: true });
   writeFileSync(
     join(dir, 'xera.config.ts'),
-    `import { defineConfig } from '@xera-ai/core';\nexport default defineConfig({ adapters: ['web'] });\n`,
+    `import { defineConfig } from '@xera-ai/core';\n` +
+    `export default defineConfig({\n` +
+    `  jira: { baseUrl: 'https://example.atlassian.net', projectKeys: ['PROJ'], fields: { story: 'description' } },\n` +
+    `  web: { baseUrl: { local: 'http://localhost:3000' }, defaultEnv: 'local' },\n` +
+    `  adapters: ['web']${coverageConfig ? `, coverage: ${coverageConfig}` : ''}\n` +
+    `});\n`,
   );
+  // The binary calls deriveSnapshot(loadAllEvents(cwd)) — events are empty,
+  // so derived snapshot would be empty. To use a golden fixture directly,
+  // write it as the snapshot.json and disable events loading by writing zero events.
+  // We bypass loadAllEvents by directly placing the fixture; but coverage-prepare
+  // uses loadAllEvents → deriveSnapshot. So we must instead either:
+  //   (a) extend coverage-prepare to accept --snapshot-file <path>, or
+  //   (b) translate fixture → events.
+  // Simplest for v0.8.0: option (a). See Task 18.2 if absent.
   copyFileSync(
     join(fixtureDir, `${fixtureName}.json`),
-    join(dir, '.xera', 'graph', 'snapshot.json'),
+    join(dir, '.xera/graph/snapshot.json'),
   );
   return dir;
 }
 
 describe('coverage-prepare against golden fixtures', () => {
-  test('mixed.json produces expected report', async () => {
+  test('mixed.json end-to-end matches expected report', async () => {
     const dir = setupGoldenProject('mixed');
     const prevCwd = process.cwd();
     process.chdir(dir);
     try {
-      const result = await runCoveragePrepare({
-        snapshotTs: '2026-05-17T10:00:00.000Z',
-        emitEvent: false,
-      });
-      const report = JSON.parse(readFileSync(result.reportJsonPath, 'utf8'));
+      const code = await coveragePrepareCmd([
+        '--snapshot-ts', '2026-05-17T10:00:00.000Z',
+        '--no-emit-event',
+        '--snapshot-file', join(dir, '.xera/graph/snapshot.json'),
+      ]);
+      expect(code).toBe(0);
+      const got = JSON.parse(readFileSync(join(dir, '.xera/coverage/report.json'), 'utf8'));
       const expected = JSON.parse(readFileSync(join(fixtureDir, 'mixed.expected.json'), 'utf8'));
-      expect(report).toEqual(expected);
+      expect(got).toEqual(expected);
     } finally {
       process.chdir(prevCwd);
       rmSync(dir, { recursive: true, force: true });
     }
   });
 
-  test('critical-boost requires config override', async () => {
-    const dir = setupGoldenProject('critical-boost');
-    // Overwrite config to include criticalAreas
-    writeFileSync(
-      join(dir, 'xera.config.ts'),
-      `import { defineConfig } from '@xera-ai/core';\nexport default defineConfig({ adapters: ['web'], coverage: { criticalAreas: ['checkout'] } });\n`,
-    );
+  test('critical-boost.json with criticalAreas: ["checkout"]', async () => {
+    const dir = setupGoldenProject('critical-boost', `{ criticalAreas: ['checkout'] }`);
     const prevCwd = process.cwd();
     process.chdir(dir);
     try {
-      const result = await runCoveragePrepare({
-        snapshotTs: '2026-05-17T10:00:00.000Z',
-        emitEvent: false,
-      });
-      const report = JSON.parse(readFileSync(result.reportJsonPath, 'utf8'));
+      const code = await coveragePrepareCmd([
+        '--snapshot-ts', '2026-05-17T10:00:00.000Z',
+        '--no-emit-event',
+        '--snapshot-file', join(dir, '.xera/graph/snapshot.json'),
+      ]);
+      expect(code).toBe(0);
+      const got = JSON.parse(readFileSync(join(dir, '.xera/coverage/report.json'), 'utf8'));
       const expected = JSON.parse(readFileSync(join(fixtureDir, 'critical-boost.expected.json'), 'utf8'));
-      expect(report).toEqual(expected);
+      expect(got).toEqual(expected);
     } finally {
       process.chdir(prevCwd);
       rmSync(dir, { recursive: true, force: true });
@@ -1352,12 +1290,45 @@ describe('coverage-prepare against golden fixtures', () => {
 cd packages/core && bun test test/bin-internal/coverage-prepare-golden.test.ts
 ```
 
-- [ ] **Step 3: No new implementation needed** — should pass if Plan 01 and prior Plan 02 tasks are correct. If it fails, the failure points at either:
-  - `coverage-prepare` not reading `coverage.criticalAreas` from config (re-check Task 12.2)
-  - Sort tie-break missing (re-check Task 9.5 step 2 note)
-  - Path resolution differing across OSes (use `path.posix` if needed)
+Expected: unknown flag `--snapshot-file` OR (if the flag is silently ignored) report has empty areas because `loadAllEvents` returns empty events.
 
-Fix the underlying issue rather than relaxing the assertion.
+- [ ] **Step 3: Add `--snapshot-file <path>` to binary**
+
+In `packages/core/src/bin-internal/coverage-prepare.ts`, extend `ParsedArgs` and `parseArgs`:
+
+```ts
+interface ParsedArgs {
+  snapshotTs?: string;
+  emitEvent: boolean;
+  why?: string;
+  json: boolean;
+  all: boolean;
+  snapshotFile?: string;   // NEW: test-only escape hatch
+}
+
+// In parseArgs loop:
+else if (a === '--snapshot-file') args.snapshotFile = argv[++i];
+```
+
+In `coveragePrepareCmd`, after the existing snapshot derivation, allow override:
+
+```ts
+import { readFileSync } from 'node:fs';
+import type { Snapshot } from '../graph/types';
+
+// Replace:
+//   const events = loadAllEvents(cwd);
+//   const snap = deriveSnapshot(events);
+// With:
+let snap: Snapshot;
+if (args.snapshotFile) {
+  snap = JSON.parse(readFileSync(args.snapshotFile, 'utf8')) as Snapshot;
+} else {
+  snap = deriveSnapshot(loadAllEvents(cwd));
+}
+```
+
+This `--snapshot-file` flag is intended for tests and rare diagnostic use. The skill never passes it.
 
 - [ ] **Step 4: Verify pass**
 
@@ -1368,17 +1339,17 @@ cd packages/core && bun test test/bin-internal/coverage-prepare-golden.test.ts
 - [ ] **Step 5: Commit**
 
 ```bash
-git add packages/core/test/bin-internal/coverage-prepare-golden.test.ts
-git commit -m "test(core): E2E coverage-prepare against golden fixtures"
+git add packages/core/src/bin-internal/coverage-prepare.ts packages/core/test/bin-internal/coverage-prepare-golden.test.ts
+git commit -m "feat(core): coverage-prepare --snapshot-file flag for fixture testing"
 ```
 
 ---
 
-## Phase 19 — Manual smoke + checkpoint
+## Phase 19 — Manual smoke + workspace verification
 
 ### Task 19.1: Manual smoke in a throwaway project
 
-This is a non-automated step. Document the exact recipe so the engineer can reproduce.
+This task is non-automated. Documenting the recipe so the engineer can reproduce.
 
 - [ ] **Step 1: Scaffold a throwaway project**
 
@@ -1387,56 +1358,66 @@ cd /tmp && rm -rf xera-coverage-smoke && mkdir xera-coverage-smoke && cd xera-co
 bunx @xera-ai/cli init --yes --shape web
 ```
 
-- [ ] **Step 2: Seed a graph snapshot from `mixed.json`**
+- [ ] **Step 2: Seed a snapshot from the `mixed.json` golden fixture**
 
 ```bash
 mkdir -p .xera/graph
 cp /home/user/xera/fixtures/golden-coverage/mixed.json .xera/graph/snapshot.json
 ```
 
-- [ ] **Step 3: Add criticalAreas to config**
+- [ ] **Step 3: Edit `xera.config.ts` to mark `checkout` critical**
 
-Edit `xera.config.ts`:
+Append inside the `defineConfig({...})` call:
 
 ```ts
-coverage: {
-  criticalAreas: ['checkout'],
-},
+coverage: { criticalAreas: ['checkout'] },
 ```
 
-- [ ] **Step 4: Run `bun run xera:coverage-prepare` directly**
+- [ ] **Step 4: Run the binary directly using the snapshot file**
 
 ```bash
-bun run xera:coverage-prepare
-```
-
-Expected output: report.md printed via skill workflow (when run via skill — for the binary directly, files written to `.xera/coverage/`). Verify:
-
-```bash
+bun run xera:coverage-prepare --snapshot-ts 2026-05-17T10:00:00.000Z --no-emit-event --snapshot-file .xera/graph/snapshot.json
 cat .xera/coverage/report.md
 ```
 
-Expected: UNCOVERED section with `checkout`, STALE with `search`, AC GAPS with `PROJ-101`.
+Expected: UNCOVERED `checkout` at risk 2 (critical ×2), STALE `search`, COVERED `login`, AC GAP for `PROJ-101`.
 
-- [ ] **Step 5: Run `bun run xera:coverage-prepare --why checkout`**
-
-Expected: drill-down printout with formula expansion.
-
-- [ ] **Step 6: Run `bun run xera:coverage-prepare --why PROJ-101`**
-
-Expected: AC list with ✗ markers.
-
-- [ ] **Step 7: Confirm event emission**
+- [ ] **Step 5: `--why checkout`**
 
 ```bash
+bun run xera:coverage-prepare --snapshot-ts 2026-05-17T10:00:00.000Z --no-emit-event --snapshot-file .xera/graph/snapshot.json --why checkout
+```
+
+Expected: formula expansion `1 × 2 + 0 = 2` + ticket list.
+
+- [ ] **Step 6: `--why PROJ-101`**
+
+```bash
+bun run xera:coverage-prepare --snapshot-ts 2026-05-17T10:00:00.000Z --no-emit-event --snapshot-file .xera/graph/snapshot.json --why PROJ-101
+```
+
+Expected: AC list with ✗ markers + next-step hint.
+
+- [ ] **Step 7: Confirm event emission with real events**
+
+Remove `--snapshot-file` and `--no-emit-event`:
+
+```bash
+bun run xera:coverage-prepare --snapshot-ts 2026-05-17T10:00:00.000Z
 ls .xera/graph/events/2026-05/
 ```
 
-Expected: one `<ULID>-coverage-<session>.jsonl` file.
+Expected: a `<ULID>-coverage-session.jsonl` file present. Inspect content; should be a single `coverage.snapshot` event.
+
+(With no real events, the snapshot will be empty — so the report content is mostly empty. The event emission is what we're verifying.)
 
 - [ ] **Step 8: Run `bunx @xera-ai/cli doctor`**
 
-Expected: ok with no warnings (or one warning if smoke run modified `staleAfterDays` > 90).
+```bash
+bunx @xera-ai/cli doctor
+```
+
+Expected: green for everything except possibly the `criticalArea "checkout"` check (the seeded snapshot may now be empty after Step 7's overwrite — re-seed if needed).
 
 - [ ] **Step 9: Cleanup**
 
@@ -1444,25 +1425,19 @@ Expected: ok with no warnings (or one warning if smoke run modified `staleAfterD
 cd / && rm -rf /tmp/xera-coverage-smoke
 ```
 
-- [ ] **Step 10: Checkpoint commit**
+- [ ] **Step 10: Checkpoint commit if any fixups**
 
 ```bash
-cd /home/user/xera && git status   # should be clean
-```
-
-If there were any tweaks during smoke (most often: a stdout-flush issue, or a path on case-insensitive filesystems), commit them:
-
-```bash
-git commit -am "chore(core): smoke-test fix-ups for coverage-prepare"
+cd /home/user/xera && git status
+# If clean, no action. If fix-ups happened:
+git commit -am "chore(core): coverage-prepare smoke-test fix-ups"
 ```
 
 ---
 
-## Phase 20 — Workspace typecheck + full test run
+### Task 19.2: Workspace typecheck + full test suite
 
-### Task 20.1: Workspace-level verification
-
-- [ ] **Step 1: Typecheck workspace**
+- [ ] **Step 1: Typecheck**
 
 ```bash
 cd /home/user/xera && bun run typecheck
@@ -1470,48 +1445,47 @@ cd /home/user/xera && bun run typecheck
 
 Expected: no errors.
 
-- [ ] **Step 2: Run full test suite**
+- [ ] **Step 2: Full test suite**
 
 ```bash
 cd /home/user/xera && bun test
 ```
 
-Expected: all pass — Plan 01 + Plan 02 tests + no v0.6/v0.7 regressions.
+Expected: all green — Plans 01 + 02 tests + no v0.6/v0.7 regressions.
 
-- [ ] **Step 3: Run `bun run xera:verify-prompts`**
+- [ ] **Step 3: verify-prompts**
 
-Expected: 9 in-scope prompts (unchanged from baseline — `map-ac-to-scenarios.md` lands in Plan 03).
+```bash
+bun run xera:verify-prompts
+```
 
-- [ ] **Step 4: Run `bun run xera:doctor` against this monorepo**
-
-Expected: same warnings as before the plan (this repo is the monorepo, not a consumer project; coverage warnings about missing `.xera/graph/snapshot.json` are expected here).
+Expected: existing in-scope prompts pass (Plan 03 adds `map-ac-to-scenarios.md`; not in this plan).
 
 ---
 
 ## Done
 
-End state of Plan 02:
+End state of Plan 02 (revised):
 
-- `packages/core/src/config/schema.ts` — adds `CoverageConfigSchema` block to top-level `ConfigSchema`
-- `packages/core/src/bin-internal/coverage-prepare.ts` — full implementation: CLI args parsing, graph load, report compute, JSON + markdown write, optional `coverage.snapshot` event emission, `--why` drill-down, `--json` stdout, `--all` includeCovered
-- `packages/skills/xera-coverage.md` — user-facing skill that calls the binary, handles flag pass-through, prints output, prints next-step hints, stubs `--viewer` (Plan 04) and AC backfill warning (Plan 03)
-- `packages/cli/src/commands/doctor.ts` — three coverage-related warnings (large window, unknown criticalAreas slug, missing ACNode materialization)
-- `packages/core/src/coverage/report.ts` — `renderMarkdown` gains `RenderOptions { includeCovered }`; sort tie-break made deterministic
+- `packages/core/src/config/schema.ts` — `XeraConfigSchema` gains optional `coverage` block with `.prefault({})` defaults
+- `packages/core/src/bin-internal/coverage-prepare.ts` — full implementation: CLI parsing (flags: `--snapshot-ts`, `--no-emit-event`, `--why`, `--json`, `--all`, `--snapshot-file`), config load, snapshot derive (or fixture override), report compute, JSON + markdown write, `--why` drill-down to stdout, optional `coverage.snapshot` event emission via `appendEvents`
+- `packages/core/src/bin-internal/index.ts` — `coverage-prepare` registered in `COMMANDS`
+- `packages/skills/xera-coverage.md` — user-facing skill (frontmatter matches xera-impact.md style), handles flag pass-through, prints output, prints next-step hints, stubs `--viewer` (Plan 04) and AC backfill warning (Plan 03)
+- `packages/cli/src/checks.ts` — three new doctor checks (large window, unknown criticalAreas slug, missing ACNode)
+- `packages/core/test/config/schema.test.ts` — new tests for `coverage` block
 - `packages/core/test/bin-internal/coverage-prepare.test.ts` — unit + integration tests
-- `packages/core/test/bin-internal/coverage-prepare-golden.test.ts` — E2E against golden fixtures from Plan 01
+- `packages/core/test/bin-internal/coverage-prepare-golden.test.ts` — E2E against golden fixtures
+- `packages/cli/test/checks.test.ts` — doctor check tests
 
 What works after Plan 02:
 
-- `bun run xera:coverage-prepare` produces a coverage report in any v0.8.0-alpha project
+- `bun run xera:coverage-prepare` produces a coverage report from real graph events
 - `/xera-coverage` skill prints the report; `--why` drill-down works; `--json` machine output works; `--all` reveals COVERED
-- Snapshot events accumulate in `.xera/graph/events/` for Trend tab consumption (Plan 04)
+- `coverage.snapshot` events accumulate in `.xera/graph/events/` for Plan 04 (Trend tab)
 - Doctor surfaces config + snapshot health
-- All six golden fixtures from Plan 01 produce expected output end-to-end
 
-What's still missing for v0.8.0 release:
+What's still missing for v0.8.0 full release:
 
-- AC backfill flow (Plan 03): `/xera-script` extension to write `satisfiesAcs`, `map-ac-to-scenarios.md` prompt, `ac-coverage-backfill-prepare/finalize` binaries, skill update to auto-run backfill on first invocation
+- AC backfill flow (Plan 03)
 - HTML viewer Coverage tab (Plan 04, v0.8.1)
 - `/xera-fill-gap` generative skill (Plan 05, v0.8.2)
-
-Plan 02's CLI surface is complete and stable — Plan 03 only extends it (skill workflow gains the backfill orchestration step; binary is unchanged).
