@@ -16,3 +16,4 @@ next-env.d.ts
 .xera/coverage/
 .claude/worktrees/
 .worktrees/
+.claude/launch.json

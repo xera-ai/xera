@@ -143,6 +143,16 @@
   var nodes = new vis.DataSet(nodeData);
   var edges = new vis.DataSet(edgeData);
 
+  // ── Pre-compute adjacency + cache arrays for O(1) lookups ───
+  var adjacency = Object.create(null);
+  for (const n of nodeData) adjacency[n.id] = new Set();
+  for (const er of edgeData) {
+    if (adjacency[er.from]) adjacency[er.from].add(er.to);
+    if (adjacency[er.to]) adjacency[er.to].add(er.from);
+  }
+  var allNodeIds = nodeData.map((n) => n.id);
+  var edgeIndex = edgeData.map((e) => ({ id: e.id, from: e.from, to: e.to, baseColor: e.color }));
+
   // ── Network init ─────────────────────────────────────
   var network = new vis.Network(
     container,
@@ -179,13 +189,21 @@
 
   container.style.opacity = '0';
 
+  // ── Physics state machine (guarded to avoid redundant setOptions) ───
+  var physicsOn = true; // initially true during stabilization
+  function setPhysics(on) {
+    if (physicsOn === on) return;
+    physicsOn = on;
+    network.setOptions({ physics: { enabled: on } });
+  }
+
   // ── Progress bar ─────────────────────────────────────
   var progressBar = document.getElementById('progress-bar');
   network.on('stabilizationProgress', (p) => {
     progressBar.style.width = `${Math.round((p.iterations / p.total) * 100)}%`;
   });
   network.once('stabilizationIterationsDone', () => {
-    network.setOptions({ physics: { enabled: false } });
+    setPhysics(false);
     network.fit();
     container.style.transition = 'opacity 0.3s';
     container.style.opacity = '1';
@@ -196,19 +214,24 @@
     }, 300);
   });
 
-  var _dragTimer = null;
-  network.on('dragStart', function (params) {
-    if (params.nodes.length > 0) {
-      clearTimeout(_dragTimer);
-      network.setOptions({ physics: { enabled: true } });
-    }
+  // ── Drag → temporarily enable physics so connected nodes react ───
+  var _disableTimer = null;
+  var _enableTimer = null;
+  network.on('dragStart', (params) => {
+    if (!params.nodes.length) return;
+    clearTimeout(_disableTimer);
+    clearTimeout(_enableTimer);
+    // Only enable on real drags (held > ~80ms) — clicks fire dragStart+dragEnd instantly
+    _enableTimer = setTimeout(() => {
+      setPhysics(true);
+    }, 80);
   });
-  network.on('dragEnd', function (params) {
-    if (params.nodes.length > 0) {
-      _dragTimer = setTimeout(function () {
-        network.setOptions({ physics: { enabled: false } });
-      }, 1500);
-    }
+  network.on('dragEnd', (params) => {
+    clearTimeout(_enableTimer);
+    if (!params.nodes.length) return;
+    _disableTimer = setTimeout(() => {
+      setPhysics(false);
+    }, 1200);
   });
 
   // ── Side panel ───────────────────────────────────────
@@ -259,45 +282,96 @@
     sidepanel.classList.remove('hidden');
   }
 
-  function dimOthers(nodeId) {
-    var hop1 = new Set(network.getConnectedNodes(nodeId));
-    var hop2 = new Set();
-    for (const id of hop1) {
-      for (const x of network.getConnectedNodes(id)) {
-        hop2.add(x);
-      }
-    }
-    var keep = new Set([nodeId, ...hop1, ...hop2]);
-    for (const n of nodes.get()) {
-      nodes.update({ id: n.id, opacity: keep.has(n.id) ? 1 : 0.1 });
-    }
-    for (const e of edges.get()) {
-      const visible = keep.has(e.from) && keep.has(e.to);
-      edges.update({
-        id: e.id,
-        color: Object.assign({}, e.color, { opacity: visible ? 0.8 : 0.06 }),
-      });
-    }
+  // ── Highlight / dim state machine ────────────────────────────
+  // Uses pre-computed adjacency + cached id arrays for O(1) neighbor lookup
+  // and a single batched DataSet update per state change.
+  var dimmedFor = null; // currently dimmed-for node id, or null
+  var pendingDim; // undefined = no pending; null = clear; string = dim for id
+  var pendingRaf = 0;
+
+  function neighborSet(nodeId) {
+    var keep = new Set([nodeId]);
+    var hop1 = adjacency[nodeId];
+    if (!hop1) return keep;
+    hop1.forEach((x) => {
+      keep.add(x);
+      var a = adjacency[x];
+      if (a)
+        a.forEach((y) => {
+          keep.add(y);
+        });
+    });
+    return keep;
   }
 
-  function resetView() {
-    for (const n of nodes.get()) {
-      nodes.update({ id: n.id, opacity: 1 });
-    }
-    for (const e of edges.get()) {
-      edges.update({ id: e.id, color: Object.assign({}, e.color, { opacity: 0.8 }) });
-    }
+  function applyDim(nodeId) {
+    if (dimmedFor === nodeId) return;
+    dimmedFor = nodeId;
+    var keep = neighborSet(nodeId);
+    nodes.update(allNodeIds.map((id) => ({ id: id, opacity: keep.has(id) ? 1 : 0.15 })));
+    edges.update(
+      edgeIndex.map((e) => ({
+        id: e.id,
+        color: Object.assign({}, e.baseColor, {
+          opacity: keep.has(e.from) && keep.has(e.to) ? 0.8 : 0.04,
+        }),
+      })),
+    );
+  }
+
+  function clearDim() {
+    if (dimmedFor === null) return;
+    dimmedFor = null;
+    nodes.update(allNodeIds.map((id) => ({ id: id, opacity: 1 })));
+    edges.update(edgeIndex.map((e) => ({ id: e.id, color: e.baseColor })));
+  }
+
+  // Schedule dim work in next animation frame so the panel renders first.
+  // Debounced: if multiple state changes happen before the frame, only the
+  // latest wins (prevents flicker on rapid clicks).
+  function scheduleDim(nodeIdOrNull) {
+    pendingDim = nodeIdOrNull;
+    if (pendingRaf) return;
+    pendingRaf = requestAnimationFrame(() => {
+      pendingRaf = 0;
+      var target = pendingDim;
+      pendingDim = undefined;
+      if (target === null) clearDim();
+      else if (typeof target === 'string') applyDim(target);
+    });
+  }
+
+  function hidePanel() {
     sidepanel.classList.add('hidden');
   }
 
-  network.on('click', (params) => {
-    if (params.nodes.length === 0) {
-      resetView();
-      return;
-    }
-    showPanel(params.nodes[0]);
-    dimOthers(params.nodes[0]);
+  // ── Selection events ─────────────────────────────────
+  // Use selectNode/deselectNode — these only fire on actual selection changes,
+  // unlike `click` which also fires after pan/drag.
+  var _deselectTimer = null;
+
+  network.on('selectNode', (params) => {
+    clearTimeout(_deselectTimer);
+    var id = params.nodes[0];
+    showPanel(id); // synchronous, fast — panel appears immediately
+    scheduleDim(id); // heavy dim work deferred to next frame
   });
+
+  network.on('deselectNode', () => {
+    // Defer so that switching directly between nodes (deselect→select)
+    // doesn't flash the panel closed in between.
+    _deselectTimer = setTimeout(() => {
+      hidePanel();
+      scheduleDim(null);
+    }, 0);
+  });
+
+  function resetView() {
+    network.unselectAll();
+    clearTimeout(_deselectTimer);
+    hidePanel();
+    scheduleDim(null);
+  }
 
   // ── Controls ─────────────────────────────────────────
   document.getElementById('reset-btn').onclick = () => {
@@ -305,36 +379,48 @@
     network.fit({ animation: { duration: 350, easingFunction: 'easeInOutQuad' } });
   };
 
+  // Index for fast search lookup
+  var searchIndex = data.nodes.map((n) => ({
+    id: n.id,
+    hay: `${String(n.id)} ${n.label || ''} ${n.title || ''}`.toLowerCase(),
+  }));
   document.getElementById('search').oninput = (e) => {
-    const q = e.target.value.toLowerCase();
+    const q = e.target.value.toLowerCase().trim();
     if (!q) {
       resetView();
       return;
     }
-    for (const n of nodes.get()) {
-      const orig = data.nodes.find((x) => x.id === n.id);
-      const hit =
-        String(n.id).toLowerCase().includes(q) ||
-        (orig?.label ?? '').toLowerCase().includes(q) ||
-        (orig?.title ?? '').toLowerCase().includes(q);
-      nodes.update({ id: n.id, opacity: hit ? 1 : 0.08 });
-    }
+    nodes.update(searchIndex.map((n) => ({ id: n.id, opacity: n.hay.includes(q) ? 1 : 0.08 })));
   };
 
+  // Index scenarios by pass/fail for fast filtering
+  var scenarioIndex = data.nodes
+    .filter((n) => n.group === 'Scenario')
+    .map((n) => ({ id: n.id, isPass: n.color === '#10B981', isFail: n.color === '#EF4444' }));
+  function applyFilters() {
+    var pass = document.getElementById('filter-pass').checked;
+    var fail = document.getElementById('filter-fail').checked;
+    if (!scenarioIndex.length) return;
+    nodes.update(
+      scenarioIndex.map((n) => ({ id: n.id, hidden: (n.isPass && !pass) || (n.isFail && !fail) })),
+    );
+  }
   ['filter-pass', 'filter-fail', 'filter-p0'].forEach((id) => {
-    document.getElementById(id).onchange = () => {
-      const pass = document.getElementById('filter-pass').checked;
-      const fail = document.getElementById('filter-fail').checked;
-      for (const n of nodes.get()) {
-        if (n.group !== 'Scenario') continue;
-        const orig = data.nodes.find((x) => x.id === n.id);
-        const isPass = orig?.color === '#10B981';
-        const isFail = orig?.color === '#EF4444';
-        const hidden = (isPass && !pass) || (isFail && !fail);
-        nodes.update({ id: n.id, hidden });
-      }
-    };
+    document.getElementById(id).onchange = applyFilters;
   });
+
+  // ── Cross-tab navigation hook (used by Coverage drawer) ───
+  window.__xeraFocus = (id) => {
+    if (!id || !nodes.get(id)) return;
+    network.unselectAll();
+    network.selectNodes([id]);
+    showPanel(id);
+    scheduleDim(id);
+    network.focus(id, {
+      scale: 1.3,
+      animation: { duration: 450, easingFunction: 'easeInOutQuad' },
+    });
+  };
 })();
 
 // v0.8.1 — top-level tab switching
@@ -395,41 +481,297 @@ function renderCoverageOnce() {
   renderCoverageMap();
 }
 
-// Task 27 — coverage map: area color overlay
+// Task 27 — coverage map: QA action queue (3 sections + drawer)
+const COV_STATUS_THEME = {
+  UNCOVERED: { fill: '#3d1515', border: '#f87171', glow: 'rgba(239, 68, 68, 0.45)' },
+  STALE: { fill: '#3d2c0d', border: '#fbbf24', glow: 'rgba(245, 158, 11, 0.45)' },
+  COVERED: { fill: '#0d3320', border: '#34d399', glow: 'rgba(16, 185, 129, 0.4)' },
+  ATRISK: { fill: '#2a1e0a', border: '#fb923c', glow: 'rgba(251, 146, 60, 0.45)' },
+};
+
+function covEscape(s) {
+  return String(s).replace(
+    /[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+  );
+}
+
+function covTile(a, opts) {
+  const theme = COV_STATUS_THEME[opts.themeKey || a.status] || COV_STATUS_THEME.COVERED;
+  const heat = opts.heat;
+  const pulse = opts.pulse ? ' data-pulse="true"' : '';
+  const id = covEscape(a.id);
+  return (
+    `<article class="cov-tile" data-area-id="${id}" data-status="${a.status}"${pulse} ` +
+    `style="--fill:${theme.fill};--border:${theme.border};--glow:${theme.glow};--heat:${heat}" ` +
+    `tabindex="0" role="button" aria-label="${id} — ${a.status.toLowerCase()}, risk ${a.risk}">` +
+    `<header class="cov-tile-head"><span class="cov-tile-status">${opts.statusLabel || a.status.toLowerCase()}</span>` +
+    `<span class="cov-tile-risk" title="risk score">${a.risk}</span></header>` +
+    `<h4 class="cov-tile-name">${id}</h4>` +
+    `<dl class="cov-tile-meta">` +
+    `<div><dt>tickets</dt><dd>${a.breakdown.recentTickets}</dd></div>` +
+    `<div><dt>bugs</dt><dd>${a.breakdown.recentBugs}</dd></div>` +
+    `</dl></article>`
+  );
+}
+
+function covSection(opts) {
+  const tilesHtml = opts.tiles.join('');
+  const head =
+    `<header class="cov-section-head"><span class="cov-section-icon ${opts.iconClass}"></span>` +
+    `<h3 class="cov-section-title">${opts.title}</h3>` +
+    `<span class="cov-section-count">${opts.count}</span>` +
+    `<span class="cov-section-desc">${opts.desc}</span></header>`;
+  if (opts.collapsed) {
+    return `<details class="cov-section cov-section-collapsible"><summary>${head}</summary><div class="cov-grid">${tilesHtml}</div></details>`;
+  }
+  return `<section class="cov-section">${head}<div class="cov-grid">${tilesHtml}</div></section>`;
+}
+
 function renderCoverageMap() {
   const cov = window.__COVERAGE__;
-  if (!cov || !window.__GRAPH__) return;
+  if (!cov) return;
   const canvas = document.getElementById('coverage-map-canvas');
   if (!canvas) return;
+  canvas.innerHTML = '';
 
-  const STATUS_COLOR = {
-    UNCOVERED: { background: '#fca5a5', border: '#dc2626' },
-    STALE: { background: '#fcd34d', border: '#d97706' },
-    COVERED: { background: '#86efac', border: '#15803d' },
-  };
-  const NEUTRAL = { background: '#e5e7eb', border: '#9ca3af' };
-
-  const areaStatusById = {};
-  for (const a of cov.report.areas) {
-    areaStatusById[a.id] = a.status;
+  if (!cov.report.areas.length) {
+    canvas.innerHTML =
+      '<p class="cov-empty">No SUT areas tracked yet — run <code>/xera-fetch</code> on a ticket with acceptance criteria to populate.</p>';
+    return;
   }
 
-  const mappedNodes = window.__GRAPH__.nodes.map((n) => {
-    if (n.group === 'SUTArea' && areaStatusById[n.id]) {
-      return Object.assign({}, n, { color: STATUS_COLOR[areaStatusById[n.id]] });
-    }
-    if (n.group !== 'SUTArea') return Object.assign({}, n, { color: NEUTRAL });
-    return n;
+  const areas = cov.report.areas;
+  const needs = areas
+    .filter((a) => a.status === 'UNCOVERED' || a.status === 'STALE')
+    .sort((a, b) => b.risk - a.risk);
+  const covered = areas.filter((a) => a.status === 'COVERED').sort((a, b) => b.risk - a.risk);
+  // "At risk": top 1/3 of covered by risk (min 1, only if risk > 0)
+  const atRiskCount = covered.length ? Math.max(1, Math.ceil(covered.length / 3)) : 0;
+  const atRisk = covered.slice(0, atRiskCount).filter((a) => a.risk > 0);
+  const healthy = covered.filter((a) => !atRisk.includes(a));
+  const topRisk = areas.reduce((m, a) => (a.risk > m.risk ? a : m), areas[0]);
+  const maxRisk = Math.max(...areas.map((a) => a.risk), 1);
+  const heatFor = (a) => 0.35 + 0.65 * (a.risk / maxRisk);
+
+  // Summary bar
+  const urgent = needs.length ? ' cov-summary-stat-urgent' : '';
+  const summary =
+    `<div class="cov-summary">` +
+    `<div class="cov-summary-stat${urgent}"><span class="cov-summary-num">${needs.length}</span><span class="cov-summary-label">need action</span></div>` +
+    `<div class="cov-summary-divider"></div>` +
+    `<div class="cov-summary-stat"><span class="cov-summary-num">${atRisk.length}</span><span class="cov-summary-label">at risk</span></div>` +
+    `<div class="cov-summary-divider"></div>` +
+    `<div class="cov-summary-stat"><span class="cov-summary-num">${healthy.length}</span><span class="cov-summary-label">healthy</span></div>` +
+    `<div class="cov-summary-top">` +
+    `<span class="cov-summary-top-label">top risk</span>` +
+    `<button class="cov-summary-top-btn" data-area-id="${covEscape(topRisk.id)}">${covEscape(topRisk.id)} <span class="cov-summary-top-risk">${topRisk.risk}</span></button>` +
+    `</div>` +
+    `</div>`;
+
+  let html = summary;
+
+  if (needs.length) {
+    const tiles = needs.map((a, idx) =>
+      covTile(a, { heat: heatFor(a), pulse: idx === 0 && a.risk > 0 }),
+    );
+    html += covSection({
+      title: 'Needs attention',
+      desc: 'Write new tests or refresh stale ones',
+      iconClass: 'cov-section-icon-urgent',
+      count: needs.length,
+      tiles,
+    });
+  }
+
+  if (atRisk.length) {
+    const tiles = atRisk.map((a) =>
+      covTile(a, {
+        themeKey: 'ATRISK',
+        statusLabel: 'at risk',
+        heat: heatFor(a),
+      }),
+    );
+    html += covSection({
+      title: 'At risk',
+      desc: 'Covered, but recently changed — re-run scenarios after each merge',
+      iconClass: 'cov-section-icon-warn',
+      count: atRisk.length,
+      tiles,
+    });
+  }
+
+  if (healthy.length) {
+    const tiles = healthy.map((a) => covTile(a, { heat: heatFor(a) }));
+    html += covSection({
+      title: 'Healthy',
+      desc: 'Low recent activity, well-covered',
+      iconClass: 'cov-section-icon-ok',
+      count: healthy.length,
+      tiles,
+      collapsed: needs.length > 0 || atRisk.length > 0, // collapse if there's anything actionable above
+    });
+  }
+
+  canvas.innerHTML = html;
+  attachCovHandlers();
+}
+
+// ── Coverage drawer ──────────────────────────────────────
+function attachCovHandlers() {
+  document.querySelectorAll('.cov-tile').forEach((t) => {
+    t.addEventListener('click', () => openCovDrawer(t.dataset.areaId));
+    t.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openCovDrawer(t.dataset.areaId);
+      }
+    });
+  });
+  document.querySelectorAll('.cov-summary-top-btn').forEach((b) => {
+    b.addEventListener('click', () => openCovDrawer(b.dataset.areaId));
+  });
+  const closeBtn = document.getElementById('cov-drawer-close');
+  if (closeBtn && !closeBtn.dataset.bound) {
+    closeBtn.dataset.bound = '1';
+    closeBtn.addEventListener('click', closeCovDrawer);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeCovDrawer();
+    });
+  }
+}
+
+function openCovDrawer(areaId) {
+  const cov = window.__COVERAGE__;
+  const graph = window.__GRAPH__;
+  if (!cov || !graph) return;
+  const area = cov.report.areas.find((a) => a.id === areaId);
+  if (!area) return;
+
+  const drawer = document.getElementById('cov-drawer');
+  const status = document.getElementById('cov-drawer-status');
+  const title = document.getElementById('cov-drawer-title');
+  const body = document.getElementById('cov-drawer-body');
+  if (!drawer || !status || !title || !body) return;
+
+  const theme = COV_STATUS_THEME[area.status] || COV_STATUS_THEME.COVERED;
+  status.textContent = area.status.toLowerCase();
+  status.style.color = theme.border;
+  status.style.background = `${theme.fill}`;
+  status.style.borderColor = theme.border;
+  title.textContent = area.id;
+
+  // Find connected nodes (1-hop) from graph
+  const connected = new Set();
+  for (const e of graph.edges) {
+    if (e.from === areaId) connected.add(e.to);
+    if (e.to === areaId) connected.add(e.from);
+  }
+  const nodesById = {};
+  for (const n of graph.nodes) nodesById[n.id] = n;
+  const connectedTickets = [...connected].filter((id) => nodesById[id]?.group === 'Ticket');
+  const connectedScenarios = [...connected].filter((id) => nodesById[id]?.group === 'Scenario');
+
+  const passCount = connectedScenarios.filter((id) => nodesById[id]?.color !== '#EF4444').length;
+  const failCount = connectedScenarios.length - passCount;
+
+  // AC gaps among connected tickets
+  const acGaps = (cov.report.tickets || []).filter(
+    (t) => connectedTickets.includes(t.id) && t.unsatisfiedAcs?.length,
+  );
+
+  const riskBreakdown = `
+    <section class="cov-drawer-section">
+      <h4>Risk breakdown</h4>
+      <div class="cov-drawer-risk">
+        <div class="cov-drawer-risk-num">${area.risk}</div>
+        <ul class="cov-drawer-risk-meta">
+          <li><span>${area.breakdown.recentTickets}</span> recent tickets</li>
+          <li><span>${area.breakdown.recentBugs}</span> recent bugs</li>
+          ${area.breakdown.criticalBoost ? '<li class="cov-drawer-risk-crit">⚠ critical area</li>' : ''}
+        </ul>
+      </div>
+    </section>`;
+
+  const scenariosSection = connectedScenarios.length
+    ? `<section class="cov-drawer-section">
+        <h4>Scenarios <span class="cov-drawer-count">${connectedScenarios.length}</span></h4>
+        <div class="cov-drawer-pillrow">
+          ${passCount ? `<span class="cov-drawer-pill cov-pill-pass">${passCount} passing</span>` : ''}
+          ${failCount ? `<span class="cov-drawer-pill cov-pill-fail">${failCount} failing</span>` : ''}
+        </div>
+        <ul class="cov-drawer-list">
+          ${connectedScenarios
+            .map((id) => {
+              const n = nodesById[id];
+              const fail = n?.color === '#EF4444';
+              return `<li><button class="cov-drawer-item" data-focus-id="${covEscape(id)}"><i class="cov-dot ${fail ? 'cov-dot-fail' : 'cov-dot-pass'}"></i><span>${covEscape(n?.label || id)}</span></button></li>`;
+            })
+            .join('')}
+        </ul>
+      </section>`
+    : '';
+
+  const ticketsSection = connectedTickets.length
+    ? `<section class="cov-drawer-section">
+        <h4>Tickets touching this area <span class="cov-drawer-count">${connectedTickets.length}</span></h4>
+        <ul class="cov-drawer-list">
+          ${connectedTickets
+            .map((id) => {
+              const n = nodesById[id];
+              return `<li><button class="cov-drawer-item" data-focus-id="${covEscape(id)}"><i class="cov-dot cov-dot-ticket"></i><span>${covEscape(id)}${n?.title ? ` — ${covEscape(n.title.replace(/^[A-Z]+-\d+\s*[—–-]\s*/, ''))}` : ''}</span></button></li>`;
+            })
+            .join('')}
+        </ul>
+      </section>`
+    : '';
+
+  const acSection = acGaps.length
+    ? `<section class="cov-drawer-section">
+        <h4>AC gaps <span class="cov-drawer-count">${acGaps.reduce((s, t) => s + t.unsatisfiedAcs.length, 0)}</span></h4>
+        <ul class="cov-drawer-list cov-drawer-list-stack">
+          ${acGaps
+            .map(
+              (t) =>
+                `<li><div class="cov-drawer-ac"><strong>${covEscape(t.id)}</strong> — ${t.satisfiedCount}/${t.acCount} covered<div class="cov-drawer-ac-tags">${t.unsatisfiedAcs.map((ac) => `<span class="cov-drawer-ac-tag">AC-${ac.index}</span>`).join('')}</div></div></li>`,
+            )
+            .join('')}
+        </ul>
+      </section>`
+    : '';
+
+  const actions = `
+    <section class="cov-drawer-actions">
+      <button class="cov-drawer-action" data-focus-id="${covEscape(area.id)}">
+        <span>View in graph</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>
+      </button>
+    </section>`;
+
+  body.innerHTML = riskBreakdown + scenariosSection + ticketsSection + acSection + actions;
+
+  // Wire focus buttons → switch to Knowledge tab and select node
+  body.querySelectorAll('[data-focus-id]').forEach((b) => {
+    b.addEventListener('click', () => {
+      const id = b.dataset.focusId;
+      closeCovDrawer();
+      const knowledgeBtn = document.querySelector('.toplevel-tabs button[data-tab="knowledge"]');
+      if (knowledgeBtn && !knowledgeBtn.classList.contains('active')) knowledgeBtn.click();
+      requestAnimationFrame(() => {
+        if (typeof window.__xeraFocus === 'function') window.__xeraFocus(id);
+      });
+    });
   });
 
-  new vis.Network(
-    canvas,
-    { nodes: new vis.DataSet(mappedNodes), edges: new vis.DataSet(window.__GRAPH__.edges) },
-    {
-      physics: { enabled: true, stabilization: { iterations: 100 } },
-      nodes: { shape: 'dot', font: { size: 11 } },
-    },
-  );
+  drawer.classList.remove('hidden');
+  drawer.setAttribute('aria-hidden', 'false');
+}
+
+function closeCovDrawer() {
+  const drawer = document.getElementById('cov-drawer');
+  if (!drawer) return;
+  drawer.classList.add('hidden');
+  drawer.setAttribute('aria-hidden', 'true');
 }
 
 // Task 28 — coverage list: sortable area + AC gap tables
@@ -504,20 +846,78 @@ function renderCoverageTrend() {
     const n = snap.areas.filter((a) => a.status === 'UNCOVERED' || a.status === 'STALE').length;
     return { day: d, value: n };
   });
+
+  // Single data point — render a quiet placeholder rather than a degenerate chart
+  if (points.length === 1) {
+    container.innerHTML =
+      `<div class="cov-trend-single">` +
+      `<span class="cov-trend-value">${points[0].value}</span>` +
+      `<span class="cov-trend-unit">uncovered + stale areas</span>` +
+      `<span class="cov-trend-date">${points[0].day}</span>` +
+      `<p class="cov-trend-hint">Run /xera-coverage on subsequent days to build a trend line.</p>` +
+      `</div>`;
+    return;
+  }
+
   const W = 800;
-  const H = 200;
-  const PAD = 30;
-  const maxValue = Math.max(...points.map((p) => p.value), 1);
-  const stepX = points.length > 1 ? (W - 2 * PAD) / (points.length - 1) : 0;
-  const path = points
-    .map((p, idx) => {
-      const x = PAD + idx * stepX;
-      const y = H - PAD - (p.value / maxValue) * (H - 2 * PAD);
-      return `${idx === 0 ? 'M' : 'L'}${x},${y}`;
-    })
-    .join(' ');
+  const H = 260;
+  const PAD_L = 40;
+  const PAD_R = 24;
+  const PAD_T = 16;
+  const PAD_B = 32;
+  const innerW = W - PAD_L - PAD_R;
+  const innerH = H - PAD_T - PAD_B;
+  const rawMax = Math.max(...points.map((p) => p.value), 1);
+  // Round maxValue up to a "nice" integer so y-axis labels are clean integers
+  const niceMax = rawMax <= 4 ? rawMax : Math.ceil(rawMax / 5) * 5;
+  const stepX = innerW / (points.length - 1);
+  const xy = points.map((p, idx) => ({
+    x: PAD_L + idx * stepX,
+    y: PAD_T + innerH - (p.value / niceMax) * innerH,
+    v: p.value,
+    d: p.day,
+  }));
+  const linePath = xy.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
+  const areaPath = `${linePath} L${xy[xy.length - 1].x},${PAD_T + innerH} L${xy[0].x},${PAD_T + innerH} Z`;
+
+  // Horizontal grid lines — pick step that yields integer labels
+  const tickCount = Math.min(niceMax, 4);
+  const tickStep = niceMax / tickCount;
+  const seenTicks = new Set();
+  const grid = [];
+  for (let i = 1; i <= tickCount; i++) {
+    const v = Math.round(tickStep * i);
+    if (seenTicks.has(v)) continue;
+    seenTicks.add(v);
+    const y = PAD_T + innerH - (v / niceMax) * innerH;
+    grid.push(
+      `<line x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}" stroke="#1a2540" stroke-width="1" stroke-dasharray="2 4"/>` +
+        `<text x="${PAD_L - 8}" y="${y + 3}" font-size="10" text-anchor="end">${v}</text>`,
+    );
+  }
+  // Baseline 0 tick
+  grid.push(
+    `<line x1="${PAD_L}" y1="${PAD_T + innerH}" x2="${W - PAD_R}" y2="${PAD_T + innerH}" stroke="#1e2d45" stroke-width="1"/>` +
+      `<text x="${PAD_L - 8}" y="${PAD_T + innerH + 3}" font-size="10" text-anchor="end">0</text>`,
+  );
+
+  const dots = xy
+    .map(
+      (p) =>
+        `<circle cx="${p.x}" cy="${p.y}" r="3" fill="#ef4444" stroke="#080c14" stroke-width="1.5"><title>${p.d}: ${p.v} uncovered/stale</title></circle>`,
+    )
+    .join('');
 
   const labelFirst = points[0].day;
   const labelLast = points[points.length - 1].day;
-  container.innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"><path d="${path}" fill="none" stroke="#dc2626" stroke-width="2"/><text x="${PAD}" y="${H - 8}" font-size="11" fill="#6b7280">${labelFirst}</text><text x="${W - PAD - 60}" y="${H - 8}" font-size="11" fill="#6b7280">${labelLast}</text><text x="${PAD - 22}" y="${PAD - 4}" font-size="11" fill="#6b7280">${maxValue}</text></svg>`;
+  container.innerHTML =
+    `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">` +
+    `<defs><linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ef4444" stop-opacity="0.25"/><stop offset="100%" stop-color="#ef4444" stop-opacity="0"/></linearGradient></defs>` +
+    grid.join('') +
+    `<path d="${areaPath}" fill="url(#trendFill)" stroke="none"/>` +
+    `<path d="${linePath}" fill="none" stroke="#ef4444" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` +
+    dots +
+    `<text x="${PAD_L}" y="${H - 8}" font-size="10">${labelFirst}</text>` +
+    `<text x="${W - PAD_R}" y="${H - 8}" font-size="10" text-anchor="end">${labelLast}</text>` +
+    `</svg>`;
 }
