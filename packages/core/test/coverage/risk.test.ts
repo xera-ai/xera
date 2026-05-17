@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { computeAreaRisk, RISK_WEIGHTS } from '../../src/coverage/risk';
+import { computeAcGapScore, computeAreaRisk, RISK_WEIGHTS } from '../../src/coverage/risk';
 import { DEFAULT_COVERAGE_CONFIG } from '../../src/coverage/types';
 import type { Snapshot } from '../../src/graph/types';
 
@@ -159,5 +159,66 @@ describe('computeAreaRisk', () => {
     expect(RISK_WEIGHTS.bugClassifications.has('REAL_BUG')).toBe(true);
     expect(RISK_WEIGHTS.bugClassifications.has('TEST_OUTDATED')).toBe(true);
     expect(RISK_WEIGHTS.bugClassifications.has('SELECTOR_DRIFT')).toBe(false);
+  });
+});
+
+describe('computeAcGapScore', () => {
+  const now = new Date('2026-05-17T10:00:00.000Z');
+
+  test('zero when ticket has no unsatisfied ACs', () => {
+    const snap = emptySnap();
+    snap.tickets['PROJ-1'] = {
+      id: 'PROJ-1',
+      summary: 's',
+      ac: [],
+      storyHash: 'h',
+      modifiesAreas: [],
+      fetchedAt: '2026-05-15T10:00:00.000Z',
+    };
+    expect(computeAcGapScore('PROJ-1', snap, cfg(), now)).toBe(0);
+  });
+
+  test('×2.0 boost when fetched ≤ 7d ago', () => {
+    const snap = emptySnap();
+    snap.tickets['PROJ-1'] = {
+      id: 'PROJ-1',
+      summary: 's',
+      ac: ['a', 'b'],
+      storyHash: 'h',
+      modifiesAreas: [],
+      fetchedAt: '2026-05-15T10:00:00.000Z',
+    };
+    snap.acNodes['PROJ-1#ac-0'] = { id: 'PROJ-1#ac-0', ticketId: 'PROJ-1', index: 0, text: 'a' };
+    snap.acNodes['PROJ-1#ac-1'] = { id: 'PROJ-1#ac-1', ticketId: 'PROJ-1', index: 1, text: 'b' };
+    expect(computeAcGapScore('PROJ-1', snap, cfg(), now)).toBe(4);
+  });
+
+  test('×1.0 boost when fetched 8-30d ago', () => {
+    const snap = emptySnap();
+    snap.tickets['PROJ-1'] = {
+      id: 'PROJ-1',
+      summary: 's',
+      ac: ['a'],
+      storyHash: 'h',
+      modifiesAreas: [],
+      fetchedAt: '2026-05-01T10:00:00.000Z',
+    };
+    snap.acNodes['PROJ-1#ac-0'] = { id: 'PROJ-1#ac-0', ticketId: 'PROJ-1', index: 0, text: 'a' };
+    expect(computeAcGapScore('PROJ-1', snap, cfg(), now)).toBe(1);
+  });
+
+  test('×0.5 boost when fetched > 30d ago', () => {
+    const snap = emptySnap();
+    snap.tickets['PROJ-1'] = {
+      id: 'PROJ-1',
+      summary: 's',
+      ac: ['a', 'b'],
+      storyHash: 'h',
+      modifiesAreas: [],
+      fetchedAt: '2026-02-01T10:00:00.000Z',
+    };
+    snap.acNodes['PROJ-1#ac-0'] = { id: 'PROJ-1#ac-0', ticketId: 'PROJ-1', index: 0, text: 'a' };
+    snap.acNodes['PROJ-1#ac-1'] = { id: 'PROJ-1#ac-1', ticketId: 'PROJ-1', index: 1, text: 'b' };
+    expect(computeAcGapScore('PROJ-1', snap, cfg(), now)).toBe(1);
   });
 });
