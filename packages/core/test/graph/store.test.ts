@@ -399,3 +399,81 @@ describe('deriveSnapshot — classifications projection', () => {
     });
   });
 });
+
+describe('deriveSnapshot — backfilled satisfies edges', () => {
+  test('materializes satisfies edges from ac-coverage.backfilled', () => {
+    const events: Event[] = [
+      ticketFetchedEvent('PROJ-1', ['AC 0', 'AC 1', 'AC 2'], '2026-05-12T10:00:00.000Z'),
+      scenarioGeneratedEvent('PROJ-1', 'PROJ-1#scenario-0', '2026-04-01T11:00:00.000Z'), // legacy
+      {
+        event_id: eid('20260517100000'),
+        schema_version: 1,
+        ts: '2026-05-17T10:00:00.000Z',
+        actor: 'xera-coverage',
+        type: 'ac-coverage.backfilled',
+        payload: {
+          ts: '2026-05-17T10:00:00.000Z',
+          ticketId: 'PROJ-1',
+          mappings: [{ scenarioId: 'PROJ-1#scenario-0', satisfiesAcs: [0, 1], confidence: 0.85 }],
+        },
+      },
+    ];
+    const snap = deriveSnapshot(events);
+    const sat = snap.edges.filter((e) => e.kind === 'satisfies');
+    expect(sat).toHaveLength(2);
+    expect(sat[0]?.source).toBe('ac-coverage');
+    expect(sat[0]?.confidence).toBe(0.85);
+  });
+
+  test('re-running backfill replaces prior backfill edges for the ticket', () => {
+    const baseEvents: Event[] = [
+      ticketFetchedEvent('PROJ-1', ['AC 0', 'AC 1', 'AC 2'], '2026-05-12T10:00:00.000Z'),
+      scenarioGeneratedEvent('PROJ-1', 'PROJ-1#scenario-0', '2026-04-01T11:00:00.000Z'),
+    ];
+    const firstBackfill: Event = {
+      event_id: eid('20260517100000'),
+      schema_version: 1,
+      ts: '2026-05-17T10:00:00.000Z',
+      actor: 'xera-coverage',
+      type: 'ac-coverage.backfilled',
+      payload: {
+        ts: '2026-05-17T10:00:00.000Z',
+        ticketId: 'PROJ-1',
+        mappings: [{ scenarioId: 'PROJ-1#scenario-0', satisfiesAcs: [0, 1], confidence: 0.8 }],
+      },
+    };
+    const secondBackfill: Event = {
+      event_id: eid('20260517110000'),
+      schema_version: 1,
+      ts: '2026-05-17T11:00:00.000Z',
+      actor: 'xera-coverage',
+      type: 'ac-coverage.backfilled',
+      payload: {
+        ts: '2026-05-17T11:00:00.000Z',
+        ticketId: 'PROJ-1',
+        mappings: [{ scenarioId: 'PROJ-1#scenario-0', satisfiesAcs: [2], confidence: 0.95 }],
+      },
+    };
+    const snap = deriveSnapshot([...baseEvents, firstBackfill, secondBackfill]);
+    const sat = snap.edges.filter((e) => e.kind === 'satisfies');
+    expect(sat).toHaveLength(1);
+    expect(sat[0]?.to).toBe('PROJ-1#ac-2');
+  });
+
+  test('coverage.snapshot events are no-op for snapshot (read-side only)', () => {
+    const events: Event[] = [
+      {
+        event_id: eid('20260517100000'),
+        schema_version: 1,
+        ts: '2026-05-17T10:00:00.000Z',
+        actor: 'xera-coverage',
+        type: 'coverage.snapshot',
+        payload: { ts: '2026-05-17T10:00:00.000Z', windowDays: 30, areas: [], tickets: [] },
+      },
+    ];
+    const snap = deriveSnapshot(events);
+    expect(snap.event_count).toBe(1);
+    expect(snap.edges).toEqual([]);
+    expect(snap.acNodes).toEqual({});
+  });
+});

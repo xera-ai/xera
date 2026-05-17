@@ -249,6 +249,38 @@ export function deriveSnapshot(events: Event[]): Snapshot {
           ts: e.ts,
         });
         break;
+      case 'ac-coverage.backfilled': {
+        const { ts, ticketId, mappings } = e.payload;
+        // Remove prior backfill edges for this ticket (idempotent)
+        for (let i = edges.length - 1; i >= 0; i--) {
+          const ed = edges[i]!;
+          if (
+            ed.kind === 'satisfies' &&
+            ed.source === 'ac-coverage' &&
+            ed.to.startsWith(`${ticketId}#ac-`)
+          ) {
+            edges.splice(i, 1);
+          }
+        }
+        for (const m of mappings) {
+          for (const acIdx of m.satisfiesAcs) {
+            const acId = `${ticketId}#ac-${acIdx}`;
+            if (acNodes[acId] === undefined) continue;
+            edges.push({
+              kind: 'satisfies',
+              from: m.scenarioId,
+              to: acId,
+              confidence: m.confidence,
+              source: 'ac-coverage',
+              discoveredAt: ts,
+            });
+          }
+        }
+        break;
+      }
+      case 'coverage.snapshot':
+        // Read-side only — Trend tab queries these events directly from JSONL.
+        break;
       default:
         break;
     }
