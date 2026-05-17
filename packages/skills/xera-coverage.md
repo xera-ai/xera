@@ -38,16 +38,57 @@ Exit codes:
 - `2` — `xera.config.ts` missing or invalid; surface stderr and STOP.
 - `4` — internal error; surface stderr and STOP.
 
-## Step 3 — Read report.json
+## Step 3 — Detect + run AC backfill if needed
 
-If a normal (non-`--why`, non-`--json`) run, read `.xera/coverage/report.json`. Check `acBackfillNeeded`:
+Read `.xera/coverage/report.json`. If `acBackfillNeeded === true`:
 
-- If `true`: print this warning BEFORE the report (the actual backfill flow ships in v0.8.0-beta / Plan 03):
+### 3a — Assemble unmapped context
 
-  ```
-  ⚠ AC backfill is needed for legacy scenarios. AC-level coverage may be
-    incomplete until /xera-coverage backfill runs (planned v0.8.0-beta).
-  ```
+```bash
+bun run xera:ac-coverage-backfill-prepare
+```
+
+This writes `.xera/coverage/ac-backfill-input.json` listing tickets that have ACs + scenarios but no `satisfies` edges yet.
+
+If the input file is `{ "tickets": [] }`, skip to Step 4 — there's nothing to backfill (the `acBackfillNeeded` flag in report.json may be a leftover stale state; re-running `coverage-prepare` will refresh it).
+
+### 3b — Invoke the AC-mapping prompt
+
+Mint a fresh per-invocation nonce:
+
+```bash
+bun -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"
+```
+
+Capture the single-line output as the nonce.
+
+Read `.xera/coverage/ac-backfill-input.json` and `node_modules/@xera-ai/prompts/map-ac-to-scenarios.md`. Generate the AC mapping decisions following that prompt's rules. Wrap the input JSON between two identical `<NONCE>` tags before feeding it to your generation context.
+
+Write the prompt output to `.xera/coverage/ac-backfill-decisions.json`. The output schema is:
+
+```json
+{
+  "mappings": [
+    { "scenarioId": "<id>", "satisfiesAcs": [<indices>], "confidence": <0-1> }
+  ]
+}
+```
+
+### 3c — Materialize the satisfies edges
+
+```bash
+bun run xera:ac-coverage-backfill-finalize
+```
+
+This validates the decisions JSON and emits one `ac-coverage.backfilled` event per ticket. Each event materializes the `satisfies` edges in the graph snapshot.
+
+### 3d — Re-run coverage-prepare
+
+```bash
+bun run xera:coverage-prepare --no-emit-event
+```
+
+This regenerates `.xera/coverage/report.json` with the newly materialized `satisfies` edges. After this, `acBackfillNeeded` should be `false` (or only `true` for tickets the AI declined to map — those are an AI quality issue and need a human eye).
 
 ## Step 4 — Print report.md
 
