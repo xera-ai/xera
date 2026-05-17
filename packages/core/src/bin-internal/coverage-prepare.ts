@@ -26,13 +26,19 @@ function parseArgs(argv: string[]): ParsedArgs {
   const args: ParsedArgs = { emitEvent: true, json: false, all: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === '--snapshot-ts') args.snapshotTs = argv[++i];
-    else if (a === '--no-emit-event') args.emitEvent = false;
-    else if (a === '--why') args.why = argv[++i];
-    else if (a === '--json') args.json = true;
+    if (a === '--snapshot-ts') {
+      const v = argv[++i];
+      if (v !== undefined) args.snapshotTs = v;
+    } else if (a === '--no-emit-event') args.emitEvent = false;
+    else if (a === '--why') {
+      const v = argv[++i];
+      if (v !== undefined) args.why = v;
+    } else if (a === '--json') args.json = true;
     else if (a === '--all') args.all = true;
-    else if (a === '--snapshot-file') args.snapshotFile = argv[++i];
-    else if (a === '--help-stub') {
+    else if (a === '--snapshot-file') {
+      const v = argv[++i];
+      if (v !== undefined) args.snapshotFile = v;
+    } else if (a === '--help-stub') {
       /* no-op for test scaffold */
     } else {
       console.error(`[coverage-prepare] unknown flag: ${a}`);
