@@ -22,4 +22,11 @@ export default defineConfig({
       },
     },
   },
+  // Coverage gap report (v0.8.0+). Run `/xera-coverage` to see UNCOVERED /
+  // STALE areas and AC gaps. See docs/CONFIGURATION.md for `criticalAreas`.
+  coverage: {
+    staleAfterDays: 30,
+    criticalAreas: [],
+    autoSnapshotOnCoverage: true,
+  },
 });

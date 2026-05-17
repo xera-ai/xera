@@ -31,4 +31,12 @@ export default defineConfig({
     {{/if}}
   },
   adapters: ['web'],
+  // Coverage gap report (v0.8.0+). Run `/xera-coverage` to see UNCOVERED /
+  // STALE areas and AC gaps. Marking areas as critical doubles their risk
+  // weight so business-critical paths surface even on low ticket activity.
+  coverage: {
+    staleAfterDays: 30,
+    criticalAreas: [],
+    autoSnapshotOnCoverage: true,
+  },
 });
