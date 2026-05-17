@@ -11,6 +11,58 @@ import {
 } from '../../src/graph/store';
 import type { Event } from '../../src/graph/types';
 
+function eid(seed: string): string {
+  const digits = seed
+    .replace(/[^0-9]/g, '')
+    .padEnd(20, '0')
+    .slice(0, 20);
+  return `01HXYZ${digits}`;
+}
+
+function ticketFetchedEvent(ticketId: string, ac: string[], ts: string, storyHash = 'h'): Event {
+  return {
+    event_id: eid(ts),
+    schema_version: 1,
+    ts,
+    actor: 'xera-fetch',
+    type: 'ticket.fetched',
+    payload: {
+      ticketId,
+      summary: 's',
+      ac,
+      jiraLinks: [],
+      storyHash,
+      modifiesAreas: [],
+    },
+  };
+}
+
+function scenarioGeneratedEvent(
+  ticketId: string,
+  scenarioId: string,
+  ts: string,
+  satisfiesAcs?: number[],
+): Event {
+  const payload: import('../../src/graph/types').ScenarioGeneratedPayload = {
+    scenarioId,
+    ticketId,
+    name: 'n',
+    gherkin: '...',
+    priority: 'p1',
+    featureHash: 'h',
+    generatedAt: ts,
+  };
+  if (satisfiesAcs) payload.satisfiesAcs = satisfiesAcs;
+  return {
+    event_id: eid(ts),
+    schema_version: 1,
+    ts,
+    actor: 'xera-script',
+    type: 'scenario.generated',
+    payload,
+  };
+}
+
 let root: string;
 beforeEach(() => {
   root = mkdtempSync(join(tmpdir(), 'xera-graph-'));
@@ -212,5 +264,62 @@ describe('snapshot drift', () => {
     });
     writeSnapshot(root, deriveSnapshot(loadAllEvents(root)));
     expect(isSnapshotStale(root)).toBe(false);
+  });
+});
+
+describe('deriveSnapshot — ACNode materialization', () => {
+  test('materializes one ACNode per AC from ticket.fetched', () => {
+    const events: Event[] = [
+      ticketFetchedEvent(
+        'PROJ-105',
+        ['Sees subtotal', 'Sees discount', 'Sees tax line'],
+        '2026-05-12T10:00:00.000Z',
+      ),
+    ];
+    const snap = deriveSnapshot(events);
+    expect(Object.keys(snap.acNodes).sort()).toEqual([
+      'PROJ-105#ac-0',
+      'PROJ-105#ac-1',
+      'PROJ-105#ac-2',
+    ]);
+    expect(snap.acNodes['PROJ-105#ac-2']).toEqual({
+      id: 'PROJ-105#ac-2',
+      ticketId: 'PROJ-105',
+      index: 2,
+      text: 'Sees tax line',
+    });
+  });
+
+  test('re-fetch replaces ACNodes for that ticket', () => {
+    const events: Event[] = [
+      ticketFetchedEvent('PROJ-105', ['Old 0', 'Old 1', 'Old 2'], '2026-05-12T10:00:00.000Z', 'v1'),
+      ticketFetchedEvent('PROJ-105', ['New 0', 'New 1'], '2026-05-15T10:00:00.000Z', 'v2'),
+    ];
+    const snap = deriveSnapshot(events);
+    expect(Object.keys(snap.acNodes).sort()).toEqual(['PROJ-105#ac-0', 'PROJ-105#ac-1']);
+    expect(snap.acNodes['PROJ-105#ac-0']?.text).toBe('New 0');
+  });
+
+  test('re-fetch prunes satisfies edges targeting removed ACs', () => {
+    const events: Event[] = [
+      ticketFetchedEvent('PROJ-105', ['AC 0', 'AC 1', 'AC 2'], '2026-05-12T10:00:00.000Z', 'v1'),
+      {
+        event_id: eid('20260513100000'),
+        schema_version: 1,
+        ts: '2026-05-13T10:00:00.000Z',
+        actor: 'xera-script',
+        type: 'edge.discovered',
+        payload: {
+          kind: 'satisfies',
+          from: 'PROJ-105#scenario-0',
+          to: 'PROJ-105#ac-2',
+          source: 'xera-script',
+        },
+      },
+      ticketFetchedEvent('PROJ-105', ['AC 0', 'AC 1'], '2026-05-15T10:00:00.000Z', 'v2'),
+    ];
+    const snap = deriveSnapshot(events);
+    const targets = snap.edges.filter((e) => e.kind === 'satisfies').map((e) => e.to);
+    expect(targets).toEqual([]);
   });
 });
