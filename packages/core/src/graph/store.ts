@@ -149,7 +149,7 @@ export function deriveSnapshot(events: Event[]): Snapshot {
         if (tickets[e.payload.ticketId])
           tickets[e.payload.ticketId]!.enrichedAt = e.payload.enrichedAt;
         break;
-      case 'scenario.generated':
+      case 'scenario.generated': {
         scenarios[e.payload.scenarioId] = {
           id: e.payload.scenarioId,
           ticketId: e.payload.ticketId,
@@ -166,7 +166,33 @@ export function deriveSnapshot(events: Event[]): Snapshot {
           source: 'xera-script',
           discoveredAt: e.ts,
         });
+        // NEW v0.8: drop prior eager satisfies edges for this scenario, then emit fresh
+        if (e.payload.satisfiesAcs && e.payload.satisfiesAcs.length > 0) {
+          for (let i = edges.length - 1; i >= 0; i--) {
+            const ed = edges[i]!;
+            if (
+              ed.kind === 'satisfies' &&
+              ed.from === e.payload.scenarioId &&
+              ed.source === 'xera-script'
+            ) {
+              edges.splice(i, 1);
+            }
+          }
+          for (const acIdx of e.payload.satisfiesAcs) {
+            const acId = `${e.payload.ticketId}#ac-${acIdx}`;
+            if (acNodes[acId] === undefined) continue;
+            edges.push({
+              kind: 'satisfies',
+              from: e.payload.scenarioId,
+              to: acId,
+              confidence: 1.0,
+              source: 'xera-script',
+              discoveredAt: e.ts,
+            });
+          }
+        }
         break;
+      }
       case 'pom.generated':
         poms[e.payload.pomId] = {
           id: e.payload.pomId,

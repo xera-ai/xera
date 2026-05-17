@@ -323,3 +323,39 @@ describe('deriveSnapshot — ACNode materialization', () => {
     expect(targets).toEqual([]);
   });
 });
+
+describe('deriveSnapshot — eager satisfies edges', () => {
+  test('emits satisfies edges from scenario.generated.satisfiesAcs', () => {
+    const events: Event[] = [
+      ticketFetchedEvent('PROJ-105', ['AC 0', 'AC 1', 'AC 2'], '2026-05-12T10:00:00.000Z'),
+      scenarioGeneratedEvent('PROJ-105', 'PROJ-105#scenario-0', '2026-05-12T11:00:00.000Z', [0, 2]),
+    ];
+    const snap = deriveSnapshot(events);
+    const sat = snap.edges.filter((e) => e.kind === 'satisfies');
+    expect(sat).toHaveLength(2);
+    expect(sat.map((e) => e.to).sort()).toEqual(['PROJ-105#ac-0', 'PROJ-105#ac-2']);
+    expect(sat[0]?.source).toBe('xera-script');
+    expect(sat[0]?.confidence).toBe(1.0);
+  });
+
+  test('no satisfies edges when scenario.generated lacks satisfiesAcs (legacy)', () => {
+    const events: Event[] = [
+      ticketFetchedEvent('PROJ-1', ['AC 0'], '2026-04-01T10:00:00.000Z'),
+      scenarioGeneratedEvent('PROJ-1', 'PROJ-1#scenario-0', '2026-04-01T11:00:00.000Z'),
+    ];
+    const snap = deriveSnapshot(events);
+    expect(snap.edges.filter((e) => e.kind === 'satisfies')).toEqual([]);
+  });
+
+  test('regenerating a scenario replaces its prior eager satisfies edges', () => {
+    const events: Event[] = [
+      ticketFetchedEvent('PROJ-1', ['AC 0', 'AC 1', 'AC 2'], '2026-04-01T10:00:00.000Z'),
+      scenarioGeneratedEvent('PROJ-1', 'PROJ-1#scenario-0', '2026-04-01T11:00:00.000Z', [0, 1]),
+      scenarioGeneratedEvent('PROJ-1', 'PROJ-1#scenario-0', '2026-04-02T11:00:00.000Z', [2]),
+    ];
+    const snap = deriveSnapshot(events);
+    const sat = snap.edges.filter((e) => e.kind === 'satisfies' && e.from === 'PROJ-1#scenario-0');
+    expect(sat).toHaveLength(1);
+    expect(sat[0]?.to).toBe('PROJ-1#ac-2');
+  });
+});
