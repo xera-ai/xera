@@ -45,8 +45,10 @@ function parseArgs(argv: string[]): ParsedArgs {
   const args: ParsedArgs = {};
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === '--output') args.outputFile = argv[++i];
-    else if (a === '--help-stub') {
+    if (a === '--output') {
+      const v = argv[++i];
+      if (v !== undefined) args.outputFile = v;
+    } else if (a === '--help-stub') {
       /* no-op */
     } else {
       console.error(`[ac-coverage-backfill-prepare] unknown flag: ${a}`);
