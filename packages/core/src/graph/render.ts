@@ -328,7 +328,7 @@ export function renderHtml(input: RenderHtmlInput): string {
   return template
     .replace('{{CSS}}', () => css)
     .replace('{{STATS}}', () => statsHuman)
-    .replace('{{GENERATED_AT}}', () => input.generatedAt)
+    .replace(/\{\{GENERATED_AT\}\}/g, () => input.generatedAt)
     .replace('{{VIS_NETWORK_JS}}', () => visNetwork)
     .replace('{{GRAPH_DATA}}', () => graphJson)
     .replace('{{INTERACTION_JS}}', () => js)
