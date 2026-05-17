@@ -1,5 +1,19 @@
 # @xera-ai/core
 
+## 0.11.5
+
+### Patch Changes
+
+- [#80](https://github.com/xera-ai/xera/pull/80) [`3d3d535`](https://github.com/xera-ai/xera/commit/3d3d535af464be0b28777e1a648b149a0507d9d3) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - resolve ticketId from snapshot in ac-coverage-backfill-finalize (auto-generated from [#80](https://github.com/xera-ai/xera/issues/80))
+
+- [#82](https://github.com/xera-ai/xera/pull/82) [`9633a1d`](https://github.com/xera-ai/xera/commit/9633a1dc988627d0f06f95d00bf5a479bbf8135e) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - warn when graph-record exec/classify scenario names don't match graph (auto-generated from [#82](https://github.com/xera-ai/xera/issues/82))
+
+- [#83](https://github.com/xera-ai/xera/pull/83) [`675ddc4`](https://github.com/xera-ai/xera/commit/675ddc4dfaf7e1f38f02808b0b7bb0fe0568bb3a) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - join run.classified onto latest_failures in graph snapshot (auto-generated from [#83](https://github.com/xera-ai/xera/issues/83))
+
+- Updated dependencies []:
+  - @xera-ai/web@0.11.5
+  - @xera-ai/http@0.11.5
+
 ## 0.11.4
 
 ### Patch Changes
