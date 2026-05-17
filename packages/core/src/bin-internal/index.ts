@@ -1,4 +1,5 @@
 import { authSetupCmd } from './auth-setup';
+import { coveragePrepareCmd } from './coverage-prepare';
 import { disputesCmd } from './disputes';
 import { doctorCmd } from './doctor';
 import { evalDeterministicCmd } from './eval-deterministic';
@@ -27,6 +28,7 @@ import { verifyPromptsCmd } from './verify-prompts';
 
 const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
   'auth-setup': authSetupCmd,
+  'coverage-prepare': coveragePrepareCmd,
   disputes: disputesCmd,
   doctor: doctorCmd,
   'eval-deterministic': evalDeterministicCmd,
