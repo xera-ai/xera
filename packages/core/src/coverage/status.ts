@@ -1,6 +1,9 @@
 import type { Snapshot } from '../graph/types';
 
 export type ScenarioStatus = 'PASSING' | 'NOT_PASSING';
+export type AreaStatus = 'UNCOVERED' | 'STALE' | 'COVERED';
+export type AcStatus = 'SATISFIED' | 'UNSATISFIED';
+export type TicketStatus = 'COMPLETE' | 'INCOMPLETE';
 
 function daysBetween(a: Date, b: Date): number {
   return Math.abs(a.getTime() - b.getTime()) / (1000 * 60 * 60 * 24);
@@ -20,4 +23,54 @@ export function computeScenarioStatus(
   if (latest.classification !== 'PASS') return 'NOT_PASSING';
   if (daysBetween(now, new Date(latest.ts)) > windowDays) return 'NOT_PASSING';
   return 'PASSING';
+}
+
+export function computeAreaStatus(
+  areaId: string,
+  snap: Snapshot,
+  windowDays: number,
+  now: Date,
+): AreaStatus {
+  const coveringPoms = snap.edges
+    .filter((e) => e.kind === 'covers' && e.to === areaId)
+    .map((e) => e.from);
+  if (coveringPoms.length === 0) return 'UNCOVERED';
+
+  const scenariosInArea = snap.edges
+    .filter((e) => e.kind === 'uses' && coveringPoms.includes(e.to))
+    .map((e) => e.from);
+  const anyPassing = scenariosInArea.some(
+    (sid) => computeScenarioStatus(sid, snap, windowDays, now) === 'PASSING',
+  );
+  return anyPassing ? 'COVERED' : 'STALE';
+}
+
+export function computeAcStatus(
+  acId: string,
+  snap: Snapshot,
+  windowDays: number,
+  now: Date,
+): AcStatus {
+  const edges = snap.edges.filter((e) => e.kind === 'satisfies' && e.to === acId);
+  if (edges.length === 0) return 'UNSATISFIED';
+  const anyPassing = edges.some(
+    (e) => computeScenarioStatus(e.from, snap, windowDays, now) === 'PASSING',
+  );
+  return anyPassing ? 'SATISFIED' : 'UNSATISFIED';
+}
+
+export function computeTicketStatus(
+  ticketId: string,
+  snap: Snapshot,
+  windowDays: number,
+  now: Date,
+): TicketStatus {
+  const acIds = Object.values(snap.acNodes)
+    .filter((ac) => ac.ticketId === ticketId)
+    .map((ac) => ac.id);
+  if (acIds.length === 0) return 'COMPLETE';
+  const allSatisfied = acIds.every(
+    (acId) => computeAcStatus(acId, snap, windowDays, now) === 'SATISFIED',
+  );
+  return allSatisfied ? 'COMPLETE' : 'INCOMPLETE';
 }
