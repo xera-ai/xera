@@ -100,7 +100,7 @@ describe('AcCoverageBackfilledPayload', () => {
 describe('Event union extended', () => {
   test('Event type discriminates coverage.snapshot', () => {
     const e: Event = {
-      event_id: '01HXYZ' + '0'.repeat(20),
+      event_id: `01HXYZ${'0'.repeat(20)}`,
       schema_version: 1,
       ts: '2026-05-17T10:00:00.000Z',
       actor: 'xera-coverage',
@@ -117,7 +117,7 @@ describe('Event union extended', () => {
 
   test('Event type discriminates ac-coverage.backfilled', () => {
     const e: Event = {
-      event_id: '01HXYZ' + '0'.repeat(20),
+      event_id: `01HXYZ${'0'.repeat(20)}`,
       schema_version: 1,
       ts: '2026-05-17T10:00:00.000Z',
       actor: 'xera-coverage',

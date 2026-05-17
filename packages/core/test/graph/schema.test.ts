@@ -90,7 +90,7 @@ describe('safeParseEvent', () => {
 });
 
 const base = {
-  event_id: '01HXYZ' + '0'.repeat(20),
+  event_id: `01HXYZ${'0'.repeat(20)}`,
   schema_version: 1,
   ts: '2026-05-17T10:00:00.000Z',
   actor: 'xera-test',
@@ -109,5 +109,60 @@ describe('edgeDiscovered schema with satisfies kind', () => {
       },
     });
     expect(r.success).toBe(true);
+  });
+});
+
+describe('scenarioGenerated schema with satisfiesAcs', () => {
+  test('accepts optional satisfiesAcs', () => {
+    const r = safeParseEvent({
+      ...base,
+      type: 'scenario.generated',
+      payload: {
+        scenarioId: 'PROJ-1#scenario-0',
+        ticketId: 'PROJ-1',
+        name: 'x',
+        gherkin: '...',
+        priority: 'p1',
+        featureHash: 'h',
+        generatedAt: '2026-05-17T10:00:00.000Z',
+        satisfiesAcs: [0, 2],
+      },
+    });
+    expect(r.success).toBe(true);
+  });
+
+  test('accepts payload without satisfiesAcs (legacy)', () => {
+    const r = safeParseEvent({
+      ...base,
+      type: 'scenario.generated',
+      payload: {
+        scenarioId: 'PROJ-1#scenario-0',
+        ticketId: 'PROJ-1',
+        name: 'x',
+        gherkin: '...',
+        priority: 'p1',
+        featureHash: 'h',
+        generatedAt: '2026-05-17T10:00:00.000Z',
+      },
+    });
+    expect(r.success).toBe(true);
+  });
+
+  test('rejects non-integer satisfiesAcs', () => {
+    const r = safeParseEvent({
+      ...base,
+      type: 'scenario.generated',
+      payload: {
+        scenarioId: 'PROJ-1#scenario-0',
+        ticketId: 'PROJ-1',
+        name: 'x',
+        gherkin: '...',
+        priority: 'p1',
+        featureHash: 'h',
+        generatedAt: '2026-05-17T10:00:00.000Z',
+        satisfiesAcs: [1.5],
+      },
+    });
+    expect(r.success).toBe(false);
   });
 });

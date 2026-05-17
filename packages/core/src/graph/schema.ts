@@ -38,6 +38,7 @@ const scenarioGenerated = z
     priority: z.enum(['p0', 'p1', 'p2']),
     featureHash: z.string(),
     generatedAt: iso,
+    satisfiesAcs: z.array(z.number().int().nonnegative()).optional(),
   })
   .passthrough();
 
