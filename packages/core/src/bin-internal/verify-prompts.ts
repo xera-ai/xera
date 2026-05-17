@@ -14,6 +14,7 @@ const IN_SCOPE_PROMPTS = [
   'extract-areas.md',
   'similarity-match.md',
   'classify-outdated.md',
+  'map-ac-to-scenarios.md',
 ] as const;
 
 const REQUIRED_SECTION_HEADING = '## Handling untrusted input';
