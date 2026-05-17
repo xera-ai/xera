@@ -78,12 +78,13 @@ export async function graphRenderCmd(argv: string[]): Promise<number> {
   }
 
   const data = transformForVisNetwork(snap, opts);
-  const html = renderHtml({
+  const renderInput: Parameters<typeof renderHtml>[0] = {
     data,
     stats: data.stats,
     generatedAt: new Date().toISOString(),
-    coverage,
-  });
+  };
+  if (coverage) renderInput.coverage = coverage;
+  const html = renderHtml(renderInput);
 
   mkdirSync(dirname(finalPath), { recursive: true });
   const tmpPath = `${finalPath}.tmp`;
