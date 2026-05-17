@@ -476,11 +476,28 @@ function renderCoverageMap() {
   if (!canvas) return;
 
   const STATUS_COLOR = {
-    UNCOVERED: { background: '#fca5a5', border: '#dc2626' },
-    STALE: { background: '#fcd34d', border: '#d97706' },
-    COVERED: { background: '#86efac', border: '#15803d' },
+    UNCOVERED: {
+      background: '#3d1515',
+      border: '#f87171',
+      highlight: { background: '#5a1d1d', border: '#fca5a5' },
+    },
+    STALE: {
+      background: '#3d2c0d',
+      border: '#fbbf24',
+      highlight: { background: '#5a4012', border: '#fde68a' },
+    },
+    COVERED: {
+      background: '#0d3320',
+      border: '#34d399',
+      highlight: { background: '#134d2f', border: '#6ee7b7' },
+    },
   };
-  const NEUTRAL = { background: '#e5e7eb', border: '#9ca3af' };
+  const NEUTRAL = {
+    background: '#1a2035',
+    border: '#475569',
+    highlight: { background: '#232d47', border: '#64748b' },
+  };
+  const FONT = { color: '#cbd5e1', strokeWidth: 2, strokeColor: '#050810' };
 
   const areaStatusById = {};
   for (const a of cov.report.areas) {
@@ -488,11 +505,12 @@ function renderCoverageMap() {
   }
 
   const mappedNodes = window.__GRAPH__.nodes.map((n) => {
+    const base = { font: FONT };
     if (n.group === 'SUTArea' && areaStatusById[n.id]) {
-      return Object.assign({}, n, { color: STATUS_COLOR[areaStatusById[n.id]] });
+      return Object.assign({}, n, base, { color: STATUS_COLOR[areaStatusById[n.id]] });
     }
-    if (n.group !== 'SUTArea') return Object.assign({}, n, { color: NEUTRAL });
-    return n;
+    if (n.group !== 'SUTArea') return Object.assign({}, n, base, { color: NEUTRAL });
+    return Object.assign({}, n, base);
   });
 
   new vis.Network(
@@ -500,7 +518,9 @@ function renderCoverageMap() {
     { nodes: new vis.DataSet(mappedNodes), edges: new vis.DataSet(window.__GRAPH__.edges) },
     {
       physics: { enabled: true, stabilization: { iterations: 100 } },
-      nodes: { shape: 'dot', font: { size: 11 } },
+      nodes: { shape: 'dot', font: { size: 11, color: '#cbd5e1' }, borderWidth: 1.5 },
+      edges: { color: { color: '#1e2d3d', opacity: 0.6 }, width: 1 },
+      interaction: { hover: true, tooltipDelay: 200 },
     },
   );
 }
@@ -578,19 +598,50 @@ function renderCoverageTrend() {
     return { day: d, value: n };
   });
   const W = 800;
-  const H = 200;
-  const PAD = 30;
+  const H = 260;
+  const PAD_L = 40;
+  const PAD_R = 24;
+  const PAD_T = 16;
+  const PAD_B = 32;
+  const innerW = W - PAD_L - PAD_R;
+  const innerH = H - PAD_T - PAD_B;
   const maxValue = Math.max(...points.map((p) => p.value), 1);
-  const stepX = points.length > 1 ? (W - 2 * PAD) / (points.length - 1) : 0;
-  const path = points
-    .map((p, idx) => {
-      const x = PAD + idx * stepX;
-      const y = H - PAD - (p.value / maxValue) * (H - 2 * PAD);
-      return `${idx === 0 ? 'M' : 'L'}${x},${y}`;
+  const stepX = points.length > 1 ? innerW / (points.length - 1) : 0;
+  const xy = points.map((p, idx) => ({
+    x: PAD_L + idx * stepX,
+    y: PAD_T + innerH - (p.value / maxValue) * innerH,
+    v: p.value,
+    d: p.day,
+  }));
+  const linePath = xy.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
+  const areaPath = `${linePath} L${xy[xy.length - 1].x},${PAD_T + innerH} L${xy[0].x},${PAD_T + innerH} Z`;
+
+  // Horizontal grid lines at 25/50/75/100%
+  const grid = [0.25, 0.5, 0.75, 1]
+    .map((f) => {
+      const y = PAD_T + innerH * (1 - f);
+      const v = Math.round(maxValue * f);
+      return `<line x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}" stroke="#1a2540" stroke-width="1" stroke-dasharray="2 4"/><text x="${PAD_L - 8}" y="${y + 3}" font-size="10" text-anchor="end">${v}</text>`;
     })
-    .join(' ');
+    .join('');
+
+  const dots = xy
+    .map(
+      (p) =>
+        `<circle cx="${p.x}" cy="${p.y}" r="3" fill="#ef4444" stroke="#080c14" stroke-width="1.5"><title>${p.d}: ${p.v} uncovered/stale</title></circle>`,
+    )
+    .join('');
 
   const labelFirst = points[0].day;
   const labelLast = points[points.length - 1].day;
-  container.innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"><path d="${path}" fill="none" stroke="#dc2626" stroke-width="2"/><text x="${PAD}" y="${H - 8}" font-size="11" fill="#6b7280">${labelFirst}</text><text x="${W - PAD - 60}" y="${H - 8}" font-size="11" fill="#6b7280">${labelLast}</text><text x="${PAD - 22}" y="${PAD - 4}" font-size="11" fill="#6b7280">${maxValue}</text></svg>`;
+  container.innerHTML =
+    `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">` +
+    `<defs><linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ef4444" stop-opacity="0.25"/><stop offset="100%" stop-color="#ef4444" stop-opacity="0"/></linearGradient></defs>` +
+    grid +
+    `<path d="${areaPath}" fill="url(#trendFill)" stroke="none"/>` +
+    `<path d="${linePath}" fill="none" stroke="#ef4444" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` +
+    dots +
+    `<text x="${PAD_L}" y="${H - 8}" font-size="10">${labelFirst}</text>` +
+    `<text x="${W - PAD_R}" y="${H - 8}" font-size="10" text-anchor="end">${labelLast}</text>` +
+    `</svg>`;
 }
