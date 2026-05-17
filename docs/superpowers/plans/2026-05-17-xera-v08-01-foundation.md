@@ -3639,33 +3639,396 @@ git commit -m "test(coverage): add critical-boost golden fixture"
 
 ### Task 9.4: `bug-history.json`
 
-Same pattern: write fixture demonstrating bug count contribution, expected JSON, add test.
-
 **Files:**
 - Create: `fixtures/golden-coverage/bug-history.json` + `.expected.json`
 - Modify: `packages/core/test/coverage/fixtures.test.ts`
 
-- [ ] **Step 1: Write fixture** — one POM-covered area with classificationEvents that include 2 REAL_BUG + 1 TEST_OUTDATED in window, plus 1 SELECTOR_DRIFT (excluded) and 1 REAL_BUG outside window. Set up so `recent_tickets=0` (test ticket fetched > 30d ago), so risk = 0 + 3 = 3.
+- [ ] **Step 1: Write `bug-history.json`** — exercises bug_history additivity. One area `auth` with POM + scenario. Ticket modifying `auth` fetched 100d ago (outside window, contributes 0 to recent_tickets). Five classification events: 3 in window (2 REAL_BUG + 1 TEST_OUTDATED, total 3), 1 SELECTOR_DRIFT in window (excluded, not in bug set), 1 REAL_BUG outside window. `latestFailures` reflects most-recent REAL_BUG so scenario is NOT_PASSING.
 
-- [ ] **Step 2: Write expected** (1 area, status STALE, risk 3, breakdown reflects 3 bugs)
+```json
+{
+  "tickets": {
+    "PROJ-AUTH": {
+      "kind": "Ticket", "id": "PROJ-AUTH", "summary": "Refactor auth",
+      "acceptanceCriteria": [], "storyHash": "h",
+      "modifiesAreas": ["auth"],
+      "fetchedAt": "2026-02-06T10:00:00.000Z"
+    }
+  },
+  "scenarios": {
+    "PROJ-AUTH#scenario-0": {
+      "kind": "Scenario", "id": "PROJ-AUTH#scenario-0", "ticketId": "PROJ-AUTH",
+      "name": "Login success", "gherkin": "...", "priority": "p1",
+      "featureHash": "fh", "generatedAt": "2026-02-06T11:00:00.000Z"
+    }
+  },
+  "poms": {
+    "LoginPage": {
+      "kind": "POM", "id": "LoginPage", "ticketId": "PROJ-AUTH",
+      "filePath": "pages/LoginPage.ts", "route": "/login",
+      "locators": [], "scope": "local"
+    }
+  },
+  "areas": {
+    "auth": { "kind": "Area", "id": "auth" }
+  },
+  "ticketEdges": [],
+  "scenarioPomEdges": [
+    { "kind": "uses", "source": "PROJ-AUTH#scenario-0", "target": "LoginPage",
+      "discoveredAt": "2026-02-06T11:00:00.000Z", "source_label": "extract" }
+  ],
+  "pomAreaEdges": [
+    { "kind": "covers", "source": "LoginPage", "target": "auth",
+      "discoveredAt": "2026-02-06T11:00:00.000Z", "source_label": "extract" }
+  ],
+  "ticketAreaEdges": [
+    { "kind": "modifies", "source": "PROJ-AUTH", "target": "auth",
+      "discoveredAt": "2026-02-06T10:00:00.000Z", "source_label": "extract" }
+  ],
+  "jiraLinkEdges": [], "similarEdges": [], "failureEdges": [],
+  "latestFailures": {
+    "PROJ-AUTH#scenario-0": {
+      "kind": "Failure", "scenarioId": "PROJ-AUTH#scenario-0",
+      "runId": "r5", "ts": "2026-05-14T10:00:00.000Z",
+      "latestStatus": "fail", "latestClassification": "REAL_BUG"
+    }
+  },
+  "acNodes": {}, "satisfiesEdges": [],
+  "classificationEvents": [
+    { "scenarioId": "PROJ-AUTH#scenario-0", "classification": "REAL_BUG",      "ts": "2026-05-14T10:00:00.000Z" },
+    { "scenarioId": "PROJ-AUTH#scenario-0", "classification": "REAL_BUG",      "ts": "2026-05-10T10:00:00.000Z" },
+    { "scenarioId": "PROJ-AUTH#scenario-0", "classification": "TEST_OUTDATED", "ts": "2026-05-08T10:00:00.000Z" },
+    { "scenarioId": "PROJ-AUTH#scenario-0", "classification": "SELECTOR_DRIFT","ts": "2026-05-12T10:00:00.000Z" },
+    { "scenarioId": "PROJ-AUTH#scenario-0", "classification": "REAL_BUG",      "ts": "2026-03-01T10:00:00.000Z" }
+  ]
+}
+```
 
-- [ ] **Step 3: Test** (`bug-history` case)
+- [ ] **Step 2: Write `bug-history.expected.json`** — area `auth` is STALE (POM exists, scenario is NOT_PASSING because latest classification is REAL_BUG). recent_tickets = 0 (PROJ-AUTH > 30d old). recent_bugs = 3 (2 REAL_BUG + 1 TEST_OUTDATED in window; SELECTOR_DRIFT excluded; out-of-window REAL_BUG excluded). criticalBoost = 1. risk = 0 × 1 + 3 = 3.
 
-- [ ] **Step 4: Run + commit** — `test(coverage): add bug-history golden fixture`
+```json
+{
+  "generatedAt": "2026-05-17T10:00:00.000Z",
+  "windowDays": 30,
+  "areas": [
+    {
+      "id": "auth",
+      "status": "STALE",
+      "risk": 3,
+      "breakdown": { "recentTickets": 0, "recentBugs": 3, "criticalBoost": 1 }
+    }
+  ],
+  "tickets": [],
+  "acBackfillNeeded": false
+}
+```
 
-(Skipping the full JSON here in the interest of length — the engineer fills it in using the mixed.json shape as template, with the specific event timestamps relative to 2026-05-17.)
+- [ ] **Step 3: Add to `fixtures.test.ts`**
+
+```ts
+test('bug-history', () => {
+  const graph = loadGraph('bug-history');
+  const expected = loadExpected('bug-history');
+  const report = buildCoverageReport(graph, DEFAULT_COVERAGE_CONFIG, now);
+  expect(report).toEqual(expected as any);
+});
+```
+
+- [ ] **Step 4: Run**
+
+```bash
+cd packages/core && bun test test/coverage/fixtures.test.ts
+```
+
+Expected: 4 passes (uncovered-only, mixed, critical-boost, bug-history).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add fixtures/golden-coverage/bug-history.json fixtures/golden-coverage/bug-history.expected.json packages/core/test/coverage/fixtures.test.ts
+git commit -m "test(coverage): add bug-history golden fixture"
+```
 
 ---
 
 ### Task 9.5: `stale-only.json`
 
-- [ ] Steps 1–4: write fixture with all areas STALE (POM exists, no PASS in window), expected output, add test, commit.
+**Files:**
+- Create: `fixtures/golden-coverage/stale-only.json` + `.expected.json`
+- Modify: `packages/core/test/coverage/fixtures.test.ts`
+
+- [ ] **Step 1: Write `stale-only.json`** — two areas (`billing`, `search`), each with POM + scenario. Tickets fetched > 30d ago (no recent activity). `latestFailures` show last PASS > 30d ago for each scenario (stale, NOT_PASSING).
+
+```json
+{
+  "tickets": {
+    "PROJ-B": {
+      "kind": "Ticket", "id": "PROJ-B", "summary": "Billing v1",
+      "acceptanceCriteria": [], "storyHash": "h",
+      "modifiesAreas": ["billing"],
+      "fetchedAt": "2026-02-01T10:00:00.000Z"
+    },
+    "PROJ-S": {
+      "kind": "Ticket", "id": "PROJ-S", "summary": "Search v1",
+      "acceptanceCriteria": [], "storyHash": "h",
+      "modifiesAreas": ["search"],
+      "fetchedAt": "2026-02-01T10:00:00.000Z"
+    }
+  },
+  "scenarios": {
+    "PROJ-B#scenario-0": {
+      "kind": "Scenario", "id": "PROJ-B#scenario-0", "ticketId": "PROJ-B",
+      "name": "Bill issued", "gherkin": "...", "priority": "p1",
+      "featureHash": "fh", "generatedAt": "2026-02-01T11:00:00.000Z"
+    },
+    "PROJ-S#scenario-0": {
+      "kind": "Scenario", "id": "PROJ-S#scenario-0", "ticketId": "PROJ-S",
+      "name": "Basic search", "gherkin": "...", "priority": "p1",
+      "featureHash": "fh", "generatedAt": "2026-02-01T11:00:00.000Z"
+    }
+  },
+  "poms": {
+    "BillingPage": {
+      "kind": "POM", "id": "BillingPage", "ticketId": "PROJ-B",
+      "filePath": "pages/BillingPage.ts", "route": "/billing",
+      "locators": [], "scope": "local"
+    },
+    "SearchPage": {
+      "kind": "POM", "id": "SearchPage", "ticketId": "PROJ-S",
+      "filePath": "pages/SearchPage.ts", "route": "/search",
+      "locators": [], "scope": "local"
+    }
+  },
+  "areas": {
+    "billing": { "kind": "Area", "id": "billing" },
+    "search": { "kind": "Area", "id": "search" }
+  },
+  "ticketEdges": [],
+  "scenarioPomEdges": [
+    { "kind": "uses", "source": "PROJ-B#scenario-0", "target": "BillingPage",
+      "discoveredAt": "2026-02-01T11:00:00.000Z", "source_label": "extract" },
+    { "kind": "uses", "source": "PROJ-S#scenario-0", "target": "SearchPage",
+      "discoveredAt": "2026-02-01T11:00:00.000Z", "source_label": "extract" }
+  ],
+  "pomAreaEdges": [
+    { "kind": "covers", "source": "BillingPage", "target": "billing",
+      "discoveredAt": "2026-02-01T11:00:00.000Z", "source_label": "extract" },
+    { "kind": "covers", "source": "SearchPage", "target": "search",
+      "discoveredAt": "2026-02-01T11:00:00.000Z", "source_label": "extract" }
+  ],
+  "ticketAreaEdges": [
+    { "kind": "modifies", "source": "PROJ-B", "target": "billing",
+      "discoveredAt": "2026-02-01T10:00:00.000Z", "source_label": "extract" },
+    { "kind": "modifies", "source": "PROJ-S", "target": "search",
+      "discoveredAt": "2026-02-01T10:00:00.000Z", "source_label": "extract" }
+  ],
+  "jiraLinkEdges": [], "similarEdges": [], "failureEdges": [],
+  "latestFailures": {
+    "PROJ-B#scenario-0": {
+      "kind": "Failure", "scenarioId": "PROJ-B#scenario-0",
+      "runId": "r1", "ts": "2026-03-31T10:00:00.000Z",
+      "latestStatus": "pass", "latestClassification": "PASS"
+    },
+    "PROJ-S#scenario-0": {
+      "kind": "Failure", "scenarioId": "PROJ-S#scenario-0",
+      "runId": "r2", "ts": "2026-04-15T10:00:00.000Z",
+      "latestStatus": "pass", "latestClassification": "PASS"
+    }
+  },
+  "acNodes": {}, "satisfiesEdges": [], "classificationEvents": []
+}
+```
+
+- [ ] **Step 2: Write `stale-only.expected.json`** — both areas STALE. recent_tickets = 0 (tickets > 30d ago). recent_bugs = 0. risk = 0. Sort within STALE: by risk desc; tie → both 0 → preserve insertion order from `Object.keys(graph.areas)` which is iteration-order of map entries.
+
+```json
+{
+  "generatedAt": "2026-05-17T10:00:00.000Z",
+  "windowDays": 30,
+  "areas": [
+    {
+      "id": "billing", "status": "STALE", "risk": 0,
+      "breakdown": { "recentTickets": 0, "recentBugs": 0, "criticalBoost": 1 }
+    },
+    {
+      "id": "search", "status": "STALE", "risk": 0,
+      "breakdown": { "recentTickets": 0, "recentBugs": 0, "criticalBoost": 1 }
+    }
+  ],
+  "tickets": [],
+  "acBackfillNeeded": false
+}
+```
+
+Note: if `Array.prototype.sort` is not stable in some bun version, sort tie-break must be made deterministic. Add a final `.localeCompare` tie-breaker in `buildCoverageReport`'s area sort to guarantee `billing` before `search`. If the test fails here, update the sort in report.ts:
+
+```ts
+areas.sort((a, b) => {
+  if (STATUS_RANK[a.status] !== STATUS_RANK[b.status]) {
+    return STATUS_RANK[a.status] - STATUS_RANK[b.status];
+  }
+  if (a.status === 'COVERED') return a.id.localeCompare(b.id);
+  if (b.risk !== a.risk) return b.risk - a.risk;
+  return a.id.localeCompare(b.id);   // deterministic tie-break
+});
+```
+
+- [ ] **Step 3: Add test**
+
+```ts
+test('stale-only', () => {
+  const graph = loadGraph('stale-only');
+  const expected = loadExpected('stale-only');
+  const report = buildCoverageReport(graph, DEFAULT_COVERAGE_CONFIG, now);
+  expect(report).toEqual(expected as any);
+});
+```
+
+- [ ] **Step 4: Run**
+
+```bash
+cd packages/core && bun test test/coverage/fixtures.test.ts
+```
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add fixtures/golden-coverage/stale-only.json fixtures/golden-coverage/stale-only.expected.json packages/core/test/coverage/fixtures.test.ts packages/core/src/coverage/report.ts
+git commit -m "test(coverage): add stale-only golden fixture + deterministic sort tie-break"
+```
 
 ---
 
 ### Task 9.6: `ac-gap.json`
 
-- [ ] Steps 1–4: write fixture with one ticket having 5 ACs, 3 scenarios mapping via satisfies edges to ACs 0/1/3, ACs 2 and 4 unsatisfied. Expected: tickets[] has 1 entry, gapScore based on recency, unsatisfiedAcs array length 2. Commit.
+**Files:**
+- Create: `fixtures/golden-coverage/ac-gap.json` + `.expected.json`
+- Modify: `packages/core/test/coverage/fixtures.test.ts`
+
+- [ ] **Step 1: Write `ac-gap.json`** — one ticket PROJ-X with 5 ACs, fetched 5d ago (recent → ×2.0 boost). Three scenarios; satisfies edges from scenarios → ACs 0/1/3. All three scenarios are PASSING (latestFailures with recent PASS). ACs 2 and 4 are unsatisfied. No POMs/areas needed — focuses on AC matrix only.
+
+```json
+{
+  "tickets": {
+    "PROJ-X": {
+      "kind": "Ticket", "id": "PROJ-X", "summary": "Cart features",
+      "acceptanceCriteria": [
+        "User sees subtotal",
+        "User sees discount line",
+        "Tax line item shows in cart preview",
+        "Total includes tax",
+        "Receipt email includes order summary"
+      ],
+      "storyHash": "h", "modifiesAreas": [],
+      "fetchedAt": "2026-05-12T10:00:00.000Z"
+    }
+  },
+  "scenarios": {
+    "PROJ-X#scenario-0": {
+      "kind": "Scenario", "id": "PROJ-X#scenario-0", "ticketId": "PROJ-X",
+      "name": "Cart shows subtotal", "gherkin": "...", "priority": "p1",
+      "featureHash": "fh", "generatedAt": "2026-05-12T11:00:00.000Z"
+    },
+    "PROJ-X#scenario-1": {
+      "kind": "Scenario", "id": "PROJ-X#scenario-1", "ticketId": "PROJ-X",
+      "name": "Cart shows discount", "gherkin": "...", "priority": "p1",
+      "featureHash": "fh", "generatedAt": "2026-05-12T11:00:00.000Z"
+    },
+    "PROJ-X#scenario-2": {
+      "kind": "Scenario", "id": "PROJ-X#scenario-2", "ticketId": "PROJ-X",
+      "name": "Total includes tax", "gherkin": "...", "priority": "p1",
+      "featureHash": "fh", "generatedAt": "2026-05-12T11:00:00.000Z"
+    }
+  },
+  "poms": {}, "areas": {},
+  "ticketEdges": [], "scenarioPomEdges": [], "pomAreaEdges": [],
+  "ticketAreaEdges": [], "jiraLinkEdges": [], "similarEdges": [],
+  "failureEdges": [],
+  "latestFailures": {
+    "PROJ-X#scenario-0": {
+      "kind": "Failure", "scenarioId": "PROJ-X#scenario-0",
+      "runId": "r1", "ts": "2026-05-15T10:00:00.000Z",
+      "latestStatus": "pass", "latestClassification": "PASS"
+    },
+    "PROJ-X#scenario-1": {
+      "kind": "Failure", "scenarioId": "PROJ-X#scenario-1",
+      "runId": "r2", "ts": "2026-05-15T10:00:00.000Z",
+      "latestStatus": "pass", "latestClassification": "PASS"
+    },
+    "PROJ-X#scenario-2": {
+      "kind": "Failure", "scenarioId": "PROJ-X#scenario-2",
+      "runId": "r3", "ts": "2026-05-15T10:00:00.000Z",
+      "latestStatus": "pass", "latestClassification": "PASS"
+    }
+  },
+  "acNodes": {
+    "PROJ-X#ac-0": { "kind": "AC", "id": "PROJ-X#ac-0", "ticketId": "PROJ-X", "index": 0, "text": "User sees subtotal" },
+    "PROJ-X#ac-1": { "kind": "AC", "id": "PROJ-X#ac-1", "ticketId": "PROJ-X", "index": 1, "text": "User sees discount line" },
+    "PROJ-X#ac-2": { "kind": "AC", "id": "PROJ-X#ac-2", "ticketId": "PROJ-X", "index": 2, "text": "Tax line item shows in cart preview" },
+    "PROJ-X#ac-3": { "kind": "AC", "id": "PROJ-X#ac-3", "ticketId": "PROJ-X", "index": 3, "text": "Total includes tax" },
+    "PROJ-X#ac-4": { "kind": "AC", "id": "PROJ-X#ac-4", "ticketId": "PROJ-X", "index": 4, "text": "Receipt email includes order summary" }
+  },
+  "satisfiesEdges": [
+    { "kind": "satisfies", "source": "PROJ-X#scenario-0", "target": "PROJ-X#ac-0",
+      "confidence": 1.0, "discoveredAt": "2026-05-12T11:00:00.000Z", "source_label": "eager" },
+    { "kind": "satisfies", "source": "PROJ-X#scenario-1", "target": "PROJ-X#ac-1",
+      "confidence": 1.0, "discoveredAt": "2026-05-12T11:00:00.000Z", "source_label": "eager" },
+    { "kind": "satisfies", "source": "PROJ-X#scenario-2", "target": "PROJ-X#ac-3",
+      "confidence": 1.0, "discoveredAt": "2026-05-12T11:00:00.000Z", "source_label": "eager" }
+  ],
+  "classificationEvents": []
+}
+```
+
+- [ ] **Step 2: Write `ac-gap.expected.json`** — areas[] empty. tickets[] has PROJ-X: acCount=5, satisfiedCount=3, unsatisfied ACs are indices 2 and 4. gap_score = 2 × 2.0 = 4 (fetched 5d ago ≤ 7d threshold). acBackfillNeeded = false (satisfies edges already exist).
+
+```json
+{
+  "generatedAt": "2026-05-17T10:00:00.000Z",
+  "windowDays": 30,
+  "areas": [],
+  "tickets": [
+    {
+      "id": "PROJ-X",
+      "summary": "Cart features",
+      "acCount": 5,
+      "satisfiedCount": 3,
+      "gapScore": 4,
+      "unsatisfiedAcs": [
+        { "index": 2, "text": "Tax line item shows in cart preview" },
+        { "index": 4, "text": "Receipt email includes order summary" }
+      ]
+    }
+  ],
+  "acBackfillNeeded": false
+}
+```
+
+- [ ] **Step 3: Add test**
+
+```ts
+test('ac-gap', () => {
+  const graph = loadGraph('ac-gap');
+  const expected = loadExpected('ac-gap');
+  const report = buildCoverageReport(graph, DEFAULT_COVERAGE_CONFIG, now);
+  expect(report).toEqual(expected as any);
+});
+```
+
+- [ ] **Step 4: Run**
+
+```bash
+cd packages/core && bun test test/coverage/fixtures.test.ts
+```
+
+Expected: 6 passes total across all golden fixtures.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add fixtures/golden-coverage/ac-gap.json fixtures/golden-coverage/ac-gap.expected.json packages/core/test/coverage/fixtures.test.ts
+git commit -m "test(coverage): add ac-gap golden fixture"
+```
 
 ---
 
