@@ -51,6 +51,7 @@ export interface ScenarioGeneratedPayload {
   priority: Priority;
   featureHash: string;
   generatedAt: string;
+  satisfiesAcs?: number[]; // NEW v0.8: AC indices (0-based) this scenario asserts
 }
 
 export interface PomGeneratedPayload {
