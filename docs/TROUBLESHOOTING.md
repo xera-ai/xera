@@ -200,3 +200,55 @@ export default defineConfig({
 ```
 
 The prompt fires only when at least one scenario's risk score exceeds the threshold. P0 scenarios with direct `modifies-same-area` edges score around 14; P1 around 11. Most P2 scenarios score below 8.
+
+### `/xera-coverage` says `acBackfillNeeded` after running (v0.8+)
+
+Most likely the AI declined to map some scenarios (low confidence). Re-run the backfill step and then re-run the coverage report:
+
+```bash
+bun run xera:ac-coverage-backfill-prepare
+# /xera-coverage will then continue with the backfill prompt
+```
+
+Persistent unmapped scenarios indicate either an ambiguous AC text or a scenario that doesn't actually assert any AC (it's a setup/fixture scenario). These are safe to leave unmapped — they won't appear in future AC gap lists.
+
+### `/xera-coverage --viewer` shows empty Trend tab (v0.8.1+)
+
+The Trend tab reads `coverage.snapshot` events from event history. It requires at least two snapshots from different days to render a line. Run `/xera-coverage` on multiple separate days and the tab will populate.
+
+If `autoSnapshotOnCoverage: false` is set in `xera.config.ts`, events are not emitted and the Trend tab will stay empty. Enable it in config:
+
+```typescript
+export default defineConfig({
+  coverage: {
+    autoSnapshotOnCoverage: true,
+  },
+});
+```
+
+### `criticalArea "<slug>" missing from snapshot` doctor warning (v0.8+)
+
+Either the slug is misspelled or no ticket has been fetched that modifies that area yet. To check whether the area exists in the graph:
+
+```bash
+bun run xera:graph-query --area <slug>
+```
+
+If the area is not found, check for typos in `coverage.criticalAreas` in `xera.config.ts`. If the slug is intentional and no tickets modify it yet (e.g. a brand-new area), the warning is informational and can be ignored until tickets accumulate.
+
+### `/xera-fill-gap` returns "no tickets / no unsatisfied ACs" (v0.8+)
+
+**Area mode** (`/xera-fill-gap <area>`) requires at least one ticket with a `modifies` edge pointing to that area. Verify:
+
+```bash
+bun run xera:graph-query --area <slug>
+```
+
+**AC mode** (`/xera-fill-gap --ticket <TICKET>`) requires at least one unsatisfied acceptance criterion on that ticket. Check:
+
+```bash
+# Run coverage report for that specific ticket
+/xera-coverage --why <TICKET>
+```
+
+If the ticket is missing entirely from the graph (no fetch event), run `/xera-fetch <TICKET>` first and then retry `/xera-fill-gap`.
