@@ -207,6 +207,8 @@ export interface FailureNode {
   traceId?: string;
   ts: string;
   disputed?: boolean;
+  classification?: Classification;
+  confidence?: 'low' | 'medium' | 'high';
 }
 
 export interface EdgeRecord {

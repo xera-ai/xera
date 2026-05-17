@@ -106,6 +106,14 @@ export function deriveSnapshot(events: Event[]): Snapshot {
     classification: Classification;
     ts: string;
   }> = [];
+  // Side index keyed by `${scenarioId}:${runId}` so a run.classified event can
+  // either join onto an existing FailureNode or be picked up when its
+  // run.completed sibling arrives later (event order isn't guaranteed —
+  // events live in separate JSONL files written by separate skills).
+  const classByRun = new Map<
+    string,
+    { classification: Classification; confidence: 'low' | 'medium' | 'high' }
+  >();
 
   for (const e of events) {
     switch (e.type) {
@@ -218,6 +226,11 @@ export function deriveSnapshot(events: Event[]): Snapshot {
             ts: e.ts,
           };
           if (e.payload.traceId) fail.traceId = e.payload.traceId;
+          const prior = classByRun.get(`${e.payload.scenarioId}:${e.payload.runId}`);
+          if (prior) {
+            fail.classification = prior.classification;
+            fail.confidence = prior.confidence;
+          }
           latestFailures[e.payload.scenarioId] = fail;
         } else {
           delete latestFailures[e.payload.scenarioId];
@@ -242,13 +255,26 @@ export function deriveSnapshot(events: Event[]): Snapshot {
         }
         break;
       }
-      case 'run.classified':
+      case 'run.classified': {
         classifications.push({
           scenarioId: e.payload.scenarioId,
           classification: e.payload.classification,
           ts: e.ts,
         });
+        classByRun.set(`${e.payload.scenarioId}:${e.payload.runId}`, {
+          classification: e.payload.classification,
+          confidence: e.payload.confidence,
+        });
+        // If the matching FailureNode is already in latest_failures, project
+        // the classification onto it now so the snapshot is correct regardless
+        // of which event arrived first.
+        const existing = latestFailures[e.payload.scenarioId];
+        if (existing && existing.runId === e.payload.runId) {
+          existing.classification = e.payload.classification;
+          existing.confidence = e.payload.confidence;
+        }
         break;
+      }
       case 'ac-coverage.backfilled': {
         const { ts, ticketId, mappings } = e.payload;
         // Remove prior backfill edges for this ticket (idempotent)
