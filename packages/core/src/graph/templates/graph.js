@@ -145,18 +145,13 @@
 
   // ── Pre-compute adjacency + cache arrays for O(1) lookups ───
   var adjacency = Object.create(null);
-  for (var ni = 0; ni < nodeData.length; ni++) adjacency[nodeData[ni].id] = new Set();
-  for (var ei = 0; ei < edgeData.length; ei++) {
-    var er = edgeData[ei];
+  for (const n of nodeData) adjacency[n.id] = new Set();
+  for (const er of edgeData) {
     if (adjacency[er.from]) adjacency[er.from].add(er.to);
     if (adjacency[er.to]) adjacency[er.to].add(er.from);
   }
-  var allNodeIds = nodeData.map(function (n) {
-    return n.id;
-  });
-  var edgeIndex = edgeData.map(function (e) {
-    return { id: e.id, from: e.from, to: e.to, baseColor: e.color };
-  });
+  var allNodeIds = nodeData.map((n) => n.id);
+  var edgeIndex = edgeData.map((e) => ({ id: e.id, from: e.from, to: e.to, baseColor: e.color }));
 
   // ── Network init ─────────────────────────────────────
   var network = new vis.Network(
@@ -222,19 +217,19 @@
   // ── Drag → temporarily enable physics so connected nodes react ───
   var _disableTimer = null;
   var _enableTimer = null;
-  network.on('dragStart', function (params) {
+  network.on('dragStart', (params) => {
     if (!params.nodes.length) return;
     clearTimeout(_disableTimer);
     clearTimeout(_enableTimer);
     // Only enable on real drags (held > ~80ms) — clicks fire dragStart+dragEnd instantly
-    _enableTimer = setTimeout(function () {
+    _enableTimer = setTimeout(() => {
       setPhysics(true);
     }, 80);
   });
-  network.on('dragEnd', function (params) {
+  network.on('dragEnd', (params) => {
     clearTimeout(_enableTimer);
     if (!params.nodes.length) return;
-    _disableTimer = setTimeout(function () {
+    _disableTimer = setTimeout(() => {
       setPhysics(false);
     }, 1200);
   });
@@ -291,17 +286,20 @@
   // Uses pre-computed adjacency + cached id arrays for O(1) neighbor lookup
   // and a single batched DataSet update per state change.
   var dimmedFor = null; // currently dimmed-for node id, or null
-  var pendingDim = undefined; // undefined = no pending; null = clear; string = dim for id
+  var pendingDim; // undefined = no pending; null = clear; string = dim for id
   var pendingRaf = 0;
 
   function neighborSet(nodeId) {
     var keep = new Set([nodeId]);
     var hop1 = adjacency[nodeId];
     if (!hop1) return keep;
-    hop1.forEach(function (x) {
+    hop1.forEach((x) => {
       keep.add(x);
       var a = adjacency[x];
-      if (a) a.forEach(function (y) { keep.add(y); });
+      if (a)
+        a.forEach((y) => {
+          keep.add(y);
+        });
     });
     return keep;
   }
@@ -310,28 +308,22 @@
     if (dimmedFor === nodeId) return;
     dimmedFor = nodeId;
     var keep = neighborSet(nodeId);
-    nodes.update(
-      allNodeIds.map(function (id) {
-        return { id: id, opacity: keep.has(id) ? 1 : 0.15 };
-      }),
-    );
+    nodes.update(allNodeIds.map((id) => ({ id: id, opacity: keep.has(id) ? 1 : 0.15 })));
     edges.update(
-      edgeIndex.map(function (e) {
-        return {
-          id: e.id,
-          color: Object.assign({}, e.baseColor, {
-            opacity: keep.has(e.from) && keep.has(e.to) ? 0.8 : 0.04,
-          }),
-        };
-      }),
+      edgeIndex.map((e) => ({
+        id: e.id,
+        color: Object.assign({}, e.baseColor, {
+          opacity: keep.has(e.from) && keep.has(e.to) ? 0.8 : 0.04,
+        }),
+      })),
     );
   }
 
   function clearDim() {
     if (dimmedFor === null) return;
     dimmedFor = null;
-    nodes.update(allNodeIds.map(function (id) { return { id: id, opacity: 1 }; }));
-    edges.update(edgeIndex.map(function (e) { return { id: e.id, color: e.baseColor }; }));
+    nodes.update(allNodeIds.map((id) => ({ id: id, opacity: 1 })));
+    edges.update(edgeIndex.map((e) => ({ id: e.id, color: e.baseColor })));
   }
 
   // Schedule dim work in next animation frame so the panel renders first.
@@ -340,7 +332,7 @@
   function scheduleDim(nodeIdOrNull) {
     pendingDim = nodeIdOrNull;
     if (pendingRaf) return;
-    pendingRaf = requestAnimationFrame(function () {
+    pendingRaf = requestAnimationFrame(() => {
       pendingRaf = 0;
       var target = pendingDim;
       pendingDim = undefined;
@@ -358,17 +350,17 @@
   // unlike `click` which also fires after pan/drag.
   var _deselectTimer = null;
 
-  network.on('selectNode', function (params) {
+  network.on('selectNode', (params) => {
     clearTimeout(_deselectTimer);
     var id = params.nodes[0];
     showPanel(id); // synchronous, fast — panel appears immediately
     scheduleDim(id); // heavy dim work deferred to next frame
   });
 
-  network.on('deselectNode', function () {
+  network.on('deselectNode', () => {
     // Defer so that switching directly between nodes (deselect→select)
     // doesn't flash the panel closed in between.
-    _deselectTimer = setTimeout(function () {
+    _deselectTimer = setTimeout(() => {
       hidePanel();
       scheduleDim(null);
     }, 0);
@@ -388,39 +380,29 @@
   };
 
   // Index for fast search lookup
-  var searchIndex = data.nodes.map(function (n) {
-    return {
-      id: n.id,
-      hay: (String(n.id) + ' ' + (n.label || '') + ' ' + (n.title || '')).toLowerCase(),
-    };
-  });
+  var searchIndex = data.nodes.map((n) => ({
+    id: n.id,
+    hay: `${String(n.id)} ${n.label || ''} ${n.title || ''}`.toLowerCase(),
+  }));
   document.getElementById('search').oninput = (e) => {
     const q = e.target.value.toLowerCase().trim();
     if (!q) {
       resetView();
       return;
     }
-    nodes.update(
-      searchIndex.map(function (n) {
-        return { id: n.id, opacity: n.hay.includes(q) ? 1 : 0.08 };
-      }),
-    );
+    nodes.update(searchIndex.map((n) => ({ id: n.id, opacity: n.hay.includes(q) ? 1 : 0.08 })));
   };
 
   // Index scenarios by pass/fail for fast filtering
   var scenarioIndex = data.nodes
-    .filter(function (n) { return n.group === 'Scenario'; })
-    .map(function (n) {
-      return { id: n.id, isPass: n.color === '#10B981', isFail: n.color === '#EF4444' };
-    });
+    .filter((n) => n.group === 'Scenario')
+    .map((n) => ({ id: n.id, isPass: n.color === '#10B981', isFail: n.color === '#EF4444' }));
   function applyFilters() {
     var pass = document.getElementById('filter-pass').checked;
     var fail = document.getElementById('filter-fail').checked;
     if (!scenarioIndex.length) return;
     nodes.update(
-      scenarioIndex.map(function (n) {
-        return { id: n.id, hidden: (n.isPass && !pass) || (n.isFail && !fail) };
-      }),
+      scenarioIndex.map((n) => ({ id: n.id, hidden: (n.isPass && !pass) || (n.isFail && !fail) })),
     );
   }
   ['filter-pass', 'filter-fail', 'filter-p0'].forEach((id) => {
