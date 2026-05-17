@@ -359,3 +359,43 @@ describe('deriveSnapshot — eager satisfies edges', () => {
     expect(sat[0]?.to).toBe('PROJ-1#ac-2');
   });
 });
+
+describe('deriveSnapshot — classifications projection', () => {
+  test('captures run.classified events into snapshot.classifications', () => {
+    const events: Event[] = [
+      {
+        event_id: eid('20260514100000'),
+        schema_version: 1,
+        ts: '2026-05-14T10:00:00.000Z',
+        actor: 'xera-report',
+        type: 'run.classified',
+        payload: {
+          scenarioId: 'PROJ-1#scenario-0',
+          runId: 'r1',
+          classification: 'REAL_BUG',
+          confidence: 'high',
+        },
+      },
+      {
+        event_id: eid('20260510100000'),
+        schema_version: 1,
+        ts: '2026-05-10T10:00:00.000Z',
+        actor: 'xera-report',
+        type: 'run.classified',
+        payload: {
+          scenarioId: 'PROJ-1#scenario-0',
+          runId: 'r2',
+          classification: 'PASS',
+          confidence: 'medium',
+        },
+      },
+    ];
+    const snap = deriveSnapshot(events);
+    expect(snap.classifications).toHaveLength(2);
+    expect(snap.classifications[0]).toEqual({
+      scenarioId: 'PROJ-1#scenario-0',
+      classification: 'REAL_BUG',
+      ts: '2026-05-14T10:00:00.000Z',
+    });
+  });
+});

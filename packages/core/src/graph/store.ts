@@ -242,7 +242,13 @@ export function deriveSnapshot(events: Event[]): Snapshot {
         }
         break;
       }
-      // run.classified: not materialized in snapshot
+      case 'run.classified':
+        classifications.push({
+          scenarioId: e.payload.scenarioId,
+          classification: e.payload.classification,
+          ts: e.ts,
+        });
+        break;
       default:
         break;
     }
