@@ -23,6 +23,7 @@ function seedPrompts(
     similarityMatch?: string;
     classifyOutdated?: string;
     mapAcToScenarios?: string;
+    proposeScenarios?: string;
   } = {},
 ): void {
   const dir = join(root, 'packages/prompts');
@@ -66,6 +67,11 @@ function seedPrompts(
     join(dir, 'map-ac-to-scenarios.md'),
     opts.mapAcToScenarios ??
       `---\nid: map-ac-to-scenarios\nversion: 1.0.0\n---\n\n${GOOD_PREAMBLE}\n\n## Output shape\nbody`,
+  );
+  writeFileSync(
+    join(dir, 'propose-scenarios.md'),
+    opts.proposeScenarios ??
+      `---\nid: propose-scenarios\nversion: 1.0.0\n---\n\n${GOOD_PREAMBLE}\n\n## Output shape\nbody`,
   );
   // Out-of-scope prompts that must NOT be validated:
   writeFileSync(

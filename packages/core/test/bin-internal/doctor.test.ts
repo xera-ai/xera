@@ -71,6 +71,10 @@ function seedGoodRepo(root: string): void {
     join(root, 'packages/prompts/map-ac-to-scenarios.md'),
     `---\nid: map-ac-to-scenarios\nversion: 1.0.0\n---\n\n${goodPreamble}\n\n## Output shape\nbody`,
   );
+  writeFileSync(
+    join(root, 'packages/prompts/propose-scenarios.md'),
+    `---\nid: propose-scenarios\nversion: 1.0.0\n---\n\n${goodPreamble}\n\n## Output shape\nbody`,
+  );
   mkdirSync(join(root, 'packages/skills'), { recursive: true });
   writeFileSync(
     join(root, 'packages/skills/xera-eval.md'),
