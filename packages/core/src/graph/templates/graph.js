@@ -143,6 +143,21 @@
   var nodes = new vis.DataSet(nodeData);
   var edges = new vis.DataSet(edgeData);
 
+  // ── Pre-compute adjacency + cache arrays for O(1) lookups ───
+  var adjacency = Object.create(null);
+  for (var ni = 0; ni < nodeData.length; ni++) adjacency[nodeData[ni].id] = new Set();
+  for (var ei = 0; ei < edgeData.length; ei++) {
+    var er = edgeData[ei];
+    if (adjacency[er.from]) adjacency[er.from].add(er.to);
+    if (adjacency[er.to]) adjacency[er.to].add(er.from);
+  }
+  var allNodeIds = nodeData.map(function (n) {
+    return n.id;
+  });
+  var edgeIndex = edgeData.map(function (e) {
+    return { id: e.id, from: e.from, to: e.to, baseColor: e.color };
+  });
+
   // ── Network init ─────────────────────────────────────
   var network = new vis.Network(
     container,
@@ -179,13 +194,21 @@
 
   container.style.opacity = '0';
 
+  // ── Physics state machine (guarded to avoid redundant setOptions) ───
+  var physicsOn = true; // initially true during stabilization
+  function setPhysics(on) {
+    if (physicsOn === on) return;
+    physicsOn = on;
+    network.setOptions({ physics: { enabled: on } });
+  }
+
   // ── Progress bar ─────────────────────────────────────
   var progressBar = document.getElementById('progress-bar');
   network.on('stabilizationProgress', (p) => {
     progressBar.style.width = `${Math.round((p.iterations / p.total) * 100)}%`;
   });
   network.once('stabilizationIterationsDone', () => {
-    network.setOptions({ physics: { enabled: false } });
+    setPhysics(false);
     network.fit();
     container.style.transition = 'opacity 0.3s';
     container.style.opacity = '1';
@@ -196,19 +219,24 @@
     }, 300);
   });
 
-  var _dragTimer = null;
+  // ── Drag → temporarily enable physics so connected nodes react ───
+  var _disableTimer = null;
+  var _enableTimer = null;
   network.on('dragStart', function (params) {
-    if (params.nodes.length > 0) {
-      clearTimeout(_dragTimer);
-      network.setOptions({ physics: { enabled: true } });
-    }
+    if (!params.nodes.length) return;
+    clearTimeout(_disableTimer);
+    clearTimeout(_enableTimer);
+    // Only enable on real drags (held > ~80ms) — clicks fire dragStart+dragEnd instantly
+    _enableTimer = setTimeout(function () {
+      setPhysics(true);
+    }, 80);
   });
   network.on('dragEnd', function (params) {
-    if (params.nodes.length > 0) {
-      _dragTimer = setTimeout(function () {
-        network.setOptions({ physics: { enabled: false } });
-      }, 1500);
-    }
+    clearTimeout(_enableTimer);
+    if (!params.nodes.length) return;
+    _disableTimer = setTimeout(function () {
+      setPhysics(false);
+    }, 1200);
   });
 
   // ── Side panel ───────────────────────────────────────
@@ -259,45 +287,99 @@
     sidepanel.classList.remove('hidden');
   }
 
-  function dimOthers(nodeId) {
-    var hop1 = new Set(network.getConnectedNodes(nodeId));
-    var hop2 = new Set();
-    for (const id of hop1) {
-      for (const x of network.getConnectedNodes(id)) {
-        hop2.add(x);
-      }
-    }
-    var keep = new Set([nodeId, ...hop1, ...hop2]);
-    for (const n of nodes.get()) {
-      nodes.update({ id: n.id, opacity: keep.has(n.id) ? 1 : 0.1 });
-    }
-    for (const e of edges.get()) {
-      const visible = keep.has(e.from) && keep.has(e.to);
-      edges.update({
-        id: e.id,
-        color: Object.assign({}, e.color, { opacity: visible ? 0.8 : 0.06 }),
-      });
-    }
+  // ── Highlight / dim state machine ────────────────────────────
+  // Uses pre-computed adjacency + cached id arrays for O(1) neighbor lookup
+  // and a single batched DataSet update per state change.
+  var dimmedFor = null; // currently dimmed-for node id, or null
+  var pendingDim = undefined; // undefined = no pending; null = clear; string = dim for id
+  var pendingRaf = 0;
+
+  function neighborSet(nodeId) {
+    var keep = new Set([nodeId]);
+    var hop1 = adjacency[nodeId];
+    if (!hop1) return keep;
+    hop1.forEach(function (x) {
+      keep.add(x);
+      var a = adjacency[x];
+      if (a) a.forEach(function (y) { keep.add(y); });
+    });
+    return keep;
   }
 
-  function resetView() {
-    for (const n of nodes.get()) {
-      nodes.update({ id: n.id, opacity: 1 });
-    }
-    for (const e of edges.get()) {
-      edges.update({ id: e.id, color: Object.assign({}, e.color, { opacity: 0.8 }) });
-    }
+  function applyDim(nodeId) {
+    if (dimmedFor === nodeId) return;
+    dimmedFor = nodeId;
+    var keep = neighborSet(nodeId);
+    nodes.update(
+      allNodeIds.map(function (id) {
+        return { id: id, opacity: keep.has(id) ? 1 : 0.15 };
+      }),
+    );
+    edges.update(
+      edgeIndex.map(function (e) {
+        return {
+          id: e.id,
+          color: Object.assign({}, e.baseColor, {
+            opacity: keep.has(e.from) && keep.has(e.to) ? 0.8 : 0.04,
+          }),
+        };
+      }),
+    );
+  }
+
+  function clearDim() {
+    if (dimmedFor === null) return;
+    dimmedFor = null;
+    nodes.update(allNodeIds.map(function (id) { return { id: id, opacity: 1 }; }));
+    edges.update(edgeIndex.map(function (e) { return { id: e.id, color: e.baseColor }; }));
+  }
+
+  // Schedule dim work in next animation frame so the panel renders first.
+  // Debounced: if multiple state changes happen before the frame, only the
+  // latest wins (prevents flicker on rapid clicks).
+  function scheduleDim(nodeIdOrNull) {
+    pendingDim = nodeIdOrNull;
+    if (pendingRaf) return;
+    pendingRaf = requestAnimationFrame(function () {
+      pendingRaf = 0;
+      var target = pendingDim;
+      pendingDim = undefined;
+      if (target === null) clearDim();
+      else if (typeof target === 'string') applyDim(target);
+    });
+  }
+
+  function hidePanel() {
     sidepanel.classList.add('hidden');
   }
 
-  network.on('click', (params) => {
-    if (params.nodes.length === 0) {
-      resetView();
-      return;
-    }
-    showPanel(params.nodes[0]);
-    dimOthers(params.nodes[0]);
+  // ── Selection events ─────────────────────────────────
+  // Use selectNode/deselectNode — these only fire on actual selection changes,
+  // unlike `click` which also fires after pan/drag.
+  var _deselectTimer = null;
+
+  network.on('selectNode', function (params) {
+    clearTimeout(_deselectTimer);
+    var id = params.nodes[0];
+    showPanel(id); // synchronous, fast — panel appears immediately
+    scheduleDim(id); // heavy dim work deferred to next frame
   });
+
+  network.on('deselectNode', function () {
+    // Defer so that switching directly between nodes (deselect→select)
+    // doesn't flash the panel closed in between.
+    _deselectTimer = setTimeout(function () {
+      hidePanel();
+      scheduleDim(null);
+    }, 0);
+  });
+
+  function resetView() {
+    network.unselectAll();
+    clearTimeout(_deselectTimer);
+    hidePanel();
+    scheduleDim(null);
+  }
 
   // ── Controls ─────────────────────────────────────────
   document.getElementById('reset-btn').onclick = () => {
@@ -305,35 +387,44 @@
     network.fit({ animation: { duration: 350, easingFunction: 'easeInOutQuad' } });
   };
 
+  // Index for fast search lookup
+  var searchIndex = data.nodes.map(function (n) {
+    return {
+      id: n.id,
+      hay: (String(n.id) + ' ' + (n.label || '') + ' ' + (n.title || '')).toLowerCase(),
+    };
+  });
   document.getElementById('search').oninput = (e) => {
-    const q = e.target.value.toLowerCase();
+    const q = e.target.value.toLowerCase().trim();
     if (!q) {
       resetView();
       return;
     }
-    for (const n of nodes.get()) {
-      const orig = data.nodes.find((x) => x.id === n.id);
-      const hit =
-        String(n.id).toLowerCase().includes(q) ||
-        (orig?.label ?? '').toLowerCase().includes(q) ||
-        (orig?.title ?? '').toLowerCase().includes(q);
-      nodes.update({ id: n.id, opacity: hit ? 1 : 0.08 });
-    }
+    nodes.update(
+      searchIndex.map(function (n) {
+        return { id: n.id, opacity: n.hay.includes(q) ? 1 : 0.08 };
+      }),
+    );
   };
 
+  // Index scenarios by pass/fail for fast filtering
+  var scenarioIndex = data.nodes
+    .filter(function (n) { return n.group === 'Scenario'; })
+    .map(function (n) {
+      return { id: n.id, isPass: n.color === '#10B981', isFail: n.color === '#EF4444' };
+    });
+  function applyFilters() {
+    var pass = document.getElementById('filter-pass').checked;
+    var fail = document.getElementById('filter-fail').checked;
+    if (!scenarioIndex.length) return;
+    nodes.update(
+      scenarioIndex.map(function (n) {
+        return { id: n.id, hidden: (n.isPass && !pass) || (n.isFail && !fail) };
+      }),
+    );
+  }
   ['filter-pass', 'filter-fail', 'filter-p0'].forEach((id) => {
-    document.getElementById(id).onchange = () => {
-      const pass = document.getElementById('filter-pass').checked;
-      const fail = document.getElementById('filter-fail').checked;
-      for (const n of nodes.get()) {
-        if (n.group !== 'Scenario') continue;
-        const orig = data.nodes.find((x) => x.id === n.id);
-        const isPass = orig?.color === '#10B981';
-        const isFail = orig?.color === '#EF4444';
-        const hidden = (isPass && !pass) || (isFail && !fail);
-        nodes.update({ id: n.id, hidden });
-      }
-    };
+    document.getElementById(id).onchange = applyFilters;
   });
 })();
 

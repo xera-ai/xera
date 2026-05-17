@@ -9,12 +9,10 @@ body {
   background: #050810;
   display: grid;
   grid-template-rows: 52px 1fr 26px;
-  grid-template-columns: 1fr 280px;
 }
 
 /* ─── Topbar ─────────────────────────────────────── */
 #topbar {
-  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   gap: 0;
@@ -194,11 +192,11 @@ body {
 
 /* ─── Canvas ──────────────────────────────────────── */
 #canvas {
+  position: absolute;
+  inset: 0;
   background-color: #050810;
   background-image: radial-gradient(rgba(148, 163, 184, 0.06) 1px, transparent 1px);
   background-size: 28px 28px;
-  position: relative;
-  min-height: 0;
   overflow: hidden;
 }
 
@@ -223,22 +221,29 @@ body {
 
 /* ─── Side panel ──────────────────────────────────── */
 #sidepanel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 300px;
   background: #080c14;
   border-left: 1px solid #1a2035;
   overflow-y: auto;
   color: #e2e8f0;
   display: flex;
   flex-direction: column;
-  transition: opacity 0.2s;
+  transform: translateX(0);
+  transition:
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.2s;
+  z-index: 5;
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.35);
 }
 
 #sidepanel.hidden {
-  visibility: hidden;
+  transform: translateX(100%);
   opacity: 0;
   pointer-events: none;
-}
-[data-tab-panel="knowledge"].active:has(#sidepanel.hidden) {
-  grid-template-columns: 1fr 0;
 }
 
 .sp-header {
@@ -329,7 +334,6 @@ body {
 
 /* ─── Footer ──────────────────────────────────────── */
 #footer {
-  grid-column: 1 / -1;
   background: #050810;
   padding: 4px 16px;
   font-size: 10px;
@@ -365,15 +369,13 @@ body {
   display: none;
 }
 [data-tab-panel="knowledge"].active {
-  display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: 1fr 280px;
+  display: block;
+  position: relative;
   min-height: 0;
   overflow: hidden;
 }
 [data-tab-panel="coverage"].active {
   display: block;
-  grid-column: 1 / -1;
   overflow: auto;
   padding: 16px;
 }
