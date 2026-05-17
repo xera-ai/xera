@@ -28,6 +28,9 @@ packages/
                                       graph-backfill, graph-enrich, graph-render,
                                       impact-prepare, disputes
                                 v0.7: auth-setup
+                                v0.8: coverage-prepare, ac-coverage-backfill-prepare,
+                                      ac-coverage-backfill-finalize, fill-gap-prepare,
+                                      fill-gap-finalize
                                 universal: verify-prompts, doctor (--auto-enrich)
     src/adapter/types.ts        TestAdapter interface — extension point
     src/classifier/             8-bucket classifier (REAL_BUG, TEST_BUG,
@@ -37,6 +40,7 @@ packages/
                                 (types, schema, store, ulid, paths, similarity,
                                  enrich, classify, traverse, impact, render, cost
                                  + templates/ for HTML viewer)
+    src/coverage/               v0.8 coverage engine (pure fns: status, risk, report, why)
     src/auth/                   AES-256-GCM encryption for storageState
     src/jira/                   REST + MCP backends behind one client
   web/       @xera-ai/web       Playwright adapter (--grep support since v0.6.4)
@@ -53,15 +57,17 @@ packages/
     templates/                  scaffold templates (xera.config, playwright.config,
                                 tsconfig, env.example, auth-setup, sample/,
                                 xera-graph.yml — CI viewer workflow)
-  skills/    @xera-ai/skills    Claude Code skill .md files (9 skills:
+  skills/    @xera-ai/skills    Claude Code skill .md files (11 skills:
                                 xera-run, xera-fetch, xera-feature, xera-script,
                                 xera-exec, xera-report, xera-impact, xera-promote,
-                                xera-eval [maintainer-only])
-  prompts/   @xera-ai/prompts   versioned LLM prompt templates (9 templates:
+                                xera-eval [maintainer-only],
+                                xera-coverage (v0.8.0), xera-fill-gap (v0.8.2))
+  prompts/   @xera-ai/prompts   versioned LLM prompt templates (11 templates:
                                 diagnose-failure, feature-from-story,
                                 script-from-feature-web, script-from-feature-http,
                                 heal-locator, extract-areas, similarity-match,
-                                classify-outdated, eval-rubric)
+                                classify-outdated, eval-rubric,
+                                map-ac-to-scenarios (v0.8), propose-scenarios (v0.8))
 fixtures/
   sample-app/                   Next.js login+dashboard target for integration tests
   mock-jira/                    Bun.serve mock Jira (deterministic tickets)
@@ -69,6 +75,7 @@ fixtures/
   golden-eval/                  /xera-eval rubric fixtures (v0.2 + EVAL-007/008/009)
   golden-graph/                 snapshot/dedup/corrupt + TEST_OUTDATED scenarios
   golden-impact/                impact-prepare BFS scenarios (depth-1/2/empty)
+  golden-coverage/              6 fixtures for coverage engine
 docs/
   ARCHITECTURE.md               condensed overview (refreshed for v0.6)
   CONFIGURATION.md              user-facing config reference (graph + cost + autoImpact)
@@ -76,7 +83,7 @@ docs/
   superpowers/specs/            design specs — authoritative
                                 (v0.1 core-web, v0.2 eval, v0.3 prompt-injection,
                                  v0.5 self-heal, v0.6 project-knowledge-graph,
-                                 v0.7 http-adapter)
+                                 v0.7 http-adapter, v0.8 coverage-gap)
   superpowers/plans/            implementation plans + POSTMORTEM.md
 .claude/
   skills/                       vendored superpowers skills (use via Skill tool)
