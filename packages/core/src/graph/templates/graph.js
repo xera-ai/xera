@@ -177,18 +177,38 @@
     },
   );
 
+  container.style.opacity = '0';
+
   // ── Progress bar ─────────────────────────────────────
   var progressBar = document.getElementById('progress-bar');
   network.on('stabilizationProgress', (p) => {
     progressBar.style.width = `${Math.round((p.iterations / p.total) * 100)}%`;
   });
   network.once('stabilizationIterationsDone', () => {
+    network.setOptions({ physics: { enabled: false } });
+    network.fit();
+    container.style.transition = 'opacity 0.3s';
+    container.style.opacity = '1';
     progressBar.style.width = '100%';
     setTimeout(() => {
       progressBar.style.transition = 'opacity .4s';
       progressBar.style.opacity = '0';
     }, 300);
-    network.fit({ animation: { duration: 500, easingFunction: 'easeInOutQuad' } });
+  });
+
+  var _dragTimer = null;
+  network.on('dragStart', function (params) {
+    if (params.nodes.length > 0) {
+      clearTimeout(_dragTimer);
+      network.setOptions({ physics: { enabled: true } });
+    }
+  });
+  network.on('dragEnd', function (params) {
+    if (params.nodes.length > 0) {
+      _dragTimer = setTimeout(function () {
+        network.setOptions({ physics: { enabled: false } });
+      }, 1500);
+    }
   });
 
   // ── Side panel ───────────────────────────────────────

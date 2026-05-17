@@ -237,6 +237,9 @@ body {
   opacity: 0;
   pointer-events: none;
 }
+[data-tab-panel="knowledge"].active:has(#sidepanel.hidden) {
+  grid-template-columns: 1fr 0;
+}
 
 .sp-header {
   padding: 16px 16px 12px;
@@ -361,8 +364,18 @@ body {
 [data-tab-panel] {
   display: none;
 }
-[data-tab-panel].active {
+[data-tab-panel="knowledge"].active {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: 1fr 280px;
+  min-height: 0;
+  overflow: hidden;
+}
+[data-tab-panel="coverage"].active {
   display: block;
+  grid-column: 1 / -1;
+  overflow: auto;
+  padding: 16px;
 }
 .subtabs {
   display: flex;
