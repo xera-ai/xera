@@ -105,7 +105,7 @@ const classificationDisputed = z
 
 const edgeDiscovered = z
   .object({
-    kind: z.enum(['tests', 'uses', 'covers', 'modifies', 'jira-linked', 'similar', 'ran']),
+    kind: z.enum(['tests', 'uses', 'covers', 'modifies', 'jira-linked', 'similar', 'ran', 'satisfies']),
     from: z.string(),
     to: z.string(),
     confidence: z.number().min(0).max(1).optional(),

@@ -88,3 +88,26 @@ describe('safeParseEvent', () => {
     expect(result.success).toBe(false);
   });
 });
+
+const base = {
+  event_id: '01HXYZ' + '0'.repeat(20),
+  schema_version: 1,
+  ts: '2026-05-17T10:00:00.000Z',
+  actor: 'xera-test',
+};
+
+describe('edgeDiscovered schema with satisfies kind', () => {
+  test('accepts kind=satisfies', () => {
+    const r = safeParseEvent({
+      ...base,
+      type: 'edge.discovered',
+      payload: {
+        kind: 'satisfies',
+        from: 'PROJ-1#scenario-0',
+        to: 'PROJ-1#ac-0',
+        source: 'xera-script',
+      },
+    });
+    expect(r.success).toBe(true);
+  });
+});
