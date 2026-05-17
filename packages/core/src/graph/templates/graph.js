@@ -468,61 +468,69 @@ function renderCoverageOnce() {
   renderCoverageMap();
 }
 
-// Task 27 — coverage map: area color overlay
+// Task 27 — coverage map: areas as a heat-map grid
 function renderCoverageMap() {
   const cov = window.__COVERAGE__;
   if (!cov || !window.__GRAPH__) return;
   const canvas = document.getElementById('coverage-map-canvas');
   if (!canvas) return;
 
-  const STATUS_COLOR = {
-    UNCOVERED: {
-      background: '#3d1515',
-      border: '#f87171',
-      highlight: { background: '#5a1d1d', border: '#fca5a5' },
-    },
-    STALE: {
-      background: '#3d2c0d',
-      border: '#fbbf24',
-      highlight: { background: '#5a4012', border: '#fde68a' },
-    },
-    COVERED: {
-      background: '#0d3320',
-      border: '#34d399',
-      highlight: { background: '#134d2f', border: '#6ee7b7' },
-    },
+  const STATUS_THEME = {
+    UNCOVERED: { fill: '#3d1515', border: '#f87171', glow: 'rgba(239, 68, 68, 0.45)' },
+    STALE: { fill: '#3d2c0d', border: '#fbbf24', glow: 'rgba(245, 158, 11, 0.45)' },
+    COVERED: { fill: '#0d3320', border: '#34d399', glow: 'rgba(16, 185, 129, 0.4)' },
   };
-  const NEUTRAL = {
-    background: '#1a2035',
-    border: '#475569',
-    highlight: { background: '#232d47', border: '#64748b' },
-  };
-  const FONT = { color: '#cbd5e1', strokeWidth: 2, strokeColor: '#050810' };
 
-  const areaStatusById = {};
-  for (const a of cov.report.areas) {
-    areaStatusById[a.id] = a.status;
+  // Clear any previous render (subtab switching may re-invoke us)
+  canvas.innerHTML = '';
+
+  if (!cov.report.areas.length) {
+    canvas.innerHTML =
+      '<p style="padding:48px;text-align:center;color:#64748b;font-size:13px">' +
+      'No SUT areas tracked yet — run /xera-fetch on a ticket with acceptance criteria to populate.' +
+      '</p>';
+    return;
   }
 
-  const mappedNodes = window.__GRAPH__.nodes.map((n) => {
-    const base = { font: FONT };
-    if (n.group === 'SUTArea' && areaStatusById[n.id]) {
-      return Object.assign({}, n, base, { color: STATUS_COLOR[areaStatusById[n.id]] });
-    }
-    if (n.group !== 'SUTArea') return Object.assign({}, n, base, { color: NEUTRAL });
-    return Object.assign({}, n, base);
+  // Sort: UNCOVERED first, then STALE, then COVERED — within each by risk desc
+  const STATUS_RANK = { UNCOVERED: 0, STALE: 1, COVERED: 2 };
+  const areas = [...cov.report.areas].sort((a, b) => {
+    const r = STATUS_RANK[a.status] - STATUS_RANK[b.status];
+    if (r !== 0) return r;
+    return b.risk - a.risk;
   });
 
-  new vis.Network(
-    canvas,
-    { nodes: new vis.DataSet(mappedNodes), edges: new vis.DataSet(window.__GRAPH__.edges) },
-    {
-      physics: { enabled: true, stabilization: { iterations: 100 } },
-      nodes: { shape: 'dot', font: { size: 11, color: '#cbd5e1' }, borderWidth: 1.5 },
-      edges: { color: { color: '#1e2d3d', opacity: 0.6 }, width: 1 },
-      interaction: { hover: true, tooltipDelay: 200 },
-    },
-  );
+  const maxRisk = Math.max(...areas.map((a) => a.risk), 1);
+
+  const tiles = areas
+    .map((a) => {
+      const theme = STATUS_THEME[a.status] || STATUS_THEME.COVERED;
+      const heat = 0.35 + 0.65 * (a.risk / maxRisk); // 0.35–1.0
+      return `
+        <article class="cov-tile" data-status="${a.status}" style="--fill:${theme.fill};--border:${theme.border};--glow:${theme.glow};--heat:${heat}">
+          <header class="cov-tile-head">
+            <span class="cov-tile-status">${a.status.toLowerCase()}</span>
+            <span class="cov-tile-risk" title="risk score">${a.risk}</span>
+          </header>
+          <h4 class="cov-tile-name">${a.id}</h4>
+          <dl class="cov-tile-meta">
+            <div><dt>tickets</dt><dd>${a.breakdown.recentTickets}</dd></div>
+            <div><dt>bugs</dt><dd>${a.breakdown.recentBugs}</dd></div>
+          </dl>
+        </article>`;
+    })
+    .join('');
+
+  // Legend
+  const legend = `
+    <div class="cov-legend">
+      <span><i class="cov-dot" style="--c:#ef4444"></i>uncovered</span>
+      <span><i class="cov-dot" style="--c:#f59e0b"></i>stale</span>
+      <span><i class="cov-dot" style="--c:#10b981"></i>covered</span>
+      <span class="cov-legend-hint">size & glow ∝ risk</span>
+    </div>`;
+
+  canvas.innerHTML = legend + `<div class="cov-grid">${tiles}</div>`;
 }
 
 // Task 28 — coverage list: sortable area + AC gap tables
@@ -597,6 +605,19 @@ function renderCoverageTrend() {
     const n = snap.areas.filter((a) => a.status === 'UNCOVERED' || a.status === 'STALE').length;
     return { day: d, value: n };
   });
+
+  // Single data point — render a quiet placeholder rather than a degenerate chart
+  if (points.length === 1) {
+    container.innerHTML =
+      `<div class="cov-trend-single">` +
+      `<span class="cov-trend-value">${points[0].value}</span>` +
+      `<span class="cov-trend-unit">uncovered + stale areas</span>` +
+      `<span class="cov-trend-date">${points[0].day}</span>` +
+      `<p class="cov-trend-hint">Run /xera-coverage on subsequent days to build a trend line.</p>` +
+      `</div>`;
+    return;
+  }
+
   const W = 800;
   const H = 260;
   const PAD_L = 40;
@@ -605,25 +626,39 @@ function renderCoverageTrend() {
   const PAD_B = 32;
   const innerW = W - PAD_L - PAD_R;
   const innerH = H - PAD_T - PAD_B;
-  const maxValue = Math.max(...points.map((p) => p.value), 1);
-  const stepX = points.length > 1 ? innerW / (points.length - 1) : 0;
+  const rawMax = Math.max(...points.map((p) => p.value), 1);
+  // Round maxValue up to a "nice" integer so y-axis labels are clean integers
+  const niceMax = rawMax <= 4 ? rawMax : Math.ceil(rawMax / 5) * 5;
+  const stepX = innerW / (points.length - 1);
   const xy = points.map((p, idx) => ({
     x: PAD_L + idx * stepX,
-    y: PAD_T + innerH - (p.value / maxValue) * innerH,
+    y: PAD_T + innerH - (p.value / niceMax) * innerH,
     v: p.value,
     d: p.day,
   }));
   const linePath = xy.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
   const areaPath = `${linePath} L${xy[xy.length - 1].x},${PAD_T + innerH} L${xy[0].x},${PAD_T + innerH} Z`;
 
-  // Horizontal grid lines at 25/50/75/100%
-  const grid = [0.25, 0.5, 0.75, 1]
-    .map((f) => {
-      const y = PAD_T + innerH * (1 - f);
-      const v = Math.round(maxValue * f);
-      return `<line x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}" stroke="#1a2540" stroke-width="1" stroke-dasharray="2 4"/><text x="${PAD_L - 8}" y="${y + 3}" font-size="10" text-anchor="end">${v}</text>`;
-    })
-    .join('');
+  // Horizontal grid lines — pick step that yields integer labels
+  const tickCount = Math.min(niceMax, 4);
+  const tickStep = niceMax / tickCount;
+  const seenTicks = new Set();
+  const grid = [];
+  for (let i = 1; i <= tickCount; i++) {
+    const v = Math.round(tickStep * i);
+    if (seenTicks.has(v)) continue;
+    seenTicks.add(v);
+    const y = PAD_T + innerH - (v / niceMax) * innerH;
+    grid.push(
+      `<line x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}" stroke="#1a2540" stroke-width="1" stroke-dasharray="2 4"/>` +
+        `<text x="${PAD_L - 8}" y="${y + 3}" font-size="10" text-anchor="end">${v}</text>`,
+    );
+  }
+  // Baseline 0 tick
+  grid.push(
+    `<line x1="${PAD_L}" y1="${PAD_T + innerH}" x2="${W - PAD_R}" y2="${PAD_T + innerH}" stroke="#1e2d45" stroke-width="1"/>` +
+      `<text x="${PAD_L - 8}" y="${PAD_T + innerH + 3}" font-size="10" text-anchor="end">0</text>`,
+  );
 
   const dots = xy
     .map(
@@ -637,7 +672,7 @@ function renderCoverageTrend() {
   container.innerHTML =
     `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">` +
     `<defs><linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ef4444" stop-opacity="0.25"/><stop offset="100%" stop-color="#ef4444" stop-opacity="0"/></linearGradient></defs>` +
-    grid +
+    grid.join('') +
     `<path d="${areaPath}" fill="url(#trendFill)" stroke="none"/>` +
     `<path d="${linePath}" fill="none" stroke="#ef4444" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` +
     dots +

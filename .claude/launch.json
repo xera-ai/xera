@@ -1,0 +1,15 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "graph-viewer",
+      "runtimeExecutable": "bunx",
+      "runtimeArgs": [
+        "serve",
+        "/Users/thanhduong/projects/products/xera/xera-sample-test/.xera"
+      ],
+      "port": 9877,
+      "autoPort": true
+    }
+  ]
+}

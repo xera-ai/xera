@@ -5,7 +5,7 @@
     <button data-subtab="trend">Trend</button>
   </nav>
   <div data-subpanel="map" class="active">
-    <p class="subpanel-hint">Area nodes are colored by status. Red = UNCOVERED, amber = STALE, green = COVERED. Other nodes neutral.</p>
+    <p class="subpanel-hint">SUT areas as a heat-map. Tiles are colored by status (red = UNCOVERED, amber = STALE, green = COVERED) and sorted by risk. Border glow scales with risk score.</p>
     <main id="coverage-map-canvas"></main>
   </div>
   <div data-subpanel="list" hidden>

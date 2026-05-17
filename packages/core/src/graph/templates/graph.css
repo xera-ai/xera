@@ -95,6 +95,11 @@ body {
   align-items: center;
   padding-left: 16px;
   border-left: 1px solid #1a2035;
+  transition: opacity 0.15s;
+}
+body:has([data-tab-panel="coverage"].active) .topbar-controls {
+  opacity: 0;
+  pointer-events: none;
 }
 
 #search {
@@ -535,16 +540,130 @@ body {
   box-shadow: 0 0 6px rgba(16, 185, 129, 0.45);
 }
 
-/* ── Map + trend canvases ─────────────────────────── */
+/* ── Coverage Map: heat-map grid ──────────────────── */
 #coverage-map-canvas {
   width: 100%;
-  height: calc(100vh - 200px);
-  min-height: 480px;
-  background: #050810;
-  background-image: radial-gradient(rgba(148, 163, 184, 0.06) 1px, transparent 1px);
-  background-size: 28px 28px;
+  background: transparent;
+  border: 0;
+}
+
+.cov-legend {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  background: #0a111e;
   border: 1px solid #1a2035;
   border-radius: 8px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+.cov-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.cov-legend .cov-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: 0 0 6px var(--c);
+}
+.cov-legend .cov-legend-hint {
+  margin-left: auto;
+  color: #4b5563;
+  font-style: italic;
+}
+
+.cov-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.cov-tile {
+  position: relative;
+  background: linear-gradient(135deg, var(--fill) 0%, #0a111e 100%);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px 12px;
+  box-shadow: 0 0 calc(8px + var(--heat) * 18px) var(--glow);
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
+  overflow: hidden;
+}
+.cov-tile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--border);
+  opacity: calc(0.5 + var(--heat) * 0.5);
+}
+.cov-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 calc(14px + var(--heat) * 22px) var(--glow);
+}
+
+.cov-tile-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.cov-tile-status {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--border);
+  background: rgba(0, 0, 0, 0.3);
+  padding: 2px 7px;
+  border-radius: 3px;
+}
+.cov-tile-risk {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--border);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.cov-tile-name {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #f1f5f9;
+  letter-spacing: -0.01em;
+  word-break: break-word;
+}
+.cov-tile-meta {
+  margin: 0;
+  display: flex;
+  gap: 14px;
+}
+.cov-tile-meta > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.cov-tile-meta dt {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+.cov-tile-meta dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #cbd5e1;
+  font-variant-numeric: tabular-nums;
 }
 
 #coverage-trend-svg {
@@ -554,11 +673,54 @@ body {
   border: 1px solid #1a2035;
   border-radius: 8px;
   padding: 16px;
+  display: flex;
+}
+#coverage-trend-svg svg {
+  width: 100%;
+  height: auto;
 }
 #coverage-trend-svg svg text {
-  fill: #64748b !important;
+  fill: #64748b;
 }
-#coverage-trend-svg svg path {
-  stroke: #ef4444;
+#coverage-trend-svg svg path[stroke="#ef4444"] {
   filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.4));
+}
+
+.cov-trend-single {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 20px;
+  gap: 6px;
+}
+.cov-trend-single .cov-trend-value {
+  font-size: 56px;
+  font-weight: 700;
+  color: #ef4444;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 24px rgba(239, 68, 68, 0.35);
+}
+.cov-trend-single .cov-trend-unit {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.cov-trend-single .cov-trend-date {
+  font-size: 11px;
+  color: #4b5563;
+  font-variant-numeric: tabular-nums;
+  margin-top: 8px;
+}
+.cov-trend-single .cov-trend-hint {
+  max-width: 360px;
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.6;
 }
