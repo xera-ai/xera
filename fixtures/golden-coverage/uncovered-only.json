@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-17T10:00:00.000Z",
+  "event_count": 0,
+  "events_hash": "sha256:",
+  "tickets": {
+    "PROJ-101": {
+      "id": "PROJ-101",
+      "summary": "Add Apple Pay to checkout",
+      "ac": [],
+      "storyHash": "h1",
+      "modifiesAreas": ["checkout"],
+      "fetchedAt": "2026-05-15T10:00:00.000Z"
+    },
+    "PROJ-105": {
+      "id": "PROJ-105",
+      "summary": "Profile settings",
+      "ac": [],
+      "storyHash": "h2",
+      "modifiesAreas": ["profile"],
+      "fetchedAt": "2026-05-12T10:00:00.000Z"
+    }
+  },
+  "scenarios": {},
+  "poms": {},
+  "areas": {
+    "checkout": { "id": "checkout" },
+    "profile": { "id": "profile" }
+  },
+  "edges": [
+    {
+      "kind": "modifies",
+      "from": "PROJ-101",
+      "to": "checkout",
+      "source": "xera-fetch",
+      "discoveredAt": "2026-05-15T10:00:00.000Z"
+    },
+    {
+      "kind": "modifies",
+      "from": "PROJ-105",
+      "to": "profile",
+      "source": "xera-fetch",
+      "discoveredAt": "2026-05-12T10:00:00.000Z"
+    }
+  ],
+  "latest_failures": {},
+  "acNodes": {},
+  "classifications": []
+}

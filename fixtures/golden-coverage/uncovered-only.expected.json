@@ -1,0 +1,20 @@
+{
+  "generatedAt": "2026-05-17T10:00:00.000Z",
+  "windowDays": 30,
+  "areas": [
+    {
+      "id": "checkout",
+      "status": "UNCOVERED",
+      "risk": 1,
+      "breakdown": { "recentTickets": 1, "recentBugs": 0, "criticalBoost": 1 }
+    },
+    {
+      "id": "profile",
+      "status": "UNCOVERED",
+      "risk": 1,
+      "breakdown": { "recentTickets": 1, "recentBugs": 0, "criticalBoost": 1 }
+    }
+  ],
+  "tickets": [],
+  "acBackfillNeeded": false
+}
