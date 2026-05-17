@@ -123,6 +123,47 @@ const edgeDiscovered = z
   })
   .passthrough();
 
+const coverageSnapshot = z
+  .object({
+    ts: iso,
+    windowDays: z.number().int().positive(),
+    areas: z.array(
+      z.object({
+        id: z.string().regex(/^[a-z0-9-]+$/),
+        status: z.enum(['UNCOVERED', 'STALE', 'COVERED']),
+        risk: z.number().nonnegative(),
+        breakdown: z.object({
+          recentTickets: z.number().int().nonnegative(),
+          recentBugs: z.number().int().nonnegative(),
+          criticalBoost: z.union([z.literal(1), z.literal(2)]),
+        }),
+      }),
+    ),
+    tickets: z.array(
+      z.object({
+        id: z.string().regex(/^[A-Z][A-Z0-9]*-\d+$/),
+        acCount: z.number().int().nonnegative(),
+        satisfiedCount: z.number().int().nonnegative(),
+        gapScore: z.number().nonnegative(),
+      }),
+    ),
+  })
+  .passthrough();
+
+const acCoverageBackfilled = z
+  .object({
+    ts: iso,
+    ticketId: z.string().regex(/^[A-Z][A-Z0-9]*-\d+$/),
+    mappings: z.array(
+      z.object({
+        scenarioId: z.string().min(1),
+        satisfiesAcs: z.array(z.number().int().nonnegative()),
+        confidence: z.number().min(0).max(1),
+      }),
+    ),
+  })
+  .passthrough();
+
 const base = {
   event_id: z.string().min(20),
   schema_version: schemaV,
@@ -144,6 +185,8 @@ export const EventSchema = z.discriminatedUnion('type', [
     payload: classificationDisputed,
   }),
   z.object({ ...base, type: z.literal('edge.discovered'), payload: edgeDiscovered }),
+  z.object({ ...base, type: z.literal('coverage.snapshot'), payload: coverageSnapshot }),
+  z.object({ ...base, type: z.literal('ac-coverage.backfilled'), payload: acCoverageBackfilled }),
 ]);
 
 export function safeParseEvent(
