@@ -1,6 +1,64 @@
 import { describe, expect, test } from 'bun:test';
 import { XeraConfigSchema } from '../../src/config/schema';
 
+function validBase() {
+  return {
+    jira: {
+      baseUrl: 'https://example.atlassian.net',
+      projectKeys: ['PROJ'],
+      fields: { story: 'description' },
+    },
+    web: {
+      baseUrl: { local: 'http://localhost:3000' },
+      defaultEnv: 'local',
+    },
+    adapters: ['web'],
+  };
+}
+
+describe('XeraConfigSchema.coverage', () => {
+  test('coverage block is optional; defaults fill when absent', () => {
+    const parsed = XeraConfigSchema.parse(validBase());
+    expect(parsed.coverage).toEqual({
+      staleAfterDays: 30,
+      criticalAreas: [],
+      autoSnapshotOnCoverage: true,
+    });
+  });
+
+  test('user-supplied coverage overrides defaults', () => {
+    const parsed = XeraConfigSchema.parse({
+      ...validBase(),
+      coverage: {
+        staleAfterDays: 14,
+        criticalAreas: ['checkout', 'auth'],
+        autoSnapshotOnCoverage: false,
+      },
+    });
+    expect(parsed.coverage.staleAfterDays).toBe(14);
+    expect(parsed.coverage.criticalAreas).toEqual(['checkout', 'auth']);
+    expect(parsed.coverage.autoSnapshotOnCoverage).toBe(false);
+  });
+
+  test('rejects negative staleAfterDays', () => {
+    expect(() =>
+      XeraConfigSchema.parse({
+        ...validBase(),
+        coverage: { staleAfterDays: -1 },
+      }),
+    ).toThrow();
+  });
+
+  test('rejects criticalAreas containing non-slug strings', () => {
+    expect(() =>
+      XeraConfigSchema.parse({
+        ...validBase(),
+        coverage: { criticalAreas: ['Has Space'] },
+      }),
+    ).toThrow();
+  });
+});
+
 const MIN_VALID = {
   jira: {
     baseUrl: 'https://x.atlassian.net',
