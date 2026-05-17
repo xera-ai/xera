@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { z } from 'zod';
 import { appendEvents, deriveSnapshot, loadAllEvents } from './store';
@@ -50,6 +50,22 @@ export async function enrichTicket(
   ticketId: string,
   opts: EnrichOptions,
 ): Promise<EnrichResult> {
+  // Check the graph snapshot first so a missing ticket surfaces as the
+  // actionable "fetch it first" error instead of a confusing
+  // "enrichment-input.json not found" — the input file may live under
+  // .xera/<CANDIDATE>/, a directory that doesn't exist until the
+  // candidate has been fetched.
+  const snapshot = deriveSnapshot(loadAllEvents(repoRoot));
+  if (!snapshot.tickets[ticketId]) {
+    throw new Error(
+      `ticket ${ticketId} not in graph; fetch it first with \`/xera-fetch ${ticketId}\``,
+    );
+  }
+
+  if (snapshot.tickets[ticketId]!.enrichedAt && !opts.force) {
+    return { ticketId, similarCount: 0, enrichedAt: snapshot.tickets[ticketId]!.enrichedAt! };
+  }
+
   const inputPath = join(repoRoot, '.xera', ticketId, 'enrichment-input.json');
   if (!existsSync(inputPath)) {
     throw new Error(`enrichment-input.json not found at ${inputPath}`);
@@ -59,15 +75,6 @@ export async function enrichTicket(
   const parsed = EnrichmentInputSchema.safeParse(raw);
   if (!parsed.success) {
     throw new Error(`invalid enrichment-input.json: ${parsed.error.message}`);
-  }
-
-  const snapshot = deriveSnapshot(loadAllEvents(repoRoot));
-  if (!snapshot.tickets[ticketId]) {
-    throw new Error(`ticket ${ticketId} not in graph; run /xera-fetch first`);
-  }
-
-  if (snapshot.tickets[ticketId]!.enrichedAt && !opts.force) {
-    return { ticketId, similarCount: 0, enrichedAt: snapshot.tickets[ticketId]!.enrichedAt! };
   }
 
   const validated = parsed.data.similar
@@ -98,6 +105,14 @@ export async function enrichTicket(
   events.push(mk('graph-enrich', 'ticket.enriched', enrichedPayload));
 
   appendEvents(repoRoot, events, { skill: 'graph-enrich', ticketId });
+
+  // Consumed — remove so a stale file can't accidentally re-drive enrich
+  // on a later invocation outside the /xera-report skill flow.
+  try {
+    unlinkSync(inputPath);
+  } catch {
+    // Best-effort cleanup; ignore if already gone.
+  }
 
   return { ticketId, similarCount: validated.length, enrichedAt };
 }
