@@ -42,4 +42,11 @@ describe('golden-coverage fixtures', () => {
     const r = buildCoverageReport(snap, DEFAULT_COVERAGE_CONFIG, now);
     expect(r).toEqual(expected as ReturnType<typeof buildCoverageReport>);
   });
+
+  test('ac-gap', () => {
+    const snap = loadSnap('ac-gap') as Snapshot;
+    const expected = loadExpected('ac-gap');
+    const r = buildCoverageReport(snap, DEFAULT_COVERAGE_CONFIG, now);
+    expect(r).toEqual(expected as ReturnType<typeof buildCoverageReport>);
+  });
 });

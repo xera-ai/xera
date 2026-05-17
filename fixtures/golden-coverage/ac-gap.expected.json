@@ -1,0 +1,19 @@
+{
+  "generatedAt": "2026-05-17T10:00:00.000Z",
+  "windowDays": 30,
+  "areas": [],
+  "tickets": [
+    {
+      "id": "PROJ-X",
+      "summary": "Cart features",
+      "acCount": 5,
+      "satisfiedCount": 3,
+      "gapScore": 4,
+      "unsatisfiedAcs": [
+        { "index": 2, "text": "Tax line item shows in cart preview" },
+        { "index": 4, "text": "Receipt email includes order summary" }
+      ]
+    }
+  ],
+  "acBackfillNeeded": false
+}
