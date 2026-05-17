@@ -316,3 +316,188 @@
     };
   });
 })();
+
+// v0.8.1 — top-level tab switching
+(function setupTabs() {
+  const tabButtons = document.querySelectorAll('.toplevel-tabs button');
+  if (!tabButtons.length) return;
+  tabButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      tabButtons.forEach((b) => {
+        b.classList.remove('active');
+      });
+      btn.classList.add('active');
+      const tab = btn.getAttribute('data-tab');
+      document.querySelectorAll('[data-tab-panel]').forEach((panel) => {
+        if (panel.getAttribute('data-tab-panel') === tab) {
+          panel.classList.add('active');
+          panel.removeAttribute('hidden');
+        } else {
+          panel.classList.remove('active');
+        }
+      });
+      if (tab === 'coverage' && window.__COVERAGE__) {
+        renderCoverageOnce();
+      }
+    });
+  });
+})();
+
+// v0.8.1 — coverage subtab switching
+(function setupSubtabs() {
+  const subButtons = document.querySelectorAll('.subtabs button');
+  subButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      subButtons.forEach((b) => {
+        b.classList.remove('active');
+      });
+      btn.classList.add('active');
+      const sub = btn.getAttribute('data-subtab');
+      document.querySelectorAll('[data-subpanel]').forEach((panel) => {
+        if (panel.getAttribute('data-subpanel') === sub) {
+          panel.removeAttribute('hidden');
+          panel.classList.add('active');
+        } else {
+          panel.setAttribute('hidden', '');
+          panel.classList.remove('active');
+        }
+      });
+    });
+  });
+})();
+
+let _coverageRendered = false;
+function renderCoverageOnce() {
+  if (_coverageRendered) return;
+  _coverageRendered = true;
+  renderCoverageList();
+  renderCoverageTrend();
+  renderCoverageMap();
+}
+
+// Task 27 — coverage map: area color overlay
+function renderCoverageMap() {
+  const cov = window.__COVERAGE__;
+  if (!cov || !window.__GRAPH__) return;
+  const canvas = document.getElementById('coverage-map-canvas');
+  if (!canvas) return;
+
+  const STATUS_COLOR = {
+    UNCOVERED: { background: '#fca5a5', border: '#dc2626' },
+    STALE: { background: '#fcd34d', border: '#d97706' },
+    COVERED: { background: '#86efac', border: '#15803d' },
+  };
+  const NEUTRAL = { background: '#e5e7eb', border: '#9ca3af' };
+
+  const areaStatusById = {};
+  for (const a of cov.report.areas) {
+    areaStatusById[a.id] = a.status;
+  }
+
+  const mappedNodes = window.__GRAPH__.nodes.map((n) => {
+    if (n.group === 'SUTArea' && areaStatusById[n.id]) {
+      return Object.assign({}, n, { color: STATUS_COLOR[areaStatusById[n.id]] });
+    }
+    if (n.group !== 'SUTArea') return Object.assign({}, n, { color: NEUTRAL });
+    return n;
+  });
+
+  new vis.Network(
+    canvas,
+    { nodes: new vis.DataSet(mappedNodes), edges: new vis.DataSet(window.__GRAPH__.edges) },
+    {
+      physics: { enabled: true, stabilization: { iterations: 100 } },
+      nodes: { shape: 'dot', font: { size: 11 } },
+    },
+  );
+}
+
+// Task 28 — coverage list: sortable area + AC gap tables
+function renderCoverageList() {
+  const cov = window.__COVERAGE__;
+  if (!cov) return;
+  const listBody = document.querySelector('#coverage-list-table tbody');
+  if (listBody) {
+    listBody.innerHTML = '';
+    for (const a of cov.report.areas) {
+      const tr = document.createElement('tr');
+      tr.classList.add(`status-${a.status.toLowerCase()}`);
+      const cells = [
+        a.status,
+        a.id,
+        String(a.risk),
+        String(a.breakdown.recentTickets),
+        String(a.breakdown.recentBugs),
+      ];
+      for (const c of cells) {
+        const td = document.createElement('td');
+        td.textContent = c;
+        tr.appendChild(td);
+      }
+      listBody.appendChild(tr);
+    }
+  }
+
+  const acBody = document.querySelector('#coverage-ac-table tbody');
+  if (acBody) {
+    acBody.innerHTML = '';
+    for (const t of cov.report.tickets) {
+      const tr = document.createElement('tr');
+      const cells = [
+        t.id,
+        `${t.satisfiedCount}/${t.acCount}`,
+        String(t.gapScore),
+        t.unsatisfiedAcs.map((ac) => `AC-${ac.index}`).join(', '),
+      ];
+      for (const c of cells) {
+        const td = document.createElement('td');
+        td.textContent = c;
+        tr.appendChild(td);
+      }
+      acBody.appendChild(tr);
+    }
+  }
+}
+
+// Task 29 — coverage trend: inline SVG line chart
+function renderCoverageTrend() {
+  const cov = window.__COVERAGE__;
+  if (!cov) return;
+  const container = document.getElementById('coverage-trend-svg');
+  if (!container) return;
+
+  // Dedup by day (latest snapshot per day wins), sort asc.
+  const byDay = {};
+  for (const s of cov.snapshots) {
+    const day = s.ts.slice(0, 10);
+    byDay[day] = s;
+  }
+  const days = Object.keys(byDay).sort();
+  if (days.length === 0) {
+    container.innerHTML =
+      '<p class="subpanel-hint">No snapshots yet — run /xera-coverage on multiple days to build a trend.</p>';
+    return;
+  }
+
+  const points = days.map((d) => {
+    const snap = byDay[d];
+    const n = snap.areas.filter((a) => a.status === 'UNCOVERED' || a.status === 'STALE').length;
+    return { day: d, value: n };
+  });
+  const W = 800;
+  const H = 200;
+  const PAD = 30;
+  const maxValue = Math.max(...points.map((p) => p.value), 1);
+  const stepX = points.length > 1 ? (W - 2 * PAD) / (points.length - 1) : 0;
+  const path = points
+    .map((p, idx) => {
+      const x = PAD + idx * stepX;
+      const y = H - PAD - (p.value / maxValue) * (H - 2 * PAD);
+      return `${idx === 0 ? 'M' : 'L'}${x},${y}`;
+    })
+    .join(' ');
+
+  const labelFirst = points[0].day;
+  const labelLast = points[points.length - 1].day;
+  container.innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"><path d="${path}" fill="none" stroke="#dc2626" stroke-width="2"/><text x="${PAD}" y="${H - 8}" font-size="11" fill="#6b7280">${labelFirst}</text><text x="${W - PAD - 60}" y="${H - 8}" font-size="11" fill="#6b7280">${labelLast}</text><text x="${PAD - 22}" y="${PAD - 4}" font-size="11" fill="#6b7280">${maxValue}</text></svg>`;
+}

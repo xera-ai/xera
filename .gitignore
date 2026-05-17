@@ -12,5 +12,7 @@ next-env.d.ts
 
 # v0.2 eval harness outputs (maintainer-local)
 .xera/eval/
+# v0.8 coverage runtime outputs (maintainer-local)
+.xera/coverage/
 .claude/worktrees/
 .worktrees/

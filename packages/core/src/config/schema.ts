@@ -111,6 +111,14 @@ const RunSchema = z
   })
   .prefault({});
 
+const CoverageSchema = z
+  .object({
+    staleAfterDays: z.number().int().positive().default(30),
+    criticalAreas: z.array(z.string().regex(/^[a-z0-9-]+$/)).default([]),
+    autoSnapshotOnCoverage: z.boolean().default(true),
+  })
+  .prefault({});
+
 export const XeraConfigSchema = z
   .object({
     jira: JiraSchema,
@@ -119,6 +127,7 @@ export const XeraConfigSchema = z
     ai: AISchema,
     reporting: ReportingSchema,
     run: RunSchema.prefault({}),
+    coverage: CoverageSchema,
     adapters: z
       .array(z.enum(['web', 'http']))
       .min(1)

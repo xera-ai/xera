@@ -59,12 +59,12 @@ A repo-local event-sourced data layer running parallel to the v0.1 artifact pipe
 
 | Package | Responsibility | Public bin |
 |---|---|---|
-| `@xera-ai/core` | Config, paths, hashing, lock, log, Jira client, classifier (8 buckets incl. v0.7 `CONTRACT_DRIFT`, `RATE_LIMITED`, `AUTH_EXPIRED`), auth state, shared scrub rules (relocated from web in v0.7), **graph module** (types, schema, store, similarity, enrich, classify, traverse, impact, render, cost) | `xera-internal` |
+| `@xera-ai/core` | Config, paths, hashing, lock, log, Jira client, classifier (8 buckets incl. v0.7 `CONTRACT_DRIFT`, `RATE_LIMITED`, `AUTH_EXPIRED`), auth state, shared scrub rules (relocated from web in v0.7), **graph module** (types, schema, store, similarity, enrich, classify, traverse, impact, render, cost), **coverage module** (status, risk, report, why) | `xera-internal` |
 | `@xera-ai/cli` | Public CLI: `init` (with `--shape web\|api\|mixed` in v0.7), `doctor` | `xera` |
 | `@xera-ai/web` | Playwright adapter (browser-driven; executor with `--grep` support) | — |
 | `@xera-ai/http` | **v0.7 NEW** — HTTP API adapter (Playwright `APIRequestContext`, no browser). Pre-auth via `defineHttpAuthSetup` + `presetHttpAuth`; runtime `newAuthedContext` for generated `spec.ts`; OpenAPI loader for schema-aware generation + `CONTRACT_DRIFT` detection | — |
 | `@xera-ai/skills` | Claude Code skill `.md` files (dispatch by `meta.json.adapter` in v0.7) | — |
-| `@xera-ai/prompts` | Versioned LLM prompt templates: `script-from-feature-web.md` + `script-from-feature-http.md` (renamed/added in v0.7) | — |
+| `@xera-ai/prompts` | Versioned LLM prompt templates: `script-from-feature-web.md` + `script-from-feature-http.md` (renamed/added in v0.7); `map-ac-to-scenarios.md` + `propose-scenarios.md` (added in v0.8) | — |
 
 ## `xera-internal` subcommands (19)
 
@@ -88,7 +88,31 @@ A repo-local event-sourced data layer running parallel to the v0.1 artifact pipe
 - `auth-setup [--role <name>] [--shape web|http|all]` — pre-authenticate, writes encrypted `.xera/.auth/{web,http}/<role>.json`
 - `exec`, `normalize`, `report` extended to dispatch by `meta.json.adapter`
 
-**Universal:** `verify-prompts`, `doctor` (with `--auto-enrich` for CI; `--shape`-aware HTTP auth file + OpenAPI checks in v0.7)
+**Coverage gap (v0.8):**
+- `coverage-prepare` — reads snapshot, computes per-area status (UNCOVERED/STALE/COVERED), risk scores, and AC gap list; writes `report.json`
+- `ac-coverage-backfill-prepare` — reads `report.json` AC gaps; writes `backfill-input.json` for skill-side `map-ac-to-scenarios.md` prompt
+- `ac-coverage-backfill-finalize` — reads skill-written `backfill-output.json`; validates mappings; emits `ac-coverage.backfilled` event; materializes `satisfies` edges in the graph
+- `fill-gap-prepare` — reads snapshot for a given area or ticket; writes `fill-gap-input.json` for skill-side `propose-scenarios.md` prompt
+- `fill-gap-finalize` — reads skill-written `fill-gap-output.json`; writes `feature.draft.md` with the accepted Gherkin proposals
+
+**Universal:** `verify-prompts`, `doctor` (with `--auto-enrich` for CI; `--shape`-aware HTTP auth file + OpenAPI checks in v0.7; 3 new coverage checks in v0.8)
+
+## v0.8 addition: Coverage gap & AC matrix
+
+The coverage gap feature answers "which SUT areas have no passing tests, and which acceptance criteria are unsatisfied?" It builds on the v0.6 graph: every ticket's `modifies` edges identify the areas it owns; every scenario's `run.classified` events record pass/fail history.
+
+**Three-state area model.** Each area in the snapshot is classified as one of:
+- `UNCOVERED` — no scenario has ever been linked to this area.
+- `STALE` — scenarios exist but the most recent passing run is older than `coverage.staleAfterDays` (default 30).
+- `COVERED` — at least one passing run within the staleness window.
+
+**Data flow.** `coverage-prepare` is a pure deterministic binary: it reads the snapshot, applies the three-state logic and the risk formula (`recent_tickets × critical_boost + recent_bugs`), and writes `report.json`. The `/xera-coverage` skill reads that file and prints the gap report to the session. With `--viewer`, the skill instructs `graph-render` to include a Coverage tab (Map / List / Trend sub-views). When `autoSnapshotOnCoverage: true` (default), a `coverage.snapshot` event is emitted, which the Trend sub-view reads over time.
+
+**AC backfill flow.** When `report.json` lists unsatisfied ACs, `/xera-coverage` runs the AC backfill: `ac-coverage-backfill-prepare` writes `backfill-input.json`, the skill reads the `map-ac-to-scenarios.md` prompt and calls the LLM in-session, then `ac-coverage-backfill-finalize` validates the output and materializes `satisfies` edges (ACNode → ScenarioNode) in the graph, emitting an `ac-coverage.backfilled` event.
+
+**Generative gap-fill.** `/xera-fill-gap <area>` (area mode) or `/xera-fill-gap --ticket <TICKET>` (AC mode) invokes `fill-gap-prepare`, passes the input to the `propose-scenarios.md` prompt, then writes accepted proposals to `feature.draft.md` via `fill-gap-finalize`.
+
+**New graph entities:** `ACNode` (one per acceptance-criteria line on a fetched ticket), `satisfies` edge (ACNode → ScenarioNode), `coverage.snapshot` event, `ac-coverage.backfilled` event.
 
 ## Extension model
 
@@ -111,3 +135,4 @@ The classifier, reporter, **and graph layer** are adapter-agnostic by design. A 
 | `fixtures/golden-eval/` | `/xera-eval` rubric fixtures (v0.2 + EVAL-007 heal + EVAL-008/009 classify-outdated) |
 | `fixtures/golden-graph/` | Snapshot/dedup/corrupt + TEST_OUTDATED scenarios (v0.6) |
 | `fixtures/golden-impact/` | impact-prepare BFS scenarios (v0.6) |
+| `fixtures/golden-coverage/` | coverage engine fixtures — 6 scenarios covering UNCOVERED/STALE/COVERED, risk formula, AC gaps (v0.8) |

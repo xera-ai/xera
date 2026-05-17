@@ -11,6 +11,8 @@ import { dirname } from 'node:path';
 import { currentYyyyMm, graphPaths } from './paths';
 import { safeParseEvent } from './schema';
 import type {
+  ACNode,
+  Classification,
   EdgeRecord,
   Event,
   FailureNode,
@@ -98,12 +100,19 @@ export function deriveSnapshot(events: Event[]): Snapshot {
   const areas: Record<string, { id: string }> = {};
   const edges: EdgeRecord[] = [];
   const latestFailures: Record<string, FailureNode> = {};
+  const acNodes: Record<string, ACNode> = {};
+  const classifications: Array<{
+    scenarioId: string;
+    classification: Classification;
+    ts: string;
+  }> = [];
 
   for (const e of events) {
     switch (e.type) {
-      case 'ticket.fetched':
-        tickets[e.payload.ticketId] = {
-          id: e.payload.ticketId,
+      case 'ticket.fetched': {
+        const tid = e.payload.ticketId;
+        tickets[tid] = {
+          id: tid,
           summary: e.payload.summary,
           ac: e.payload.ac,
           storyHash: e.payload.storyHash,
@@ -114,18 +123,33 @@ export function deriveSnapshot(events: Event[]): Snapshot {
         for (const link of e.payload.jiraLinks) {
           edges.push({
             kind: 'jira-linked',
-            from: e.payload.ticketId,
+            from: tid,
             to: link.ticketId,
             source: `jira:${link.relation}`,
             discoveredAt: e.ts,
           });
         }
+        // NEW v0.8: drop prior ACNodes for this ticket, materialize fresh
+        for (const acId of Object.keys(acNodes)) {
+          if (acNodes[acId]?.ticketId === tid) delete acNodes[acId];
+        }
+        e.payload.ac.forEach((text, index) => {
+          const acId = `${tid}#ac-${index}`;
+          acNodes[acId] = { id: acId, ticketId: tid, index, text };
+        });
+        // Prune satisfies edges that target ACNodes no longer present
+        for (let i = edges.length - 1; i >= 0; i--) {
+          const ed = edges[i]!;
+          if (ed.kind !== 'satisfies') continue;
+          if (acNodes[ed.to] === undefined) edges.splice(i, 1);
+        }
         break;
+      }
       case 'ticket.enriched':
         if (tickets[e.payload.ticketId])
           tickets[e.payload.ticketId]!.enrichedAt = e.payload.enrichedAt;
         break;
-      case 'scenario.generated':
+      case 'scenario.generated': {
         scenarios[e.payload.scenarioId] = {
           id: e.payload.scenarioId,
           ticketId: e.payload.ticketId,
@@ -142,7 +166,33 @@ export function deriveSnapshot(events: Event[]): Snapshot {
           source: 'xera-script',
           discoveredAt: e.ts,
         });
+        // NEW v0.8: drop prior eager satisfies edges for this scenario, then emit fresh
+        if (e.payload.satisfiesAcs && e.payload.satisfiesAcs.length > 0) {
+          for (let i = edges.length - 1; i >= 0; i--) {
+            const ed = edges[i]!;
+            if (
+              ed.kind === 'satisfies' &&
+              ed.from === e.payload.scenarioId &&
+              ed.source === 'xera-script'
+            ) {
+              edges.splice(i, 1);
+            }
+          }
+          for (const acIdx of e.payload.satisfiesAcs) {
+            const acId = `${e.payload.ticketId}#ac-${acIdx}`;
+            if (acNodes[acId] === undefined) continue;
+            edges.push({
+              kind: 'satisfies',
+              from: e.payload.scenarioId,
+              to: acId,
+              confidence: 1.0,
+              source: 'xera-script',
+              discoveredAt: e.ts,
+            });
+          }
+        }
         break;
+      }
       case 'pom.generated':
         poms[e.payload.pomId] = {
           id: e.payload.pomId,
@@ -192,7 +242,45 @@ export function deriveSnapshot(events: Event[]): Snapshot {
         }
         break;
       }
-      // run.classified: not materialized in snapshot
+      case 'run.classified':
+        classifications.push({
+          scenarioId: e.payload.scenarioId,
+          classification: e.payload.classification,
+          ts: e.ts,
+        });
+        break;
+      case 'ac-coverage.backfilled': {
+        const { ts, ticketId, mappings } = e.payload;
+        // Remove prior backfill edges for this ticket (idempotent)
+        for (let i = edges.length - 1; i >= 0; i--) {
+          const ed = edges[i]!;
+          if (
+            ed.kind === 'satisfies' &&
+            ed.source === 'ac-coverage' &&
+            ed.to.startsWith(`${ticketId}#ac-`)
+          ) {
+            edges.splice(i, 1);
+          }
+        }
+        for (const m of mappings) {
+          for (const acIdx of m.satisfiesAcs) {
+            const acId = `${ticketId}#ac-${acIdx}`;
+            if (acNodes[acId] === undefined) continue;
+            edges.push({
+              kind: 'satisfies',
+              from: m.scenarioId,
+              to: acId,
+              confidence: m.confidence,
+              source: 'ac-coverage',
+              discoveredAt: ts,
+            });
+          }
+        }
+        break;
+      }
+      case 'coverage.snapshot':
+        // Read-side only — Trend tab queries these events directly from JSONL.
+        break;
       default:
         break;
     }
@@ -209,6 +297,8 @@ export function deriveSnapshot(events: Event[]): Snapshot {
     areas,
     edges,
     latest_failures: latestFailures,
+    acNodes,
+    classifications,
   };
 }
 

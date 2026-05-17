@@ -5,6 +5,22 @@ import { join } from 'node:path';
 import { writeAuthState } from '@xera-ai/core';
 import { runChecks } from '../src/checks';
 
+// Helper: create a minimal web project with optional coverage config (plain object export)
+function makeWebProject(coverageConfig?: string): string {
+  const d = mkdtempSync(join(tmpdir(), 'xera-checks-'));
+  mkdirSync(join(d, '.xera'), { recursive: true });
+  const coverageBlock = coverageConfig ? `, coverage: ${coverageConfig}` : '';
+  writeFileSync(
+    join(d, 'xera.config.ts'),
+    `export default {\n` +
+      `  adapters: ['web'],\n` +
+      `  jira: { baseUrl: 'https://example.atlassian.net', projectKeys: ['PROJ'], fields: { story: 'description' } },\n` +
+      `  web: { baseUrl: { local: 'http://localhost:3000' }, defaultEnv: 'local' }${coverageBlock}\n` +
+      `};\n`,
+  );
+  return d;
+}
+
 let dir: string;
 const ORIG_KEY = process.env.XERA_AUTH_KEY;
 beforeEach(() => {
@@ -78,5 +94,131 @@ describe('doctor http checks', () => {
     const oa = checks.find((c) => c.name === 'OpenAPI spec configured');
     expect(oa?.ok).toBe(true);
     expect(oa?.message).toContain('CONTRACT_DRIFT detection disabled');
+  });
+});
+
+describe('runChecks coverage warnings', () => {
+  test('warns when coverage.staleAfterDays > 90', async () => {
+    const d = makeWebProject('{ staleAfterDays: 120 }');
+    try {
+      const checks = await runChecks(d);
+      const warning = checks.find((c) => c.name.includes('coverage.staleAfterDays'));
+      expect(warning).toBeDefined();
+      expect(warning!.ok).toBe(false);
+      expect(warning!.message ?? '').toContain('large window');
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
+
+  test('no warning when staleAfterDays <= 90', async () => {
+    const d = makeWebProject('{ staleAfterDays: 60 }');
+    try {
+      const checks = await runChecks(d);
+      const warning = checks.find((c) => c.name.includes('coverage.staleAfterDays'));
+      expect(warning).toBeUndefined();
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
+
+  test('warns when criticalAreas contains a slug missing from snapshot', async () => {
+    const d = makeWebProject(`{ criticalAreas: ['typo-area'] }`);
+    mkdirSync(join(d, '.xera/graph'), { recursive: true });
+    writeFileSync(
+      join(d, '.xera/graph/snapshot.json'),
+      JSON.stringify({
+        schema_version: 1,
+        generated_at: '2026-05-17T10:00:00.000Z',
+        event_count: 0,
+        events_hash: 'sha256:',
+        tickets: {},
+        scenarios: {},
+        poms: {},
+        areas: { checkout: { id: 'checkout' } },
+        edges: [],
+        latest_failures: {},
+        acNodes: {},
+        classifications: [],
+      }),
+    );
+    try {
+      const checks = await runChecks(d);
+      const w = checks.find((c) => c.name.includes('typo-area'));
+      expect(w).toBeDefined();
+      expect(w!.ok).toBe(false);
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
+
+  test('no warning when all criticalAreas exist in snapshot', async () => {
+    const d = makeWebProject(`{ criticalAreas: ['checkout'] }`);
+    mkdirSync(join(d, '.xera/graph'), { recursive: true });
+    writeFileSync(
+      join(d, '.xera/graph/snapshot.json'),
+      JSON.stringify({
+        schema_version: 1,
+        generated_at: '2026-05-17T10:00:00.000Z',
+        event_count: 0,
+        events_hash: 'sha256:',
+        tickets: {},
+        scenarios: {},
+        poms: {},
+        areas: { checkout: { id: 'checkout' } },
+        edges: [],
+        latest_failures: {},
+        acNodes: {},
+        classifications: [],
+      }),
+    );
+    try {
+      const checks = await runChecks(d);
+      const w = checks.find((c) => c.name.toLowerCase().includes('critical'));
+      expect(w).toBeUndefined();
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
+
+  test('warns when ticket has acs but no ACNode (snapshot stale)', async () => {
+    const d = makeWebProject();
+    mkdirSync(join(d, '.xera/graph'), { recursive: true });
+    writeFileSync(
+      join(d, '.xera/graph/snapshot.json'),
+      JSON.stringify({
+        schema_version: 1,
+        generated_at: '2026-05-17T10:00:00.000Z',
+        event_count: 0,
+        events_hash: 'sha256:',
+        tickets: {
+          'PROJ-1': {
+            id: 'PROJ-1',
+            summary: 's',
+            ac: ['x'],
+            storyHash: 'h',
+            modifiesAreas: [],
+            fetchedAt: '2026-05-01T10:00:00.000Z',
+          },
+        },
+        scenarios: {},
+        poms: {},
+        areas: {},
+        edges: [],
+        latest_failures: {},
+        acNodes: {},
+        classifications: [],
+      }),
+    );
+    try {
+      const checks = await runChecks(d);
+      const w = checks.find(
+        (c) => c.name.includes('PROJ-1') && c.name.toLowerCase().includes('ac'),
+      );
+      expect(w).toBeDefined();
+      expect(w!.ok).toBe(false);
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
   });
 });

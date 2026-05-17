@@ -11,6 +11,10 @@
       <div class="logo"></div>
       <span class="title">xera graph</span>
     </div>
+    <nav class="toplevel-tabs">
+      <button data-tab="knowledge" class="active">Knowledge</button>
+      {{COVERAGE_TAB_BUTTON}}
+    </nav>
     <div id="stats-bar" data-stats="{{STATS}}"></div>
     <div class="topbar-controls">
       <input type="text" id="search" placeholder="search nodes…" autocomplete="off" />
@@ -23,21 +27,25 @@
     </div>
   </header>
   <div id="progress-wrap"><div id="progress-bar"></div></div>
-  <main id="canvas"></main>
-  <aside id="sidepanel" class="hidden">
-    <div class="sp-header">
-      <div id="sp-group" class="sp-group-badge"></div>
-      <p id="sp-title" class="sp-title"></p>
-    </div>
-    <div id="sp-desc" class="sp-desc"></div>
-    <div id="sp-actions" class="sp-actions"></div>
-  </aside>
+  <section data-tab-panel="knowledge" class="active">
+    <main id="canvas"></main>
+    <aside id="sidepanel" class="hidden">
+      <div class="sp-header">
+        <div id="sp-group" class="sp-group-badge"></div>
+        <p id="sp-title" class="sp-title"></p>
+      </div>
+      <div id="sp-desc" class="sp-desc"></div>
+      <div id="sp-actions" class="sp-actions"></div>
+    </aside>
+  </section>
+  {{COVERAGE_TAB_PANEL}}
   <footer id="footer">
     generated {{GENERATED_AT}}
     <span>· scroll to zoom · drag to pan · click to inspect</span>
   </footer>
   <script>{{VIS_NETWORK_JS}}</script>
   <script>window.__GRAPH__ = {{GRAPH_DATA}};</script>
+  <script>window.__COVERAGE__ = {{COVERAGE_DATA}};</script>
   <script>{{INTERACTION_JS}}</script>
 </body>
 </html>

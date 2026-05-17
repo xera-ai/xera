@@ -1,4 +1,6 @@
 import { describe, expect, test } from 'bun:test';
+import { buildCoverageReport } from '../../src/coverage/report';
+import { DEFAULT_COVERAGE_CONFIG } from '../../src/coverage/types';
 import { renderHtml, transformForVisNetwork } from '../../src/graph/render';
 import type { Snapshot } from '../../src/graph/types';
 
@@ -214,5 +216,40 @@ describe('renderHtml', () => {
     const data = transformForVisNetwork(snap, {});
     const html = renderHtml({ data, generatedAt: '2026-05-16T08:00:00Z', stats: data.stats });
     expect(html.length).toBeLessThan(1_500_000);
+  });
+});
+
+describe('renderHtml with coverage data', () => {
+  test('omits Coverage tab markup when coverage is undefined (backwards compat)', () => {
+    const html = renderHtml({
+      data: { nodes: [], edges: [] },
+      stats: { tickets: 0, scenarios: 0, poms: 0, areas: 0, failures: 0, edges: 0 },
+      generatedAt: '2026-05-17T10:00:00.000Z',
+    });
+    expect(html).not.toContain('data-tab="coverage"');
+    expect(html).not.toContain('Coverage</button>');
+  });
+
+  test('includes Coverage tab markup when coverage data passed', () => {
+    const snap = { ...mkSnapshot(), classifications: [], acNodes: {} };
+    const report = buildCoverageReport(
+      snap,
+      DEFAULT_COVERAGE_CONFIG,
+      new Date('2026-05-17T10:00:00.000Z'),
+    );
+    const html = renderHtml({
+      data: { nodes: [], edges: [] },
+      stats: { tickets: 0, scenarios: 0, poms: 0, areas: 0, failures: 0, edges: 0 },
+      generatedAt: '2026-05-17T10:00:00.000Z',
+      coverage: {
+        report,
+        snapshots: [],
+      },
+    });
+    expect(html).toContain('data-tab="coverage"');
+    expect(html).toContain('Coverage</button>');
+    expect(html).toContain('data-subtab="map"');
+    expect(html).toContain('data-subtab="list"');
+    expect(html).toContain('data-subtab="trend"');
   });
 });

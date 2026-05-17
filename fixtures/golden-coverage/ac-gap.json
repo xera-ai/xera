@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-17T10:00:00.000Z",
+  "event_count": 0,
+  "events_hash": "sha256:",
+  "tickets": {
+    "PROJ-X": {
+      "id": "PROJ-X",
+      "summary": "Cart features",
+      "ac": [
+        "User sees subtotal",
+        "User sees discount line",
+        "Tax line item shows in cart preview",
+        "Total includes tax",
+        "Receipt email includes order summary"
+      ],
+      "storyHash": "h",
+      "modifiesAreas": [],
+      "fetchedAt": "2026-05-12T10:00:00.000Z"
+    }
+  },
+  "scenarios": {
+    "PROJ-X#scenario-0": {
+      "id": "PROJ-X#scenario-0",
+      "ticketId": "PROJ-X",
+      "name": "Subtotal",
+      "gherkin": "...",
+      "priority": "p1",
+      "featureHash": "fh",
+      "generatedAt": "2026-05-12T11:00:00.000Z"
+    },
+    "PROJ-X#scenario-1": {
+      "id": "PROJ-X#scenario-1",
+      "ticketId": "PROJ-X",
+      "name": "Discount",
+      "gherkin": "...",
+      "priority": "p1",
+      "featureHash": "fh",
+      "generatedAt": "2026-05-12T11:00:00.000Z"
+    },
+    "PROJ-X#scenario-2": {
+      "id": "PROJ-X#scenario-2",
+      "ticketId": "PROJ-X",
+      "name": "Total",
+      "gherkin": "...",
+      "priority": "p1",
+      "featureHash": "fh",
+      "generatedAt": "2026-05-12T11:00:00.000Z"
+    }
+  },
+  "poms": {},
+  "areas": {},
+  "edges": [
+    {
+      "kind": "tests",
+      "from": "PROJ-X",
+      "to": "PROJ-X#scenario-0",
+      "source": "xera-script",
+      "discoveredAt": "2026-05-12T11:00:00.000Z"
+    },
+    {
+      "kind": "tests",
+      "from": "PROJ-X",
+      "to": "PROJ-X#scenario-1",
+      "source": "xera-script",
+      "discoveredAt": "2026-05-12T11:00:00.000Z"
+    },
+    {
+      "kind": "tests",
+      "from": "PROJ-X",
+      "to": "PROJ-X#scenario-2",
+      "source": "xera-script",
+      "discoveredAt": "2026-05-12T11:00:00.000Z"
+    },
+    {
+      "kind": "satisfies",
+      "from": "PROJ-X#scenario-0",
+      "to": "PROJ-X#ac-0",
+      "confidence": 1.0,
+      "source": "xera-script",
+      "discoveredAt": "2026-05-12T11:00:00.000Z"
+    },
+    {
+      "kind": "satisfies",
+      "from": "PROJ-X#scenario-1",
+      "to": "PROJ-X#ac-1",
+      "confidence": 1.0,
+      "source": "xera-script",
+      "discoveredAt": "2026-05-12T11:00:00.000Z"
+    },
+    {
+      "kind": "satisfies",
+      "from": "PROJ-X#scenario-2",
+      "to": "PROJ-X#ac-3",
+      "confidence": 1.0,
+      "source": "xera-script",
+      "discoveredAt": "2026-05-12T11:00:00.000Z"
+    }
+  ],
+  "latest_failures": {},
+  "acNodes": {
+    "PROJ-X#ac-0": {
+      "id": "PROJ-X#ac-0",
+      "ticketId": "PROJ-X",
+      "index": 0,
+      "text": "User sees subtotal"
+    },
+    "PROJ-X#ac-1": {
+      "id": "PROJ-X#ac-1",
+      "ticketId": "PROJ-X",
+      "index": 1,
+      "text": "User sees discount line"
+    },
+    "PROJ-X#ac-2": {
+      "id": "PROJ-X#ac-2",
+      "ticketId": "PROJ-X",
+      "index": 2,
+      "text": "Tax line item shows in cart preview"
+    },
+    "PROJ-X#ac-3": {
+      "id": "PROJ-X#ac-3",
+      "ticketId": "PROJ-X",
+      "index": 3,
+      "text": "Total includes tax"
+    },
+    "PROJ-X#ac-4": {
+      "id": "PROJ-X#ac-4",
+      "ticketId": "PROJ-X",
+      "index": 4,
+      "text": "Receipt email includes order summary"
+    }
+  },
+  "classifications": [
+    {
+      "scenarioId": "PROJ-X#scenario-0",
+      "classification": "PASS",
+      "ts": "2026-05-15T10:00:00.000Z"
+    },
+    {
+      "scenarioId": "PROJ-X#scenario-1",
+      "classification": "PASS",
+      "ts": "2026-05-15T10:00:00.000Z"
+    },
+    {
+      "scenarioId": "PROJ-X#scenario-2",
+      "classification": "PASS",
+      "ts": "2026-05-15T10:00:00.000Z"
+    }
+  ]
+}

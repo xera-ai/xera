@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-17T10:00:00.000Z",
+  "event_count": 0,
+  "events_hash": "sha256:",
+  "tickets": {
+    "PROJ-AUTH": {
+      "id": "PROJ-AUTH",
+      "summary": "Refactor auth",
+      "ac": [],
+      "storyHash": "h",
+      "modifiesAreas": ["auth"],
+      "fetchedAt": "2026-02-06T10:00:00.000Z"
+    }
+  },
+  "scenarios": {
+    "PROJ-AUTH#scenario-0": {
+      "id": "PROJ-AUTH#scenario-0",
+      "ticketId": "PROJ-AUTH",
+      "name": "Login",
+      "gherkin": "...",
+      "priority": "p1",
+      "featureHash": "fh",
+      "generatedAt": "2026-02-06T11:00:00.000Z"
+    }
+  },
+  "poms": {
+    "LoginPage": {
+      "id": "LoginPage",
+      "ticketId": "PROJ-AUTH",
+      "filePath": "pages/LoginPage.ts",
+      "route": "/login",
+      "locators": [],
+      "scope": "local"
+    }
+  },
+  "areas": { "auth": { "id": "auth" } },
+  "edges": [
+    {
+      "kind": "modifies",
+      "from": "PROJ-AUTH",
+      "to": "auth",
+      "source": "xera-fetch",
+      "discoveredAt": "2026-02-06T10:00:00.000Z"
+    },
+    {
+      "kind": "tests",
+      "from": "PROJ-AUTH",
+      "to": "PROJ-AUTH#scenario-0",
+      "source": "xera-script",
+      "discoveredAt": "2026-02-06T11:00:00.000Z"
+    },
+    {
+      "kind": "uses",
+      "from": "PROJ-AUTH#scenario-0",
+      "to": "LoginPage",
+      "source": "xera-script",
+      "discoveredAt": "2026-02-06T11:00:00.000Z"
+    },
+    {
+      "kind": "covers",
+      "from": "LoginPage",
+      "to": "auth",
+      "source": "xera-script",
+      "discoveredAt": "2026-02-06T11:00:00.000Z"
+    }
+  ],
+  "latest_failures": {},
+  "acNodes": {},
+  "classifications": [
+    {
+      "scenarioId": "PROJ-AUTH#scenario-0",
+      "classification": "REAL_BUG",
+      "ts": "2026-05-14T10:00:00.000Z"
+    },
+    {
+      "scenarioId": "PROJ-AUTH#scenario-0",
+      "classification": "REAL_BUG",
+      "ts": "2026-05-10T10:00:00.000Z"
+    },
+    {
+      "scenarioId": "PROJ-AUTH#scenario-0",
+      "classification": "TEST_OUTDATED",
+      "ts": "2026-05-08T10:00:00.000Z"
+    },
+    {
+      "scenarioId": "PROJ-AUTH#scenario-0",
+      "classification": "SELECTOR_DRIFT",
+      "ts": "2026-05-12T10:00:00.000Z"
+    },
+    {
+      "scenarioId": "PROJ-AUTH#scenario-0",
+      "classification": "REAL_BUG",
+      "ts": "2026-03-01T10:00:00.000Z"
+    }
+  ]
+}

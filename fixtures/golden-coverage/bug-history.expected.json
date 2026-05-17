@@ -1,0 +1,14 @@
+{
+  "generatedAt": "2026-05-17T10:00:00.000Z",
+  "windowDays": 30,
+  "areas": [
+    {
+      "id": "auth",
+      "status": "STALE",
+      "risk": 3,
+      "breakdown": { "recentTickets": 0, "recentBugs": 3, "criticalBoost": 1 }
+    }
+  ],
+  "tickets": [],
+  "acBackfillNeeded": false
+}

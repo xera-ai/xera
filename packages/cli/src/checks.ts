@@ -145,6 +145,61 @@ export async function runChecks(cwd: string): Promise<Check[]> {
         });
       }
     }
+    // Coverage checks
+    if (cfg.coverage.staleAfterDays > 90) {
+      checks.push({
+        name: 'coverage.staleAfterDays sanity',
+        ok: false,
+        message: `${cfg.coverage.staleAfterDays}d is a very large window — coverage will be slow to react to drift`,
+      });
+    }
+
+    const snapPath = join(cwd, '.xera/graph/snapshot.json');
+    if (existsSync(snapPath) && cfg.coverage.criticalAreas.length > 0) {
+      try {
+        const snap = JSON.parse(readFileSync(snapPath, 'utf8')) as {
+          areas?: Record<string, unknown>;
+        };
+        const known = new Set(Object.keys(snap.areas ?? {}));
+        for (const slug of cfg.coverage.criticalAreas) {
+          if (!known.has(slug)) {
+            checks.push({
+              name: `criticalArea "${slug}" exists`,
+              ok: false,
+              message: 'marked critical but no ticket modifies this area; check spelling',
+            });
+          }
+        }
+      } catch {
+        /* malformed snapshot — separate check covers this */
+      }
+    }
+
+    if (existsSync(snapPath)) {
+      try {
+        const snap = JSON.parse(readFileSync(snapPath, 'utf8')) as {
+          tickets?: Record<string, { id: string; ac?: string[] }>;
+          acNodes?: Record<string, { ticketId: string }>;
+        };
+        const acByTicket: Record<string, number> = {};
+        for (const node of Object.values(snap.acNodes ?? {})) {
+          acByTicket[node.ticketId] = (acByTicket[node.ticketId] ?? 0) + 1;
+        }
+        for (const ticket of Object.values(snap.tickets ?? {})) {
+          const acCount = ticket.ac?.length ?? 0;
+          if (acCount > 0 && (acByTicket[ticket.id] ?? 0) === 0) {
+            checks.push({
+              name: `${ticket.id}: ACNodes materialized`,
+              ok: false,
+              message:
+                'ticket has acceptance criteria but no ACNode in snapshot — rebuild via xera:graph-backfill',
+            });
+          }
+        }
+      } catch {
+        /* malformed snapshot */
+      }
+    }
   } catch (e) {
     checks.push({
       name: 'xera.config.ts found and valid',

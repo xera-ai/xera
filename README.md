@@ -42,6 +42,8 @@ claude
 | `/xera-report <TICKET>` | Classify (5 buckets incl. TEST_OUTDATED) + post diagnosis to Jira |
 | `/xera-impact <TICKET>` | Pre-flight: which existing scenarios may break? Optional re-run. |
 | `/xera-promote <TICKET> <POM>` | Move a POM to `shared/` |
+| `/xera-coverage` | Area-level + AC-level coverage report (UNCOVERED/STALE/COVERED + AC GAPS), risk-weighted gap list, AC backfill auto-orchestration. `--viewer` opens the HTML Coverage tab (Map/List/Trend). |
+| `/xera-fill-gap <area>` | AI-drafted Gherkin scenarios for UNCOVERED areas or unsatisfied ACs (`--ticket <TICKET>` for AC mode). |
 
 Plus npm scripts auto-scaffolded for the project knowledge graph:
 - `xera:graph-snapshot` — derive snapshot from event log
@@ -82,7 +84,7 @@ See [the design spec](docs/superpowers/specs/2026-05-14-xera-core-web-design.md)
 | v0.5 | ✅ shipped | Self-healing selector drift (auto-fix POM locators) |
 | v0.6 | ✅ shipped | Project Knowledge Graph (graph foundation · TEST_OUTDATED classifier · `/xera-impact` skill · HTML viewer + CI artifact · QA polish) |
 | v0.7 | ✅ shipped | **HTTP API adapter** (`@xera-ai/http`) · init `--shape web\|api\|mixed` · pre-auth pattern (`xera:auth-setup`) · 3 new classifier buckets (`CONTRACT_DRIFT`, `RATE_LIMITED`, `AUTH_EXPIRED`) · web prompt knows `page.request` |
-| v0.8 | ✅ shipped | **Release infra overhaul** — all six packages unified at a single version via changesets `fixed` group · auto-changeset workflow infers bumps from PR titles · `xera-automation` GitHub App so bot-pushed commits trigger CI · changeset-bot + branch protection on `main` · tag-triggered `bun publish` retired in favour of `release.yml` |
+| v0.8 | ✅ shipped | **Release infra overhaul** — all six packages unified at a single version via changesets `fixed` group · auto-changeset workflow infers bumps from PR titles · `xera-automation` GitHub App so bot-pushed commits trigger CI · changeset-bot + branch protection on `main` · tag-triggered `bun publish` retired in favour of `release.yml`. **Coverage gap feature** — `/xera-coverage` (area + AC-level report, HTML viewer Coverage tab) · `/xera-fill-gap` (AI-drafted Gherkin for gaps) · ACNode + satisfies edge + `coverage.snapshot` event on the graph |
 | v0.9 | planned | `xera-feature --from-spec openapi.yaml` (generate tickets from spec) · auto-detect adapter from story · `CONTRACT_DRIFT` on web traces (network ↔ OpenAPI matching) · self-heal auto-PR |
 | v1.0 | planned | Cross-adapter graph linkage (endpoint as first-class graph node) · live dashboard |
 | v1.x | planned | Messaging adapters (Kafka, AMQP, WebSocket) · GraphQL · gRPC |

@@ -7,7 +7,8 @@
       "!**/node_modules",
       "!**/fixtures/sample-app",
       "!**/.claude",
-      "!**/templates/vis-network.min.js"
+      "!**/templates/vis-network.min.js",
+      "!**/.xera"
     ]
   },
   "formatter": { "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },

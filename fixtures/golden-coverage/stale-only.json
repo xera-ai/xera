@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-17T10:00:00.000Z",
+  "event_count": 0,
+  "events_hash": "sha256:",
+  "tickets": {
+    "PROJ-B": {
+      "id": "PROJ-B",
+      "summary": "Billing v1",
+      "ac": [],
+      "storyHash": "h",
+      "modifiesAreas": ["billing"],
+      "fetchedAt": "2026-02-01T10:00:00.000Z"
+    },
+    "PROJ-S": {
+      "id": "PROJ-S",
+      "summary": "Search v1",
+      "ac": [],
+      "storyHash": "h",
+      "modifiesAreas": ["search"],
+      "fetchedAt": "2026-02-01T10:00:00.000Z"
+    }
+  },
+  "scenarios": {
+    "PROJ-B#scenario-0": {
+      "id": "PROJ-B#scenario-0",
+      "ticketId": "PROJ-B",
+      "name": "Bill",
+      "gherkin": "...",
+      "priority": "p1",
+      "featureHash": "fh",
+      "generatedAt": "2026-02-01T11:00:00.000Z"
+    },
+    "PROJ-S#scenario-0": {
+      "id": "PROJ-S#scenario-0",
+      "ticketId": "PROJ-S",
+      "name": "Search",
+      "gherkin": "...",
+      "priority": "p1",
+      "featureHash": "fh",
+      "generatedAt": "2026-02-01T11:00:00.000Z"
+    }
+  },
+  "poms": {
+    "BillingPage": {
+      "id": "BillingPage",
+      "ticketId": "PROJ-B",
+      "filePath": "p.ts",
+      "route": "/billing",
+      "locators": [],
+      "scope": "local"
+    },
+    "SearchPage": {
+      "id": "SearchPage",
+      "ticketId": "PROJ-S",
+      "filePath": "p.ts",
+      "route": "/search",
+      "locators": [],
+      "scope": "local"
+    }
+  },
+  "areas": { "billing": { "id": "billing" }, "search": { "id": "search" } },
+  "edges": [
+    {
+      "kind": "modifies",
+      "from": "PROJ-B",
+      "to": "billing",
+      "source": "xera-fetch",
+      "discoveredAt": "2026-02-01T10:00:00.000Z"
+    },
+    {
+      "kind": "modifies",
+      "from": "PROJ-S",
+      "to": "search",
+      "source": "xera-fetch",
+      "discoveredAt": "2026-02-01T10:00:00.000Z"
+    },
+    {
+      "kind": "uses",
+      "from": "PROJ-B#scenario-0",
+      "to": "BillingPage",
+      "source": "xera-script",
+      "discoveredAt": "2026-02-01T11:00:00.000Z"
+    },
+    {
+      "kind": "uses",
+      "from": "PROJ-S#scenario-0",
+      "to": "SearchPage",
+      "source": "xera-script",
+      "discoveredAt": "2026-02-01T11:00:00.000Z"
+    },
+    {
+      "kind": "covers",
+      "from": "BillingPage",
+      "to": "billing",
+      "source": "xera-script",
+      "discoveredAt": "2026-02-01T11:00:00.000Z"
+    },
+    {
+      "kind": "covers",
+      "from": "SearchPage",
+      "to": "search",
+      "source": "xera-script",
+      "discoveredAt": "2026-02-01T11:00:00.000Z"
+    }
+  ],
+  "latest_failures": {},
+  "acNodes": {},
+  "classifications": [
+    {
+      "scenarioId": "PROJ-B#scenario-0",
+      "classification": "PASS",
+      "ts": "2026-03-31T10:00:00.000Z"
+    },
+    {
+      "scenarioId": "PROJ-S#scenario-0",
+      "classification": "PASS",
+      "ts": "2026-04-15T10:00:00.000Z"
+    }
+  ]
+}

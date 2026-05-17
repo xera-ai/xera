@@ -1,4 +1,7 @@
+import { acCoverageBackfillFinalizeCmd } from './ac-coverage-backfill-finalize';
+import { acCoverageBackfillPrepareCmd } from './ac-coverage-backfill-prepare';
 import { authSetupCmd } from './auth-setup';
+import { coveragePrepareCmd } from './coverage-prepare';
 import { disputesCmd } from './disputes';
 import { doctorCmd } from './doctor';
 import { evalDeterministicCmd } from './eval-deterministic';
@@ -6,6 +9,8 @@ import { evalPrepareCmd } from './eval-prepare';
 import { evalReportCmd } from './eval-report';
 import { execCmd } from './exec';
 import { fetchCmd } from './fetch';
+import { fillGapFinalizeCmd } from './fill-gap-finalize';
+import { fillGapPrepareCmd } from './fill-gap-prepare';
 import { graphBackfillCmd } from './graph-backfill';
 import { graphEnrichCmd } from './graph-enrich';
 import { graphQueryCmd } from './graph-query';
@@ -26,13 +31,18 @@ import { validateFeatureCmd } from './validate-feature';
 import { verifyPromptsCmd } from './verify-prompts';
 
 const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
+  'ac-coverage-backfill-finalize': acCoverageBackfillFinalizeCmd,
+  'ac-coverage-backfill-prepare': acCoverageBackfillPrepareCmd,
   'auth-setup': authSetupCmd,
+  'coverage-prepare': coveragePrepareCmd,
   disputes: disputesCmd,
   doctor: doctorCmd,
   'eval-deterministic': evalDeterministicCmd,
   'eval-prepare': evalPrepareCmd,
   'eval-report': evalReportCmd,
   exec: execCmd,
+  'fill-gap-finalize': fillGapFinalizeCmd,
+  'fill-gap-prepare': fillGapPrepareCmd,
   fetch: fetchCmd,
   'graph-backfill': graphBackfillCmd,
   'graph-enrich': graphEnrichCmd,

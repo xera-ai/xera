@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-17T10:00:00.000Z",
+  "event_count": 0,
+  "events_hash": "sha256:",
+  "tickets": {
+    "PROJ-101": {
+      "id": "PROJ-101",
+      "summary": "Add Apple Pay to checkout",
+      "ac": ["User selects Apple Pay", "Order confirms"],
+      "storyHash": "h1",
+      "modifiesAreas": ["checkout"],
+      "fetchedAt": "2026-05-15T10:00:00.000Z"
+    },
+    "PROJ-200": {
+      "id": "PROJ-200",
+      "summary": "Search pagination",
+      "ac": [],
+      "storyHash": "h2",
+      "modifiesAreas": ["search"],
+      "fetchedAt": "2026-04-10T10:00:00.000Z"
+    },
+    "PROJ-300": {
+      "id": "PROJ-300",
+      "summary": "Login redirect fix",
+      "ac": [],
+      "storyHash": "h3",
+      "modifiesAreas": ["login"],
+      "fetchedAt": "2026-05-10T10:00:00.000Z"
+    }
+  },
+  "scenarios": {
+    "PROJ-200#scenario-0": {
+      "id": "PROJ-200#scenario-0",
+      "ticketId": "PROJ-200",
+      "name": "Search shows next page",
+      "gherkin": "...",
+      "priority": "p1",
+      "featureHash": "fh1",
+      "generatedAt": "2026-04-10T11:00:00.000Z"
+    },
+    "PROJ-300#scenario-0": {
+      "id": "PROJ-300#scenario-0",
+      "ticketId": "PROJ-300",
+      "name": "User logs in",
+      "gherkin": "...",
+      "priority": "p0",
+      "featureHash": "fh2",
+      "generatedAt": "2026-05-10T11:00:00.000Z"
+    }
+  },
+  "poms": {
+    "SearchPage": {
+      "id": "SearchPage",
+      "ticketId": "PROJ-200",
+      "filePath": "pages/SearchPage.ts",
+      "route": "/search",
+      "locators": [],
+      "scope": "local"
+    },
+    "LoginPage": {
+      "id": "LoginPage",
+      "ticketId": "PROJ-300",
+      "filePath": "pages/LoginPage.ts",
+      "route": "/login",
+      "locators": [],
+      "scope": "local"
+    }
+  },
+  "areas": {
+    "checkout": { "id": "checkout" },
+    "search": { "id": "search" },
+    "login": { "id": "login" }
+  },
+  "edges": [
+    {
+      "kind": "modifies",
+      "from": "PROJ-101",
+      "to": "checkout",
+      "source": "xera-fetch",
+      "discoveredAt": "2026-05-15T10:00:00.000Z"
+    },
+    {
+      "kind": "modifies",
+      "from": "PROJ-200",
+      "to": "search",
+      "source": "xera-fetch",
+      "discoveredAt": "2026-04-10T10:00:00.000Z"
+    },
+    {
+      "kind": "modifies",
+      "from": "PROJ-300",
+      "to": "login",
+      "source": "xera-fetch",
+      "discoveredAt": "2026-05-10T10:00:00.000Z"
+    },
+    {
+      "kind": "tests",
+      "from": "PROJ-200",
+      "to": "PROJ-200#scenario-0",
+      "source": "xera-script",
+      "discoveredAt": "2026-04-10T11:00:00.000Z"
+    },
+    {
+      "kind": "tests",
+      "from": "PROJ-300",
+      "to": "PROJ-300#scenario-0",
+      "source": "xera-script",
+      "discoveredAt": "2026-05-10T11:00:00.000Z"
+    },
+    {
+      "kind": "uses",
+      "from": "PROJ-200#scenario-0",
+      "to": "SearchPage",
+      "source": "xera-script",
+      "discoveredAt": "2026-04-10T11:00:00.000Z"
+    },
+    {
+      "kind": "uses",
+      "from": "PROJ-300#scenario-0",
+      "to": "LoginPage",
+      "source": "xera-script",
+      "discoveredAt": "2026-05-10T11:00:00.000Z"
+    },
+    {
+      "kind": "covers",
+      "from": "SearchPage",
+      "to": "search",
+      "source": "xera-script",
+      "discoveredAt": "2026-04-10T11:00:00.000Z"
+    },
+    {
+      "kind": "covers",
+      "from": "LoginPage",
+      "to": "login",
+      "source": "xera-script",
+      "discoveredAt": "2026-05-10T11:00:00.000Z"
+    }
+  ],
+  "latest_failures": {},
+  "acNodes": {
+    "PROJ-101#ac-0": {
+      "id": "PROJ-101#ac-0",
+      "ticketId": "PROJ-101",
+      "index": 0,
+      "text": "User selects Apple Pay"
+    },
+    "PROJ-101#ac-1": {
+      "id": "PROJ-101#ac-1",
+      "ticketId": "PROJ-101",
+      "index": 1,
+      "text": "Order confirms"
+    }
+  },
+  "classifications": [
+    {
+      "scenarioId": "PROJ-300#scenario-0",
+      "classification": "PASS",
+      "ts": "2026-05-15T10:00:00.000Z"
+    }
+  ]
+}

@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { EdgeRecord, Snapshot } from './types';
+import type { CoverageReport } from '../coverage/report';
+import type { CoverageSnapshotPayload, EdgeRecord, Snapshot } from './types';
 
 export interface VisNode {
   id: string;
@@ -299,10 +300,16 @@ function statsToHuman(s: GraphStats): string {
   return `${s.tickets} tickets · ${s.scenarios} scenarios · ${s.poms} POMs · ${s.edges} edges`;
 }
 
+export interface CoverageInput {
+  report: CoverageReport;
+  snapshots: CoverageSnapshotPayload[]; // Trend tab data (deduped by day, sorted asc)
+}
+
 export interface RenderHtmlInput {
   data: { nodes: VisNode[]; edges: VisEdge[] };
   stats: GraphStats;
   generatedAt: string;
+  coverage?: CoverageInput; // NEW v0.8.1
 }
 
 export function renderHtml(input: RenderHtmlInput): string {
@@ -314,11 +321,18 @@ export function renderHtml(input: RenderHtmlInput): string {
   const graphJson = JSON.stringify(input.data);
   const statsHuman = statsToHuman(input.stats);
 
+  const coverageTabButton = input.coverage ? '<button data-tab="coverage">Coverage</button>' : '';
+  const coverageTabPanel = input.coverage ? loadTemplate('coverage-panel.html.fragment') : '';
+  const coverageJson = input.coverage ? JSON.stringify(input.coverage) : 'null';
+
   return template
     .replace('{{CSS}}', () => css)
     .replace('{{STATS}}', () => statsHuman)
     .replace('{{GENERATED_AT}}', () => input.generatedAt)
     .replace('{{VIS_NETWORK_JS}}', () => visNetwork)
     .replace('{{GRAPH_DATA}}', () => graphJson)
-    .replace('{{INTERACTION_JS}}', () => js);
+    .replace('{{INTERACTION_JS}}', () => js)
+    .replace('{{COVERAGE_TAB_BUTTON}}', () => coverageTabButton)
+    .replace('{{COVERAGE_TAB_PANEL}}', () => coverageTabPanel)
+    .replace('{{COVERAGE_DATA}}', () => coverageJson);
 }
