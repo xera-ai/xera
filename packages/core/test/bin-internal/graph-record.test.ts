@@ -113,6 +113,133 @@ describe('graph-record dispute', () => {
   });
 });
 
+async function seedFetchAndScenarios(ticket: string, scenarioNames: string[]): Promise<void> {
+  // Use the script recorder to register scenarios in the graph via a Gherkin file.
+  const dir = join(root, '.xera', ticket);
+  mkdirSync(join(dir, 'feature'), { recursive: true });
+  mkdirSync(join(dir, 'poms'), { recursive: true });
+  const featureBody = scenarioNames
+    .map((n) => `Scenario: ${n}\n  Given a precondition\n`)
+    .join('\n');
+  writeFileSync(join(dir, 'feature', `${ticket}.feature`), `Feature: Test feature\n${featureBody}`);
+  writeFileSync(join(dir, 'poms', 'X.ts'), 'export class X {}');
+  const code = await graphRecordCmd(['script', ticket]);
+  if (code !== 0) throw new Error(`seed script failed with ${code}`);
+}
+
+function seedNormalizedRun(
+  ticket: string,
+  runId: string,
+  scenarios: Array<{ name: string; outcome: 'PASS' | 'FAIL' | 'SKIPPED' }>,
+): void {
+  const runDir = join(root, '.xera', ticket, 'runs', runId);
+  mkdirSync(runDir, { recursive: true });
+  writeFileSync(join(runDir, 'normalized.json'), JSON.stringify({ scenarios }));
+}
+
+function seedClassifierInput(
+  ticket: string,
+  scenarios: Array<{ name: string; class: string; confidence: 'low' | 'medium' | 'high' }>,
+): void {
+  const dir = join(root, '.xera', ticket);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, 'classifier-input.json'), JSON.stringify({ scenarios }));
+}
+
+function captureWarn(): { restore: () => void; lines: string[] } {
+  const original = console.warn;
+  const lines: string[] = [];
+  console.warn = (...args: unknown[]) => {
+    lines.push(args.map((a) => String(a)).join(' '));
+  };
+  return {
+    lines,
+    restore: () => {
+      console.warn = original;
+    },
+  };
+}
+
+describe('graph-record exec — scenario name mismatch warning', () => {
+  test('warns and suggests closest match when test name does not match graph scenario', async () => {
+    const ticket = 'ESS-7';
+    await seedFetchAndScenarios(ticket, [
+      'Visiting a protected route while signed out redirects to the login page',
+    ]);
+    seedNormalizedRun(ticket, 'run-1', [
+      // Missing "the" — should not match the seeded scenario name.
+      {
+        name: 'Visiting a protected route while signed out redirects to login page',
+        outcome: 'PASS',
+      },
+    ]);
+    const w = captureWarn();
+    try {
+      const exit = await graphRecordCmd(['exec', ticket, '--run-id', 'run-1']);
+      expect(exit).toBe(0);
+      const joined = w.lines.join('\n');
+      expect(joined).toContain('1 of 1');
+      expect(joined).toContain('redirects to login page');
+      expect(joined).toContain('Did you mean');
+      expect(joined).toContain('redirects to the login page');
+    } finally {
+      w.restore();
+    }
+  });
+
+  test('no warning when all scenario names match the graph', async () => {
+    const ticket = 'ESS-8';
+    await seedFetchAndScenarios(ticket, ['User logs in successfully']);
+    seedNormalizedRun(ticket, 'run-2', [{ name: 'User logs in successfully', outcome: 'PASS' }]);
+    const w = captureWarn();
+    try {
+      const exit = await graphRecordCmd(['exec', ticket, '--run-id', 'run-2']);
+      expect(exit).toBe(0);
+      expect(w.lines.join('\n')).toBe('');
+    } finally {
+      w.restore();
+    }
+  });
+
+  test('no warning when the ticket has no graph scenarios yet (cannot validate)', async () => {
+    const ticket = 'ESS-100';
+    seedNormalizedRun(ticket, 'run-3', [{ name: 'whatever', outcome: 'PASS' }]);
+    const w = captureWarn();
+    try {
+      const exit = await graphRecordCmd(['exec', ticket, '--run-id', 'run-3']);
+      expect(exit).toBe(0);
+      expect(w.lines.join('\n')).toBe('');
+    } finally {
+      w.restore();
+    }
+  });
+});
+
+describe('graph-record classify — scenario name mismatch warning', () => {
+  test('warns and suggests closest match when classifier scenario name does not match graph', async () => {
+    const ticket = 'ESS-9';
+    await seedFetchAndScenarios(ticket, ['Redirect to login preserves the original destination']);
+    seedClassifierInput(ticket, [
+      {
+        name: 'Redirect to login preserves original destination',
+        class: 'PASS',
+        confidence: 'high',
+      },
+    ]);
+    const w = captureWarn();
+    try {
+      const exit = await graphRecordCmd(['classify', ticket, '--run-id', 'run-c1']);
+      expect(exit).toBe(0);
+      const joined = w.lines.join('\n');
+      expect(joined).toContain('classifier-input.json');
+      expect(joined).toContain('Did you mean');
+      expect(joined).toContain('preserves the original destination');
+    } finally {
+      w.restore();
+    }
+  });
+});
+
 describe('graph-record script — priority auto-detection', () => {
   test('upgrades scenario without explicit @p tag to p0 when AC mentions auth keyword', async () => {
     const ticket = 'ABC-AUTH';

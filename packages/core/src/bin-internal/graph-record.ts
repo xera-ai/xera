@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import { resolveArtifactPaths } from '../artifact/paths';
-import { appendEvents } from '../graph/store';
+import { appendEvents, deriveSnapshot, loadAllEvents } from '../graph/store';
 import type {
   Classification,
   ClassificationDisputedPayload,
@@ -12,6 +12,7 @@ import type {
   PomPromotedPayload,
   RunClassifiedPayload,
   RunCompletedPayload,
+  ScenarioNode,
   TicketFetchedPayload,
 } from '../graph/types';
 import { SCHEMA_VERSION } from '../graph/types';
@@ -53,6 +54,64 @@ interface StoryFrontmatter {
     ticketId: string;
     relation: 'blocks' | 'duplicates' | 'relates' | 'supersedes';
   }>;
+}
+
+function levenshtein(a: string, b: string): number {
+  if (a === b) return 0;
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+  const m = a.length;
+  const n = b.length;
+  let prev = new Array<number>(n + 1);
+  let curr = new Array<number>(n + 1);
+  for (let j = 0; j <= n; j++) prev[j] = j;
+  for (let i = 1; i <= m; i++) {
+    curr[0] = i;
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      curr[j] = Math.min(prev[j]! + 1, curr[j - 1]! + 1, prev[j - 1]! + cost);
+    }
+    [prev, curr] = [curr, prev];
+  }
+  return prev[n]!;
+}
+
+function findClosestName(target: string, candidates: string[]): string | undefined {
+  if (candidates.length === 0) return undefined;
+  const norm = target.trim().toLowerCase();
+  let best: { name: string; dist: number } | undefined;
+  for (const c of candidates) {
+    const d = levenshtein(norm, c.trim().toLowerCase());
+    if (best === undefined || d < best.dist) best = { name: c, dist: d };
+  }
+  if (!best) return undefined;
+  // Only suggest when the candidate is within 50% edit distance of the target —
+  // otherwise the "Did you mean" line is noise.
+  const maxLen = Math.max(norm.length, best.name.trim().length);
+  if (maxLen > 0 && best.dist > maxLen * 0.5) return undefined;
+  return best.name;
+}
+
+function warnUnmatchedScenarios(
+  context: 'exec' | 'classify',
+  source: string,
+  ticket: string,
+  total: number,
+  unmatched: Array<{ name: string; suggestion?: string }>,
+): void {
+  if (unmatched.length === 0) return;
+  console.warn(
+    `[graph-record ${context}] ${unmatched.length} of ${total} scenario name(s) in ${source} could not be matched to graph scenarios for ${ticket}.`,
+  );
+  for (const u of unmatched) {
+    console.warn(`  Unmatched: "${u.name}"`);
+    if (u.suggestion) console.warn(`    Did you mean: "${u.suggestion}"?`);
+  }
+}
+
+function knownScenariosForTicket(repoRoot: string, ticket: string): ScenarioNode[] {
+  const snap = deriveSnapshot(loadAllEvents(repoRoot));
+  return Object.values(snap.scenarios).filter((s) => s.ticketId === ticket);
 }
 
 function readStoryFrontmatter(repoRoot: string, ticket: string): StoryFrontmatter | null {
@@ -127,11 +186,22 @@ async function recordExec(repoRoot: string, ticket: string, runId: string): Prom
   const data = JSON.parse(readFileSync(normalizedPath, 'utf8')) as {
     scenarios: Array<{ name: string; outcome: 'PASS' | 'FAIL' | 'SKIPPED' }>;
   };
+  const known = knownScenariosForTicket(repoRoot, ticket);
+  const knownIds = new Set(known.map((s) => s.id));
+  const knownNames = known.map((s) => s.name);
   const events: Event[] = [];
+  const unmatched: Array<{ name: string; suggestion?: string }> = [];
+  let considered = 0;
   for (const s of data.scenarios) {
     if (s.outcome === 'SKIPPED') continue;
+    considered++;
+    const sid = scenarioId(ticket, s.name);
+    if (known.length > 0 && !knownIds.has(sid)) {
+      const suggestion = findClosestName(s.name, knownNames);
+      unmatched.push(suggestion ? { name: s.name, suggestion } : { name: s.name });
+    }
     const p: RunCompletedPayload = {
-      scenarioId: scenarioId(ticket, s.name),
+      scenarioId: sid,
       ticketId: ticket,
       runId,
       status: s.outcome === 'PASS' ? 'pass' : 'fail',
@@ -139,6 +209,7 @@ async function recordExec(repoRoot: string, ticket: string, runId: string): Prom
     };
     events.push(makeEvent('xera-exec', 'run.completed', p));
   }
+  warnUnmatchedScenarios('exec', 'normalized.json', ticket, considered, unmatched);
   appendEvents(repoRoot, events, { skill: 'xera-exec', ticketId: ticket });
   return 0;
 }
@@ -153,16 +224,32 @@ async function recordClassify(repoRoot: string, ticket: string, runId: string): 
   const data = JSON.parse(readFileSync(classifyPath, 'utf8')) as {
     scenarios: Array<{ name: string; class: string; confidence: 'low' | 'medium' | 'high' }>;
   };
+  const known = knownScenariosForTicket(repoRoot, ticket);
+  const knownIds = new Set(known.map((s) => s.id));
+  const knownNames = known.map((s) => s.name);
   const events: Event[] = [];
+  const unmatched: Array<{ name: string; suggestion?: string }> = [];
   for (const s of data.scenarios) {
+    const sid = scenarioId(ticket, s.name);
+    if (known.length > 0 && !knownIds.has(sid)) {
+      const suggestion = findClosestName(s.name, knownNames);
+      unmatched.push(suggestion ? { name: s.name, suggestion } : { name: s.name });
+    }
     const p: RunClassifiedPayload = {
-      scenarioId: scenarioId(ticket, s.name),
+      scenarioId: sid,
       runId,
       classification: s.class as RunClassifiedPayload['classification'],
       confidence: s.confidence,
     };
     events.push(makeEvent('xera-report', 'run.classified', p));
   }
+  warnUnmatchedScenarios(
+    'classify',
+    'classifier-input.json',
+    ticket,
+    data.scenarios.length,
+    unmatched,
+  );
   appendEvents(repoRoot, events, { skill: 'xera-report', ticketId: ticket });
   return 0;
 }
