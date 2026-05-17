@@ -4,7 +4,15 @@ export const SCHEMA_VERSION = 1 as const;
 
 export type Priority = 'p0' | 'p1' | 'p2';
 export type ScenarioStatus = 'pass' | 'fail';
-export type EdgeKind = 'tests' | 'uses' | 'covers' | 'modifies' | 'jira-linked' | 'similar' | 'ran' | 'satisfies';
+export type EdgeKind =
+  | 'tests'
+  | 'uses'
+  | 'covers'
+  | 'modifies'
+  | 'jira-linked'
+  | 'similar'
+  | 'ran'
+  | 'satisfies';
 
 export type Classification =
   | 'REAL_BUG'
@@ -149,6 +157,13 @@ export interface PomNode {
 
 export interface AreaNode {
   id: string;
+}
+
+export interface ACNode {
+  id: string; // `${ticketId}#ac-${index}` (0-based)
+  ticketId: string;
+  index: number;
+  text: string;
 }
 
 export interface FailureNode {
