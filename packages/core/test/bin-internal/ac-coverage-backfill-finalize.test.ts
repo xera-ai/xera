@@ -102,6 +102,98 @@ describe('ac-coverage-backfill-finalize end-to-end', () => {
     }
   });
 
+  test('SHA-hash scenarioIds: groups by snapshot ticketId, one event per ticket', async () => {
+    const dir = makeProject();
+    // Real scenarioIds are content-derived hashes with no `#` ticket prefix.
+    // Two scenarios under one ticket must collapse into a single backfilled
+    // event so graph-store's replace-all semantics see all mappings at once.
+    const sid0 = 'b7f94728ad6f3f3fdc43b02233d5df2c3f228366';
+    const sid1 = '8ae6a16c1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f';
+    const events: Event[] = [
+      {
+        event_id: eid('20260512100000'),
+        schema_version: 1,
+        ts: '2026-05-12T10:00:00.000Z',
+        actor: 'test',
+        type: 'ticket.fetched',
+        payload: {
+          ticketId: 'ESS-9',
+          summary: 's',
+          ac: ['AC 0', 'AC 1'],
+          jiraLinks: [],
+          storyHash: 'h',
+          modifiesAreas: [],
+        },
+      },
+      {
+        event_id: eid('20260512110000'),
+        schema_version: 1,
+        ts: '2026-05-12T11:00:00.000Z',
+        actor: 'test',
+        type: 'scenario.generated',
+        payload: {
+          scenarioId: sid0,
+          ticketId: 'ESS-9',
+          name: 'A',
+          gherkin: 'g',
+          priority: 'p1',
+          featureHash: 'h',
+          generatedAt: '2026-05-12T11:00:00.000Z',
+        },
+      },
+      {
+        event_id: eid('20260512120000'),
+        schema_version: 1,
+        ts: '2026-05-12T12:00:00.000Z',
+        actor: 'test',
+        type: 'scenario.generated',
+        payload: {
+          scenarioId: sid1,
+          ticketId: 'ESS-9',
+          name: 'B',
+          gherkin: 'g',
+          priority: 'p1',
+          featureHash: 'h',
+          generatedAt: '2026-05-12T12:00:00.000Z',
+        },
+      },
+    ];
+    appendEvents(dir, events, { skill: 'fetch', ticketId: 'ESS-9' });
+
+    writeFileSync(
+      join(dir, '.xera/coverage/ac-backfill-decisions.json'),
+      JSON.stringify({
+        mappings: [
+          { scenarioId: sid0, satisfiesAcs: [0], confidence: 0.95 },
+          { scenarioId: sid1, satisfiesAcs: [1], confidence: 0.95 },
+        ],
+      }),
+    );
+
+    const prevCwd = process.cwd();
+    process.chdir(dir);
+    try {
+      const code = await acCoverageBackfillFinalizeCmd([
+        '--snapshot-ts',
+        '2026-05-17T10:00:00.000Z',
+      ]);
+      expect(code).toBe(0);
+      const monthDir = join(dir, '.xera/graph/events/2026-05');
+      const files = readdirSync(monthDir).filter((f) => f.includes('-ac-coverage-'));
+      expect(files.length).toBe(1);
+      const event = JSON.parse(readFileSync(join(monthDir, `${files[0]}`), 'utf8').trim());
+      expect(event.type).toBe('ac-coverage.backfilled');
+      expect(event.payload.ticketId).toBe('ESS-9');
+      expect(event.payload.mappings).toHaveLength(2);
+      expect(
+        event.payload.mappings.map((m: { scenarioId: string }) => m.scenarioId).sort(),
+      ).toEqual([sid0, sid1].sort());
+    } finally {
+      process.chdir(prevCwd);
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   test('exit 0 + no events when mappings array is empty', async () => {
     const dir = makeProject();
     writeFileSync(

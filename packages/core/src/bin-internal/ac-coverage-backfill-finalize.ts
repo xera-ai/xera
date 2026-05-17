@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { z } from 'zod';
-import { appendEvents } from '../graph/store';
+import { appendEvents, deriveSnapshot, loadAllEvents } from '../graph/store';
 import type { Event } from '../graph/types';
 import { SCHEMA_VERSION } from '../graph/types';
 import { ulid } from '../graph/ulid';
@@ -62,13 +62,28 @@ export async function acCoverageBackfillFinalizeCmd(argv: string[]): Promise<num
 
   if (parsed.mappings.length === 0) return 0;
 
-  // Group mappings by ticketId (extracted from scenarioId prefix)
+  const snap = deriveSnapshot(loadAllEvents(cwd));
+
+  // Group mappings by ticketId. Resolve via the snapshot's scenario nodes —
+  // scenarioIds are content-derived hashes, not `${ticketId}#...`, so parsing
+  // the prefix would put every scenario in its own bucket (and the resulting
+  // payload.ticketId would be the hash). Fall back to a `#`-split only for
+  // legacy scenarioIds shaped like `${ticketId}#scenario-N`.
   const byTicket: Record<string, z.infer<typeof DecisionsSchema>['mappings']> = {};
   for (const m of parsed.mappings) {
-    const ticketId = m.scenarioId.split('#')[0];
-    if (!ticketId) continue;
-    if (!byTicket[ticketId]) byTicket[ticketId] = [];
-    byTicket[ticketId].push(m);
+    let ticketId = snap.scenarios[m.scenarioId]?.ticketId;
+    if (!ticketId && m.scenarioId.includes('#')) {
+      ticketId = m.scenarioId.split('#')[0];
+    }
+    if (!ticketId) {
+      console.error(
+        `[ac-coverage-backfill-finalize] cannot resolve ticketId for scenario ${m.scenarioId}; skipping`,
+      );
+      continue;
+    }
+    const bucket = byTicket[ticketId] ?? [];
+    bucket.push(m);
+    byTicket[ticketId] = bucket;
   }
 
   const ts = args.snapshotTs ?? new Date().toISOString();
