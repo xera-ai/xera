@@ -1,5 +1,19 @@
 # @xera-ai/cli
 
+## 0.11.0
+
+### Minor Changes
+
+- [#66](https://github.com/xera-ai/xera/pull/66) [`7301987`](https://github.com/xera-ai/xera/commit/73019873afe73b60a4b120d433ac315c4d94162d) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - cli: starter templates now seed v0.8 coverage block + CI viewer renders Coverage tab
+
+  `bunx @xera-ai/cli init` now generates a `coverage` block in the scaffolded `xera.config.ts` (for all three shapes: web, api, mixed) so new users see the `staleAfterDays`, `criticalAreas`, and `autoSnapshotOnCoverage` knobs out of the box. The `xera-graph.yml` CI workflow template also runs `xera:coverage-prepare` and passes `--include-coverage` to `graph-render` so the auto-uploaded PR viewer artifact includes the Coverage tab.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xera-ai/core@0.11.0
+  - @xera-ai/skills@0.11.0
+
 ## 0.10.0
 
 ### Minor Changes
