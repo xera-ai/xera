@@ -1,0 +1,20 @@
+<section data-tab-panel="coverage" hidden>
+  <nav class="subtabs">
+    <button data-subtab="map" class="active">Map</button>
+    <button data-subtab="list">List</button>
+    <button data-subtab="trend">Trend</button>
+  </nav>
+  <div data-subpanel="map" class="active">
+    <p class="subpanel-hint">Area nodes are colored by status. Red = UNCOVERED, amber = STALE, green = COVERED. Other nodes neutral.</p>
+    <main id="coverage-map-canvas"></main>
+  </div>
+  <div data-subpanel="list" hidden>
+    <table id="coverage-list-table"><thead><tr><th>Status</th><th>Area</th><th>Risk</th><th>Recent tickets</th><th>Recent bugs</th></tr></thead><tbody></tbody></table>
+    <h3>AC Gaps</h3>
+    <table id="coverage-ac-table"><thead><tr><th>Ticket</th><th>Coverage</th><th>Gap</th><th>Unsatisfied</th></tr></thead><tbody></tbody></table>
+  </div>
+  <div data-subpanel="trend" hidden>
+    <p class="subpanel-hint">UNCOVERED + STALE area count over time (one point per day, latest snapshot wins).</p>
+    <div id="coverage-trend-svg"></div>
+  </div>
+</section>
