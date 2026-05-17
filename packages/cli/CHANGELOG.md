@@ -1,5 +1,15 @@
 # @xera-ai/cli
 
+## 0.11.6
+
+### Patch Changes
+
+- [#84](https://github.com/xera-ai/xera/pull/84) [`b429632`](https://github.com/xera-ai/xera/commit/b4296322af798e81bd468c4ebb5fb6c9f4be2ed7) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - thread XERA_BASE_URL into xera:auth-setup browser context (auto-generated from [#84](https://github.com/xera-ai/xera/issues/84))
+
+- Updated dependencies [[`b429632`](https://github.com/xera-ai/xera/commit/b4296322af798e81bd468c4ebb5fb6c9f4be2ed7)]:
+  - @xera-ai/core@0.11.6
+  - @xera-ai/skills@0.11.6
+
 ## 0.11.5
 
 ### Patch Changes
