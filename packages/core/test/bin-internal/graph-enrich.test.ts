@@ -81,6 +81,11 @@ describe('graph-enrich', () => {
     writeInput('ABC-100', [{ ticketId: 'ABC-200', confidence: 0.8, reason: 'r' }]);
     await graphEnrichCmd(['--ticket', 'ABC-100']);
     const before = loadAllEvents(root).length;
+    // First enrich deletes enrichment-input.json (the CLI cleans up after
+    // a successful enrich so stale LLM similarity data can't accidentally
+    // re-drive enrich on a later invocation). Write a fresh input so
+    // --force has something to consume.
+    writeInput('ABC-100', [{ ticketId: 'ABC-200', confidence: 0.8, reason: 'r' }]);
     const exit = await graphEnrichCmd(['--ticket', 'ABC-100', '--force']);
     expect(exit).toBe(0);
     expect(loadAllEvents(root).length).toBeGreaterThan(before);
