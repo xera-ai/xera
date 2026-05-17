@@ -1,5 +1,11 @@
 # @xera-ai/skills
 
+## 0.11.2
+
+### Patch Changes
+
+- [#70](https://github.com/xera-ai/xera/pull/70) [`7374f86`](https://github.com/xera-ai/xera/commit/7374f869a0436301fb6517c32f984482b5bde501) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - fix(core,skills): `xera:graph-enrich` now checks the graph snapshot before the input file (so an un-fetched candidate gets the actionable `/xera-fetch <TICKET>` hint), and deletes `enrichment-input.json` after a successful enrich so stray re-invocations can't replay stale LLM output. The `/xera-report` lazy-similarity step now pre-validates the candidate is in the graph and notes that the Write tool auto-creates the candidate directory.
+
 ## 0.11.1
 
 ## 0.11.0
