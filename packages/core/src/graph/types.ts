@@ -4,7 +4,7 @@ export const SCHEMA_VERSION = 1 as const;
 
 export type Priority = 'p0' | 'p1' | 'p2';
 export type ScenarioStatus = 'pass' | 'fail';
-export type EdgeKind = 'tests' | 'uses' | 'covers' | 'modifies' | 'jira-linked' | 'similar' | 'ran';
+export type EdgeKind = 'tests' | 'uses' | 'covers' | 'modifies' | 'jira-linked' | 'similar' | 'ran' | 'satisfies';
 
 export type Classification =
   | 'REAL_BUG'
