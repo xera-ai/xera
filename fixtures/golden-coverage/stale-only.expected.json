@@ -1,0 +1,20 @@
+{
+  "generatedAt": "2026-05-17T10:00:00.000Z",
+  "windowDays": 30,
+  "areas": [
+    {
+      "id": "billing",
+      "status": "STALE",
+      "risk": 0,
+      "breakdown": { "recentTickets": 0, "recentBugs": 0, "criticalBoost": 1 }
+    },
+    {
+      "id": "search",
+      "status": "STALE",
+      "risk": 0,
+      "breakdown": { "recentTickets": 0, "recentBugs": 0, "criticalBoost": 1 }
+    }
+  ],
+  "tickets": [],
+  "acBackfillNeeded": false
+}
