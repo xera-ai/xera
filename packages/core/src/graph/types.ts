@@ -229,4 +229,10 @@ export interface Snapshot {
   areas: Record<string, AreaNode>;
   edges: EdgeRecord[];
   latest_failures: Record<string, FailureNode>;
+  acNodes: Record<string, ACNode>;                                     // NEW v0.8
+  classifications: Array<{
+    scenarioId: string;
+    classification: Classification;
+    ts: string;
+  }>;                                                                   // NEW v0.8
 }

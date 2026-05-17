@@ -127,3 +127,20 @@ describe('Event union extended', () => {
     expect(e.type).toBe('ac-coverage.backfilled');
   });
 });
+
+describe('Snapshot with v0.8 projections', () => {
+  test('has acNodes: Record<string, ACNode> and classifications: array', () => {
+    const snap: Snapshot = {
+      schema_version: 1,
+      generated_at: '2026-05-17T10:00:00.000Z',
+      event_count: 0,
+      events_hash: 'sha256:',
+      tickets: {}, scenarios: {}, poms: {}, areas: {},
+      edges: [], latest_failures: {},
+      acNodes: {},
+      classifications: [],
+    };
+    expect(snap.acNodes).toEqual({});
+    expect(snap.classifications).toEqual([]);
+  });
+});

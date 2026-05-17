@@ -209,6 +209,8 @@ export function deriveSnapshot(events: Event[]): Snapshot {
     areas,
     edges,
     latest_failures: latestFailures,
+    acNodes: {},
+    classifications: [],
   };
 }
 
