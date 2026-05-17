@@ -1,3 +1,4 @@
+import { acCoverageBackfillPrepareCmd } from './ac-coverage-backfill-prepare';
 import { authSetupCmd } from './auth-setup';
 import { coveragePrepareCmd } from './coverage-prepare';
 import { disputesCmd } from './disputes';
@@ -27,6 +28,7 @@ import { validateFeatureCmd } from './validate-feature';
 import { verifyPromptsCmd } from './verify-prompts';
 
 const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
+  'ac-coverage-backfill-prepare': acCoverageBackfillPrepareCmd,
   'auth-setup': authSetupCmd,
   'coverage-prepare': coveragePrepareCmd,
   disputes: disputesCmd,
