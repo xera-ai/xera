@@ -1,5 +1,15 @@
 # @xera-ai/cli
 
+## 0.11.1
+
+### Patch Changes
+
+- [#68](https://github.com/xera-ai/xera/pull/68) [`2665d7b`](https://github.com/xera-ai/xera/commit/2665d7b7bfa070e9e3b205bcb72801f83d670599) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - fix(cli): `xera init --update` now also refreshes `.claude/commands/` (Claude Code slash-command discovery) in addition to `.claude/skills/`, and registers the `xera:coverage-prepare` script so the v0.8.0+ Coverage tab in the PR graph viewer works after upgrade.
+
+- Updated dependencies []:
+  - @xera-ai/core@0.11.1
+  - @xera-ai/skills@0.11.1
+
 ## 0.11.0
 
 ### Minor Changes
