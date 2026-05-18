@@ -13,11 +13,14 @@ afterAll(() => {
 async function runInit(args: string[]): Promise<string> {
   const cwd = mkdtempSync(join(tmpdir(), 'xera-ed-'));
   created.push(cwd);
-  const proc = spawn(['bun', 'run', '--cwd', cwd, xeraBin, 'init', '--yes', '--shape', 'web', ...args], {
-    cwd,
-    stderr: 'pipe',
-    stdout: 'pipe',
-  });
+  const proc = spawn(
+    ['bun', 'run', '--cwd', cwd, xeraBin, 'init', '--yes', '--shape', 'web', ...args],
+    {
+      cwd,
+      stderr: 'pipe',
+      stdout: 'pipe',
+    },
+  );
   const code = await proc.exited;
   if (code !== 0) {
     const err = await new Response(proc.stderr).text();

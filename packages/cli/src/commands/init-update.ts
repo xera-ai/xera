@@ -8,11 +8,11 @@ import {
 } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
+import * as p from '@clack/prompts';
+import pc from 'picocolors';
 import { editors } from '../editors';
 import { parseFrontmatter } from '../editors/frontmatter';
 import { resolveEditors } from '../editors/resolve';
-import * as p from '@clack/prompts';
-import pc from 'picocolors';
 import type { HttpAuthStrategy, ProjectShape } from './init';
 
 const require = createRequire(import.meta.url);
@@ -101,7 +101,7 @@ ${roles
     `  web: {`,
     `    baseUrl: { staging: '${baseUrl}' },`,
     `    defaultEnv: 'staging',`,
-    authBlock + `  },`,
+    `${authBlock}  },`,
   ].join('\n');
 }
 

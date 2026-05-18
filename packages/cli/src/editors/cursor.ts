@@ -6,7 +6,9 @@ import type { Check, EditorAdapter, SkillInput } from './index';
 function ruleFrontmatter(input: SkillInput): Record<string, FrontmatterValue> {
   const desc = input.frontmatter.fields.description;
   if (desc === undefined) {
-    throw new Error(`Cursor scaffold requires 'description' in source frontmatter for ${input.base}`);
+    throw new Error(
+      `Cursor scaffold requires 'description' in source frontmatter for ${input.base}`,
+    );
   }
   return { description: desc, alwaysApply: false };
 }
@@ -14,7 +16,9 @@ function ruleFrontmatter(input: SkillInput): Record<string, FrontmatterValue> {
 function commandFrontmatter(input: SkillInput): Record<string, FrontmatterValue> {
   const desc = input.frontmatter.fields.description;
   if (desc === undefined) {
-    throw new Error(`Cursor scaffold requires 'description' in source frontmatter for ${input.base}`);
+    throw new Error(
+      `Cursor scaffold requires 'description' in source frontmatter for ${input.base}`,
+    );
   }
   return { description: desc };
 }
@@ -53,7 +57,8 @@ export const cursorAdapter: EditorAdapter = {
       name: 'xera skills present (cursor)',
       ok: missing.length === 0,
     };
-    if (missing.length) check.message = `missing: ${missing.join(', ')} — run \`xera init --update --editor cursor\``;
+    if (missing.length)
+      check.message = `missing: ${missing.join(', ')} — run \`xera init --update --editor cursor\``;
     return [check];
   },
 };

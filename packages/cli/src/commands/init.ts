@@ -1,19 +1,13 @@
-import {
-  appendFileSync,
-  existsSync,
-  readdirSync,
-  readFileSync,
-  writeFileSync,
-} from 'node:fs';
+import { appendFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import * as p from '@clack/prompts';
 import { generateKey } from '@xera-ai/core';
 import pc from 'picocolors';
-import { scaffoldFile } from '../scaffold';
-import { editors, type EditorName } from '../editors';
+import { type EditorName, editors } from '../editors';
 import { parseFrontmatter } from '../editors/frontmatter';
 import { resolveEditors } from '../editors/resolve';
+import { scaffoldFile } from '../scaffold';
 
 const require = createRequire(import.meta.url);
 const CLI_VERSION = (require('../package.json') as { version: string }).version;

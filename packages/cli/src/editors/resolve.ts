@@ -1,5 +1,5 @@
 import { detectEditors } from './detect';
-import { type EditorName, ALL_EDITORS } from './index';
+import { ALL_EDITORS, type EditorName } from './index';
 
 export interface ResolveOptions {
   flag: string | undefined;
@@ -11,7 +11,10 @@ export interface ResolveOptions {
 
 function parseFlag(flag: string): EditorName[] {
   if (flag === 'all') return [...ALL_EDITORS];
-  const parts = flag.split(',').map((s) => s.trim()).filter(Boolean);
+  const parts = flag
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
   const bad = parts.filter((p) => !(ALL_EDITORS as readonly string[]).includes(p));
   if (bad.length) {
     throw new Error(

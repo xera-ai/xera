@@ -55,9 +55,7 @@ export function parseFrontmatter(md: string): {
   return { frontmatter: { raw, fields }, body };
 }
 
-export function serializeFrontmatter(
-  fields: Record<string, FrontmatterValue>,
-): string {
+export function serializeFrontmatter(fields: Record<string, FrontmatterValue>): string {
   const lines: string[] = [FENCE];
   for (const [key, value] of Object.entries(fields)) {
     if (typeof value === 'boolean') {

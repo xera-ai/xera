@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { serializeFrontmatter } from './frontmatter';
-import type { Check, EditorAdapter, SkillInput } from './index';
+import type { Check, EditorAdapter } from './index';
 
 export const codexAdapter: EditorAdapter = {
   name: 'codex',
@@ -20,9 +20,7 @@ export const codexAdapter: EditorAdapter = {
 
   doctorChecks(cwd, requiredSkills): Check[] {
     const skillsDir = join(cwd, '.agents/skills');
-    const missing = requiredSkills.filter(
-      (b) => !existsSync(join(skillsDir, b, 'SKILL.md')),
-    );
+    const missing = requiredSkills.filter((b) => !existsSync(join(skillsDir, b, 'SKILL.md')));
     const check: Check = {
       name: 'xera skills present (codex)',
       ok: missing.length === 0,

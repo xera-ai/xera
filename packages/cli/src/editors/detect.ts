@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { type EditorName, ALL_EDITORS } from './index';
+import { ALL_EDITORS, type EditorName } from './index';
 
 const MARKERS: Record<EditorName, string> = {
   claude: '.claude',

@@ -1,7 +1,7 @@
-import type { ParsedFrontmatter } from './frontmatter';
 import { claudeAdapter } from './claude';
 import { codexAdapter } from './codex';
 import { cursorAdapter } from './cursor';
+import type { ParsedFrontmatter } from './frontmatter';
 
 export type EditorName = 'claude' | 'cursor' | 'codex';
 export const ALL_EDITORS: readonly EditorName[] = ['claude', 'cursor', 'codex'] as const;

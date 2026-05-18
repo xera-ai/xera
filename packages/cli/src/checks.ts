@@ -2,8 +2,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { loadConfig, readAuthState } from '@xera-ai/core';
 import { parse as parseYaml } from 'yaml';
-import { detectEditors } from './editors/detect';
 import { editors } from './editors';
+import { detectEditors } from './editors/detect';
 
 export interface Check {
   name: string;
