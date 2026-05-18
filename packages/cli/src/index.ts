@@ -8,7 +8,7 @@ import {
   initCommand,
   type ProjectShape,
 } from './commands/init';
-import { initUpdateCommand } from './commands/init-update';
+import { type InitUpdateOptions, initUpdateCommand } from './commands/init-update';
 
 const require = createRequire(import.meta.url);
 const VERSION = (require('../package.json') as { version: string }).version;
@@ -112,7 +112,34 @@ export default async function main(): Promise<void> {
         httpRoles?: string;
       }) => {
         if (opts.update) {
-          await initUpdateCommand({ yes: !!opts.yes });
+          const updateOpts: InitUpdateOptions = { yes: !!opts.yes };
+          if (opts.shape !== undefined) {
+            if (!(VALID_SHAPES as string[]).includes(opts.shape)) {
+              console.error(
+                pc.red(`\n  error: --shape must be one of: ${VALID_SHAPES.join(', ')}\n`),
+              );
+              process.exit(1);
+            }
+            updateOpts.shape = opts.shape as ProjectShape;
+          }
+          if (opts.authStrategy !== undefined) {
+            if (!(VALID_AUTH_STRATEGIES as string[]).includes(opts.authStrategy)) {
+              console.error(
+                pc.red(
+                  `\n  error: --auth-strategy must be one of: ${VALID_AUTH_STRATEGIES.join(', ')}\n`,
+                ),
+              );
+              process.exit(1);
+            }
+            updateOpts.authStrategy = opts.authStrategy as HttpAuthStrategy;
+          }
+          if (opts.apiBaseUrl !== undefined) updateOpts.apiBaseUrl = opts.apiBaseUrl;
+          if (opts.openapiPath !== undefined) updateOpts.openapiPath = opts.openapiPath;
+          if (opts.httpRoles !== undefined) updateOpts.httpRoles = opts.httpRoles;
+          if (opts.stagingUrl !== undefined) updateOpts.stagingUrl = opts.stagingUrl;
+          if (opts.authEnabled !== undefined) updateOpts.authEnabled = opts.authEnabled;
+          if (opts.roles !== undefined) updateOpts.roles = opts.roles;
+          await initUpdateCommand(updateOpts);
           return;
         }
         const initOpts: InitOptions = { yes: !!opts.yes };

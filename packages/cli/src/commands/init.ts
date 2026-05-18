@@ -306,8 +306,9 @@ export async function initCommand(opts: InitOptions): Promise<void> {
     shape === 'api'
       ? `
 Next:
-  1) Set your auth credentials in .env.local:
-       USER_BEARER_TOKEN=...
+  1) Copy .env.example to .env and set your auth credentials:
+       cp .env.example .env
+       # then edit .env to set USER_BEARER_TOKEN=...
   2) Run pre-authentication:
        bun run xera:auth-setup
   3) Start testing:
@@ -316,7 +317,8 @@ Next:
       : shape === 'mixed'
         ? `
 Next:
-  1) Set credentials in .env.local (both web logins and API tokens)
+  1) Copy .env.example to .env and set credentials (both web logins and API tokens):
+       cp .env.example .env
   2) Run pre-authentication:
        bun run xera:auth-setup
   3) Start testing:
@@ -324,7 +326,8 @@ Next:
 `
         : `
 Next:
-  1) Set your Jira credentials in .env.local
+  1) Copy .env.example to .env and set your Jira credentials:
+       cp .env.example .env
   2) Run pre-authentication:
        bun run xera:auth-setup
   3) Start testing:

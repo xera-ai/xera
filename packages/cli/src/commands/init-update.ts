@@ -10,11 +10,118 @@ import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import * as p from '@clack/prompts';
 import pc from 'picocolors';
+import type { HttpAuthStrategy, ProjectShape } from './init';
 
 const require = createRequire(import.meta.url);
 const CLI_VERSION = (require('../package.json') as { version: string }).version;
 
-export async function initUpdateCommand(_opts: { yes: boolean }): Promise<void> {
+export interface InitUpdateOptions {
+  yes: boolean;
+  shape?: ProjectShape;
+  // Carried through only to render a useful copy-paste snippet when --shape
+  // requests adapters that aren't in the existing xera.config.ts. --update
+  // itself never mutates xera.config.ts or shared/auth-setup.ts; see warning.
+  apiBaseUrl?: string;
+  openapiPath?: string;
+  authStrategy?: HttpAuthStrategy;
+  httpRoles?: string;
+  stagingUrl?: string;
+  authEnabled?: boolean;
+  roles?: string;
+}
+
+function detectAdaptersFromConfig(cwd: string): string[] | null {
+  const configPath = join(cwd, 'xera.config.ts');
+  if (!existsSync(configPath)) return null;
+  const cfg = readFileSync(configPath, 'utf8');
+  const m = cfg.match(/adapters:\s*\[([^\]]+)\]/);
+  if (!m) return null;
+  return (m[1]!.match(/'(\w+)'/g) ?? []).map((s) => s.slice(1, -1));
+}
+
+function adaptersForShape(shape: ProjectShape): string[] {
+  if (shape === 'web') return ['web'];
+  if (shape === 'api') return ['http'];
+  return ['web', 'http'];
+}
+
+function renderHttpConfigSnippet(opts: InitUpdateOptions): string {
+  const baseUrl = opts.apiBaseUrl ?? 'https://api.staging.example.com';
+  const strategy: HttpAuthStrategy = opts.authStrategy ?? 'bearer';
+  const roles = (opts.httpRoles ?? 'user')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const rolesBlock = roles
+    .map((r) => `        ${r}: { tokenEnv: '${r.toUpperCase().replace(/-/g, '_')}_BEARER_TOKEN' },`)
+    .join('\n');
+  const specLine = opts.openapiPath ? `    spec: '${opts.openapiPath}',\n` : '';
+  return [
+    `  http: {`,
+    `    baseUrl: { dev: '${baseUrl}' },`,
+    `    defaultEnv: 'dev',`,
+    `${specLine}    auth: {`,
+    `      strategy: '${strategy}',`,
+    `      roles: {`,
+    rolesBlock,
+    `      },`,
+    `    },`,
+    `  },`,
+  ].join('\n');
+}
+
+function renderWebConfigSnippet(opts: InitUpdateOptions): string {
+  const baseUrl = opts.stagingUrl ?? 'https://staging.example.com';
+  const roles = (opts.roles ?? 'admin,regular')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const authBlock =
+    opts.authEnabled === false
+      ? ''
+      : `    auth: {
+      strategy: 'storageState',
+      setupScript: './shared/auth-setup.ts',
+      roles: {
+${roles
+  .map(
+    (r) =>
+      `        ${r}: { envEmail: 'TEST_${r.toUpperCase().replace(/-/g, '_')}_EMAIL', envPassword: 'TEST_${r.toUpperCase().replace(/-/g, '_')}_PWD' },`,
+  )
+  .join('\n')}
+      },
+    },
+`;
+  return [
+    `  web: {`,
+    `    baseUrl: { dev: '${baseUrl}' },`,
+    `    defaultEnv: 'dev',`,
+    authBlock + `  },`,
+  ].join('\n');
+}
+
+const HTTP_AUTH_SETUP_SNIPPET = `import { defineHttpAuthSetup, presetHttpAuth } from '@xera-ai/http';
+
+export const http = defineHttpAuthSetup(async (request, role, creds) => {
+  return presetHttpAuth({
+    request,
+    role,
+    config: (globalThis as Record<string, unknown>).__XERA_HTTP_CONFIG__ as never,
+  });
+});`;
+
+const WEB_AUTH_SETUP_SNIPPET = `import { defineAuthSetup } from '@xera-ai/web';
+
+export const web = defineAuthSetup(async (page, _role, creds) => {
+  await page.goto('/login');
+  await page.getByLabel('Email').fill(creds.email);
+  await page.getByLabel('Password').fill(creds.password);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.waitForURL(/.*\\/dashboard/);
+  return { expiresAt: Date.now() + 8 * 3600 * 1000 };
+});`;
+
+export async function initUpdateCommand(opts: InitUpdateOptions): Promise<void> {
   const cwd = process.cwd();
   p.intro(pc.cyan('xera init --update'));
 
@@ -110,6 +217,76 @@ export async function initUpdateCommand(_opts: { yes: boolean }): Promise<void> 
     } else {
       p.log.warn(`kept local ${name}`);
     }
+  }
+
+  // --shape and shape-related flags (--au, --as, --hr, --su, --ro, --op,
+  // --auth-enabled) are deliberately NOT applied here — the non-destructive
+  // guarantee means we don't rewrite xera.config.ts or shared/auth-setup.ts
+  // out from under user edits. But we MUST tell the user when their flags
+  // would have changed the shape so they don't think the upgrade succeeded
+  // silently. See issue #91.
+  const hasShapeFlags =
+    opts.apiBaseUrl !== undefined ||
+    opts.openapiPath !== undefined ||
+    opts.authStrategy !== undefined ||
+    opts.httpRoles !== undefined ||
+    opts.stagingUrl !== undefined ||
+    opts.authEnabled !== undefined ||
+    opts.roles !== undefined;
+
+  if (opts.shape !== undefined) {
+    const current = detectAdaptersFromConfig(cwd);
+    if (current === null) {
+      p.log.warn(
+        '--shape was provided but could not detect existing adapters in xera.config.ts. Skipping shape check.',
+      );
+    } else {
+      const requested = adaptersForShape(opts.shape);
+      const missing = requested.filter((a) => !current.includes(a));
+      const extra = current.filter((a) => !requested.includes(a));
+
+      if (missing.length === 0 && extra.length === 0) {
+        p.log.info(
+          `shape '${opts.shape}' already matches existing adapters [${current.join(', ')}]`,
+        );
+      } else {
+        if (missing.length > 0) {
+          const lines: string[] = [
+            `--shape ${opts.shape} requested but xera.config.ts has adapters: [${current.join(', ')}]`,
+            `Missing adapter(s): ${missing.join(', ')}`,
+            ``,
+            `init --update is non-destructive — it will NOT modify xera.config.ts or shared/auth-setup.ts.`,
+            `To complete the upgrade, hand-edit both files:`,
+            ``,
+            `1. In xera.config.ts, change \`adapters: [${current.map((a) => `'${a}'`).join(', ')}]\` to \`adapters: [${requested.map((a) => `'${a}'`).join(', ')}]\` and add this block inside defineConfig({...}):`,
+            ``,
+          ];
+          for (const a of missing) {
+            lines.push(a === 'http' ? renderHttpConfigSnippet(opts) : renderWebConfigSnippet(opts));
+            lines.push('');
+          }
+          lines.push(`2. In shared/auth-setup.ts, add this export:`);
+          lines.push('');
+          for (const a of missing) {
+            lines.push(a === 'http' ? HTTP_AUTH_SETUP_SNIPPET : WEB_AUTH_SETUP_SNIPPET);
+            lines.push('');
+          }
+          lines.push(
+            `3. Add ${missing.includes('http') ? `\`@xera-ai/http\`` : ''}${missing.includes('http') && missing.includes('web') ? ' and ' : ''}${missing.includes('web') ? `\`@xera-ai/web\`` : ''} to dependencies (re-run \`xera init --update\` after editing to bump versions), then run \`xera doctor\` to verify.`,
+          );
+          p.log.warn(lines.join('\n'));
+        }
+        if (extra.length > 0) {
+          p.log.warn(
+            `--shape ${opts.shape} would remove adapter(s) [${extra.join(', ')}] from xera.config.ts, but init --update never removes config. Remove the block(s) by hand if intended.`,
+          );
+        }
+      }
+    }
+  } else if (hasShapeFlags) {
+    p.log.warn(
+      'Shape-related flags (--au/--as/--hr/--su/--ro/--op/--auth-enabled) are ignored by init --update without --shape. To change shape, pass --shape <web|api|mixed> alongside.',
+    );
   }
 
   p.outro(pc.green('Update complete. Run `xera doctor` to verify.'));
