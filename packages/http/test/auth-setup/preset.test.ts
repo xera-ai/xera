@@ -80,20 +80,22 @@ describe('presetHttpAuth', () => {
   });
 
   test('bearer throws helpful error when env var missing', async () => {
-    expect(
-      presetHttpAuth({
-        request: fakeRequest,
-        role: 'admin',
-        config: makeConfig({
-          auth: {
-            strategy: 'bearer',
-            ttl: '8h',
-            refreshBuffer: '30m',
-            roles: { admin: { tokenEnv: 'MISSING_ENV' } },
-          },
-        }),
+    const promise = presetHttpAuth({
+      request: fakeRequest,
+      role: 'admin',
+      config: makeConfig({
+        auth: {
+          strategy: 'bearer',
+          ttl: '8h',
+          refreshBuffer: '30m',
+          roles: { admin: { tokenEnv: 'MISSING_ENV' } },
+        },
       }),
-    ).rejects.toThrow(/MISSING_ENV/);
+    });
+    await expect(promise).rejects.toThrow(/MISSING_ENV/);
+    // Issue #92: error message must point at the canonical `.env` (not `.env.local`)
+    // so users don't get conflicting guidance vs. `xera init` / `xera doctor`.
+    await expect(promise).rejects.toThrow(/Add it to \.env\.$/);
   });
 
   test('throws when role not configured', async () => {
