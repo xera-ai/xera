@@ -11,8 +11,8 @@ export default defineConfig({
     },
   },
   http: {
-    baseUrl: { dev: '{{apiBaseUrl}}' },
-    defaultEnv: 'dev',
+    baseUrl: { staging: '{{apiBaseUrl}}' },
+    defaultEnv: 'staging',
     {{#if openapiPath}}spec: '{{openapiPath}}',{{/if}}
     auth: {
       strategy: '{{authStrategy}}',

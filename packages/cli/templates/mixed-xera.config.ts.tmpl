@@ -11,8 +11,8 @@ export default defineConfig({
     },
   },
   web: {
-    baseUrl: { dev: '{{stagingUrl}}' },
-    defaultEnv: 'dev',
+    baseUrl: { staging: '{{stagingUrl}}' },
+    defaultEnv: 'staging',
     {{#if authEnabled}}auth: {
       strategy: 'storageState',
       setupScript: './shared/auth-setup.ts',
@@ -23,8 +23,8 @@ export default defineConfig({
     },{{/if}}
   },
   http: {
-    baseUrl: { dev: '{{apiBaseUrl}}' },
-    defaultEnv: 'dev',
+    baseUrl: { staging: '{{apiBaseUrl}}' },
+    defaultEnv: 'staging',
     {{#if openapiPath}}spec: '{{openapiPath}}',{{/if}}
     auth: {
       strategy: '{{authStrategy}}',

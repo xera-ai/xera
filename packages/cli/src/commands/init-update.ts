@@ -58,8 +58,8 @@ function renderHttpConfigSnippet(opts: InitUpdateOptions): string {
   const specLine = opts.openapiPath ? `    spec: '${opts.openapiPath}',\n` : '';
   return [
     `  http: {`,
-    `    baseUrl: { dev: '${baseUrl}' },`,
-    `    defaultEnv: 'dev',`,
+    `    baseUrl: { staging: '${baseUrl}' },`,
+    `    defaultEnv: 'staging',`,
     `${specLine}    auth: {`,
     `      strategy: '${strategy}',`,
     `      roles: {`,
@@ -94,8 +94,8 @@ ${roles
 `;
   return [
     `  web: {`,
-    `    baseUrl: { dev: '${baseUrl}' },`,
-    `    defaultEnv: 'dev',`,
+    `    baseUrl: { staging: '${baseUrl}' },`,
+    `    defaultEnv: 'staging',`,
     authBlock + `  },`,
   ].join('\n');
 }
