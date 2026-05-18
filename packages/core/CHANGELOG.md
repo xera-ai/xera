@@ -1,5 +1,31 @@
 # @xera-ai/core
 
+## 0.12.2
+
+### Patch Changes
+
+- [#104](https://github.com/xera-ai/xera/pull/104) [`b0cf739`](https://github.com/xera-ai/xera/commit/b0cf739adc84559657f1381dabbc88b442a53b12) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - core: actually force `.env` to win over `.env.local` (followup to [#103](https://github.com/xera-ai/xera/issues/103))
+
+  PR [#103](https://github.com/xera-ai/xera/issues/103) added a warning when `.env.local` exists but didn't actually
+  override Bun's auto-load behavior. Bun pre-loads `.env.local` _before_
+  the `xera-internal` script runs, and dotenv's default `override: false`
+  meant the `config()` call couldn't replace those values — so the warning
+  was technically misleading and the silent-override bug from issue [#92](https://github.com/xera-ai/xera/issues/92)
+  was still present.
+
+  The bin entry point now also reads `.env.local` and `.env` directly:
+  for any key present in both files, it forces the `.env` value into
+  `process.env`, overwriting whatever Bun pre-loaded. Only keys that
+  actually appear in `.env.local` are touched, so shell-injected and
+  CI-injected env vars remain untouched.
+
+  A subprocess-based regression test exercises the real Bun pre-load +
+  loader interaction so future drift surfaces immediately.
+
+- Updated dependencies []:
+  - @xera-ai/web@0.12.2
+  - @xera-ai/http@0.12.2
+
 ## 0.12.1
 
 ### Patch Changes
