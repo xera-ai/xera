@@ -85,6 +85,25 @@ export async function authSetupCmd(argv: string[]): Promise<number> {
     exitCode = 1;
   }
 
+  // Unknown-role detection (#98): without this, a typoed --role silently
+  // matches no iteration of the per-adapter loops and we exit 0 — leaving
+  // the user wondering why `xera doctor` still reports the auth file missing.
+  if (opts.role !== undefined) {
+    const webRoles = shapeRequestsWeb && config.web ? Object.keys(config.web.auth.roles) : [];
+    const httpRoles = shapeRequestsHttp && config.http ? Object.keys(config.http.auth.roles) : [];
+    const allRoles = Array.from(new Set([...webRoles, ...httpRoles]));
+    if (allRoles.length > 0 && !allRoles.includes(opts.role)) {
+      const detail: string[] = [];
+      if (webRoles.length > 0) detail.push(`web roles: ${webRoles.join(', ')}`);
+      if (httpRoles.length > 0) detail.push(`http roles: ${httpRoles.join(', ')}`);
+      console.error(
+        `[xera:auth-setup] unknown role '${opts.role}' — configured roles: ${allRoles.join(', ')}\n` +
+          `                  (${detail.join('; ')})`,
+      );
+      return 1;
+    }
+  }
+
   // Web roles
   if (
     (opts.shape === 'all' || opts.shape === 'web') &&

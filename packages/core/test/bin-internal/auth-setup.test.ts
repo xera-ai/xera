@@ -140,3 +140,51 @@ describe('authSetupCmd shape mismatch detection (#93)', () => {
     expect(stderr).toContain('missing the `web` export');
   });
 });
+
+describe('authSetupCmd unknown role detection (#98)', () => {
+  const repoRoot = REPO_ROOT;
+
+  test('typoed --role on mixed config → exit 1 listing configured roles', async () => {
+    writeConfig(mixedConfig(repoRoot));
+    writeAuthSetup('// no exports'); // hermetic — pre-flight returns before web/http branches
+
+    const cap = captureStderr();
+    const exit = await authSetupCmd(['--role', 'amdin']); // typo of 'admin'
+    const stderr = cap.restore();
+
+    expect(exit).toBe(1);
+    expect(stderr).toContain("unknown role 'amdin'");
+    expect(stderr).toContain('configured roles: admin');
+    expect(stderr).toContain('web roles: admin');
+    expect(stderr).toContain('http roles: admin');
+  });
+
+  test('typoed --role with --shape http only lists http roles', async () => {
+    writeConfig(mixedConfig(repoRoot));
+    writeAuthSetup('// no exports');
+
+    const cap = captureStderr();
+    const exit = await authSetupCmd(['--shape', 'http', '--role', 'nope']);
+    const stderr = cap.restore();
+
+    expect(exit).toBe(1);
+    expect(stderr).toContain("unknown role 'nope'");
+    expect(stderr).toContain('http roles: admin');
+    // web roles not surfaced when --shape http excludes that adapter
+    expect(stderr).not.toContain('web roles:');
+  });
+
+  test('correct --role passes through unknown-role check', async () => {
+    writeConfig(mixedConfig(repoRoot));
+    writeAuthSetup('// no exports');
+
+    const cap = captureStderr();
+    const exit = await authSetupCmd(['--role', 'admin']);
+    const stderr = cap.restore();
+
+    // Still exits 1 because of missing exports (#93 pre-flight), but the
+    // unknown-role error must NOT be emitted for a valid role.
+    expect(exit).toBe(1);
+    expect(stderr).not.toContain('unknown role');
+  });
+});
