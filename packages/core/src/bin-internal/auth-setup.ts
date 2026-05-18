@@ -44,6 +44,47 @@ export async function authSetupCmd(argv: string[]): Promise<number> {
 
   let exitCode = 0;
 
+  // Pre-flight: detect requested-but-impossible shapes before we silently no-op.
+  // This is the issue #93 fix: previously `--shape http` against a project where
+  // shared/auth-setup.ts only exports `web` would print nothing and exit 0,
+  // leaving the user in an infinite "doctor says run auth-setup" loop.
+  const shapeRequestsWeb = opts.shape === 'all' || opts.shape === 'web';
+  const shapeRequestsHttp = opts.shape === 'all' || opts.shape === 'http';
+  const explicit = opts.shape !== 'all';
+
+  if (shapeRequestsWeb && config.web && typeof mod.web !== 'function') {
+    console.error(
+      `[xera:auth-setup] web adapter is configured in xera.config.ts but shared/auth-setup.ts is missing the \`web\` export.\n` +
+        `                  Add: \`export const web = defineAuthSetup(async (page, role, creds) => { ... })\` — see docs/CONFIGURATION.md`,
+    );
+    exitCode = 1;
+  }
+  if (shapeRequestsHttp && config.http && typeof mod.http !== 'function') {
+    console.error(
+      `[xera:auth-setup] http adapter is configured in xera.config.ts but shared/auth-setup.ts is missing the \`http\` export.\n` +
+        `                  Add: \`export const http = defineHttpAuthSetup(async (request, role, creds) => { ... })\` — see docs/CONFIGURATION.md`,
+    );
+    exitCode = 1;
+  }
+  if (explicit && opts.shape === 'web' && !config.web) {
+    console.error(
+      `[xera:auth-setup] --shape web requested, but xera.config.ts has no \`web\` block. Add a web: {...} block or use --shape http/all.`,
+    );
+    exitCode = 1;
+  }
+  if (explicit && opts.shape === 'http' && !config.http) {
+    console.error(
+      `[xera:auth-setup] --shape http requested, but xera.config.ts has no \`http\` block. Add an http: {...} block or use --shape web/all.`,
+    );
+    exitCode = 1;
+  }
+  if (!config.web && !config.http) {
+    console.error(
+      `[xera:auth-setup] no \`web\` or \`http\` block found in xera.config.ts — nothing to authenticate.`,
+    );
+    exitCode = 1;
+  }
+
   // Web roles
   if (
     (opts.shape === 'all' || opts.shape === 'web') &&
