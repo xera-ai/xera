@@ -108,3 +108,32 @@ describe('xera init --shape mixed', () => {
     expect(authSetup).toContain('export const http');
   }, 30_000);
 });
+
+describe('defaultEnv consistency across shapes (#97)', () => {
+  test('all three shapes scaffold the same canonical defaultEnv', async () => {
+    // Issue #97: web used `staging` while mixed/api used `dev`. Now all three
+    // pick `staging` so users hopping between shapes have stable muscle memory.
+    const [web, api, mixed] = await Promise.all([runInit('web'), runInit('api'), runInit('mixed')]);
+
+    const readEnv = (cwd: string) =>
+      readFileSync(join(cwd, 'xera.config.ts'), 'utf8')
+        .match(/defaultEnv:\s*'([^']+)'/g)
+        ?.map((m) => m.replace(/^defaultEnv:\s*'([^']+)'$/, '$1')) ?? [];
+
+    const webEnvs = readEnv(web);
+    const apiEnvs = readEnv(api);
+    const mixedEnvs = readEnv(mixed);
+
+    expect(webEnvs).toEqual(['staging']);
+    expect(apiEnvs).toEqual(['staging']);
+    expect(mixedEnvs).toEqual(['staging', 'staging']);
+
+    // Likewise the baseUrl key used to scaffold the single environment.
+    // Web uses a multi-line `baseUrl: {\n  staging: ...`; mixed/api inline it.
+    for (const cwd of [web, api, mixed]) {
+      const cfg = readFileSync(join(cwd, 'xera.config.ts'), 'utf8');
+      expect(cfg).toMatch(/baseUrl:\s*\{\s*staging:/);
+      expect(cfg).not.toMatch(/baseUrl:\s*\{\s*dev:/);
+    }
+  }, 60_000);
+});
