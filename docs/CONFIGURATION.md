@@ -247,19 +247,7 @@ export default defineConfig({
 
 The TEST_OUTDATED classifier overrides the existing 4-bucket classification when the graph indicates a recent ticket has modified the scenario's SUT area and an LLM judges the failure is intentional.
 
-```typescript
-// xera.config.ts
-export default defineConfig({
-  testOutdated: {
-    threshold: 0.7,  // confidence required to override; 0.0 disables, 1.0 requires perfect signal
-  },
-  report: {
-    testOutdatedNotify: 'jira-subtask',  // 'jira-subtask' | 'comment' | 'console-only'
-  },
-});
-```
-
-When `testOutdated.threshold = 0`, the bucket is effectively disabled.
+This classifier is currently not user-configurable — confidence threshold and notification routing use built-in defaults. Tuning hooks (`testOutdated.threshold`, `report.testOutdatedNotify`) are tracked for a future release; the schema rejects them today so misconfiguration surfaces immediately rather than silently.
 
 ### Auto-impact analysis from /xera-run (v0.6.2+)
 

@@ -150,7 +150,7 @@ If `xera-report` flagged a scenario as TEST_OUTDATED but you believe it's a real
      --actor "$(git config user.email)" \
      --reason "..."
    ```
-2. Lower the threshold in `xera.config.testOutdated.threshold` (default 0.7) if you're getting too many false positives.
+2. The TEST_OUTDATED confidence threshold (currently 0.7) is not yet user-configurable; if false positives are common, capture disputes (step 1) and file an issue with a sample run so we can tune the default.
 3. v0.7+ will use dispute events to refine classifier behavior automatically.
 
 ### Impact list too large

@@ -120,7 +120,7 @@ const CoverageSchema = z
   .prefault({});
 
 export const XeraConfigSchema = z
-  .object({
+  .strictObject({
     jira: JiraSchema,
     web: WebSchema.optional(),
     http: HttpSchema.optional(),

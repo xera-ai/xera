@@ -193,10 +193,7 @@ In the current QA's session, only show a summary line:
 3 impact tickets notified (ABC-100, ABC-145, ABC-178). No action required from you.
 ```
 
-**Config:** Respects `xera.config.report.testOutdatedNotify`:
-- `'jira-subtask'` (default) — post sub-task as above
-- `'comment'` — post comment instead
-- `'console-only'` — only print to terminal, no Jira write
+**Routing:** Currently always posts a `jira-subtask`. Alternative routings (`comment`, `console-only`) are tracked for a future release.
 
 ## Step 11 — Dispute capture (v0.6.1, optional)
 
