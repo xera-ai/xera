@@ -19,6 +19,8 @@ const CLI_VERSION = (require('../package.json') as { version: string }).version;
 export interface InitUpdateOptions {
   yes: boolean;
   shape?: ProjectShape;
+  /** Comma-separated editor names or "all"; defaults follow resolveEditors() */
+  editor?: string;
   // Carried through only to render a useful copy-paste snippet when --shape
   // requests adapters that aren't in the existing xera.config.ts. --update
   // itself never mutates xera.config.ts or shared/auth-setup.ts; see warning.
