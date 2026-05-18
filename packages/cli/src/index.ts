@@ -68,7 +68,10 @@ export default async function main(): Promise<void> {
     .option('--update', 'Non-destructive refresh of an existing project')
     .option('-y, --yes', 'Accept all defaults (non-interactive)')
     .option('--shape <shape>', 'Project shape: web | api | mixed')
-    .option('--editor <list>', 'Editor(s) to scaffold: claude,cursor,codex or "all" (default: auto-detect or all)')
+    .option(
+      '--editor <list>',
+      'Editor(s) to scaffold: claude,cursor,codex or "all" (default: auto-detect or all)',
+    )
     // Jira flags
     .option('--ju, --jira-base-url <url>', 'Jira workspace URL')
     .option('--pk, --project-keys <keys>', 'Jira project key(s), comma-separated')
