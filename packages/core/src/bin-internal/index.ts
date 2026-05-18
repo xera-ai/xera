@@ -23,6 +23,7 @@ import { healPrepareCmd } from './heal-prepare';
 import { impactPrepareCmd } from './impact-prepare';
 import { lintCmd } from './lint';
 import { normalizeCmd } from './normalize';
+import { openapiResolveCmd } from './openapi-resolve';
 import { postCmd } from './post';
 import { promoteCmd } from './promote';
 import { reportCmd } from './report';
@@ -58,6 +59,7 @@ const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
   'impact-prepare': impactPrepareCmd,
   lint: lintCmd,
   normalize: normalizeCmd,
+  'openapi-resolve': openapiResolveCmd,
   post: postCmd,
   promote: promoteCmd,
   report: reportCmd,
