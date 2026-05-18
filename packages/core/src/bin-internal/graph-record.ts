@@ -50,6 +50,11 @@ interface StoryFrontmatter {
   summary: string;
   storyHash: string;
   acceptanceCriteria?: string[];
+  // Where AC came from. Set by `xera-internal fetch` ('jira-field' | 'none') and
+  // upgraded by /xera-fetch step 4 to 'body-extraction' when the skill extracts
+  // AC out of the description body. Optional for backward compat with
+  // pre-existing story.md files.
+  acceptanceCriteriaSource?: 'jira-field' | 'body-extraction' | 'none';
   linked_issues?: Array<{
     ticketId: string;
     relation: 'blocks' | 'duplicates' | 'relates' | 'supersedes';

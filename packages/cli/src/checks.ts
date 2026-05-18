@@ -82,9 +82,12 @@ function pushTicketChecks(
     });
     return;
   }
-  let fm: { acceptanceCriteria?: unknown };
+  let fm: { acceptanceCriteria?: unknown; acceptanceCriteriaSource?: unknown };
   try {
-    fm = parseYaml(m[1]!) as { acceptanceCriteria?: unknown };
+    fm = parseYaml(m[1]!) as {
+      acceptanceCriteria?: unknown;
+      acceptanceCriteriaSource?: unknown;
+    };
   } catch (e) {
     checks.push({
       name: `${ticket}: story.md acceptanceCriteria`,
@@ -94,22 +97,45 @@ function pushTicketChecks(
     return;
   }
   const ac = Array.isArray(fm.acceptanceCriteria) ? fm.acceptanceCriteria : [];
-  if (ac.length === 0) {
-    const hint = acFieldConfigured
-      ? `jira.fields.acceptanceCriteria is configured but Jira returned no AC for this ticket — check the ticket in Jira`
-      : `no AC in frontmatter; AC-level coverage will be empty. Set jira.fields.acceptanceCriteria in xera.config.ts if your project stores AC in a dedicated Jira field`;
-    checks.push({
-      name: `${ticket}: story.md acceptanceCriteria`,
-      ok: false,
-      message: hint,
-    });
-  } else {
+  const source =
+    fm.acceptanceCriteriaSource === 'jira-field' ||
+    fm.acceptanceCriteriaSource === 'body-extraction' ||
+    fm.acceptanceCriteriaSource === 'none'
+      ? fm.acceptanceCriteriaSource
+      : undefined;
+  if (ac.length > 0) {
+    const suffix = source ? ` from ${source}` : '';
     checks.push({
       name: `${ticket}: story.md acceptanceCriteria`,
       ok: true,
-      message: `${ac.length} AC item(s)`,
+      message: `${ac.length} AC item(s)${suffix}`,
     });
+    return;
   }
+  // ac.length === 0 — pick the most informative hint based on provenance.
+  let hint: string;
+  if (source === 'none') {
+    // /xera-fetch step 4 (cognitive AC body-extraction) found nothing either.
+    // Real root cause: the Jira ticket itself has no AC anywhere.
+    hint = acFieldConfigured
+      ? `jira.fields.acceptanceCriteria is configured but Jira returned no AC for this ticket, and /xera-fetch step 4 found no AC section in the body — add AC to the Jira ticket`
+      : `AC not in Jira (no custom field configured) and /xera-fetch step 4 found no AC section in the description body — add AC/DoD to the Jira ticket, or edit story.md frontmatter manually`;
+  } else if (source === 'body-extraction') {
+    // Skill ran extraction but somehow wrote empty array. Should not happen
+    // (step 4 only writes when ≥ 1 item) but cover defensively.
+    hint = `acceptanceCriteriaSource: body-extraction but acceptanceCriteria is empty — re-run /xera-fetch ${ticket}`;
+  } else {
+    // Legacy story.md without acceptanceCriteriaSource field (pre-#114). Keep
+    // the older actionable hints.
+    hint = acFieldConfigured
+      ? `jira.fields.acceptanceCriteria is configured but Jira returned no AC for this ticket — check the ticket in Jira`
+      : `no AC in frontmatter; AC-level coverage will be empty. Re-run /xera-fetch ${ticket} so step 4 can extract AC from the body (set jira.fields.acceptanceCriteria in xera.config.ts if your project uses a dedicated Jira field)`;
+  }
+  checks.push({
+    name: `${ticket}: story.md acceptanceCriteria`,
+    ok: false,
+    message: hint,
+  });
 }
 
 export async function runChecks(cwd: string, opts: RunChecksOptions = {}): Promise<Check[]> {

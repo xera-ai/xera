@@ -16,11 +16,13 @@ If non-zero exit → STOP. Show the output verbatim. Suggest the user fix env an
 
 Follow the same instructions as `xera-fetch.md`, but never prompt the user about re-fetching here.
 
-**Sub-steps 1–4 of xera-fetch (Jira call → write `story.md` + `meta.json`)**: skip if `story.md` exists AND `meta.json` shows a `story_hash` < 24 hours old. Otherwise refresh.
+**Sub-steps 1–3 of xera-fetch (Jira call → write `story.md` + `meta.json`)**: skip if `story.md` exists AND `meta.json` shows a `story_hash` < 24 hours old. Otherwise refresh.
 
-**Sub-step 5 of xera-fetch (extract-areas → `graph-input.json`)**: gate this on **file existence**, not story freshness. If `.xera/{{TICKET}}/graph-input.json` is missing or fails `JSON.parse`, run the `extract-areas.md` prompt and (over)write the file — even when sub-steps 1–4 were skipped. This is cheap, idempotent, and required by Step 1.5 and by downstream coverage/impact features. Without it, `xera:graph-record fetch` silently records `modifiesAreas=[]` (see [#109](https://github.com/xera-ai/xera/issues/109)).
+**Sub-step 4 of xera-fetch (cognitive AC body-extraction)**: re-run whenever `story.md` frontmatter shows `acceptanceCriteriaSource: none` AND `acceptanceCriteria:` block is empty — even when sub-steps 1–3 were skipped. The extraction is cheap and idempotent (writes back to the same frontmatter). Skipping it permanently is what causes projects with AC-in-body workflow to have empty AC across the graph.
 
-**Sub-step 6 of xera-fetch (`xera:graph-record fetch`)**: always run — it's non-fatal and idempotent. Skipping it is what causes the graph to fall out of sync with `.xera/<TICKET>/`.
+**Sub-step 6 of xera-fetch (extract-areas → `graph-input.json`)**: gate this on **file existence**, not story freshness. If `.xera/{{TICKET}}/graph-input.json` is missing or fails `JSON.parse`, run the `extract-areas.md` prompt and (over)write the file — even when sub-steps 1–3 were skipped. This is cheap, idempotent, and required by Step 1.5 and by downstream coverage/impact features. Without it, `xera:graph-record fetch` silently records `modifiesAreas=[]` (see [#109](https://github.com/xera-ai/xera/issues/109)).
+
+**Sub-step 7 of xera-fetch (`xera:graph-record fetch`)**: always run — it's non-fatal and idempotent. Skipping it is what causes the graph to fall out of sync with `.xera/<TICKET>/`.
 
 ## Step 1.5 — Auto-trigger impact analysis (v0.6.2)
 
