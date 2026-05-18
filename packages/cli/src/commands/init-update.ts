@@ -4,6 +4,7 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  unlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -167,27 +168,51 @@ export async function initUpdateCommand(opts: InitUpdateOptions): Promise<void> 
     p.log.warn('skipped xera-graph.yml scaffold (re-run `xera init` to create it)');
   }
 
-  // Refresh skills with 3-way diff. init.ts copies skills into BOTH
-  // .claude/skills/ (Skill tool) AND .claude/commands/ (Claude Code
-  // slash-command discovery), so the update has to refresh both targets.
-  // A single prompt per file applies to both, so the user isn't asked twice.
+  // Refresh skills with 3-way diff. init.ts now writes skills as
+  //   .claude/skills/<name>/SKILL.md      — Claude Code's Skill tool requires
+  //                                         the directory + SKILL.md layout
+  //   .claude/commands/<name>.md          — slash command (flat .md)
+  // The update has to refresh both targets, and also migrate legacy projects
+  // that have the old flat .claude/skills/<name>.md layout (pre-PR #105) —
+  // those won't be discovered by the Skill tool until they're moved.
   const skillsSrc = require.resolve('@xera-ai/skills/package.json');
   const newSkillsDir = join(skillsSrc, '..');
-  const targetDirs = [join(cwd, '.claude/skills'), join(cwd, '.claude/commands')];
+  const SKILL_IGNORE = new Set(['package.json', 'version.json', 'CHANGELOG.md']);
 
   for (const name of readdirSync(newSkillsDir)) {
+    if (SKILL_IGNORE.has(name)) continue;
     if (!name.endsWith('.md')) continue;
     const newContent = readFileSync(join(newSkillsDir, name), 'utf8');
+    const base = name.replace(/\.md$/, '');
+    const skillPath = join(cwd, '.claude/skills', base, 'SKILL.md');
+    const legacyFlatSkillPath = join(cwd, '.claude/skills', name);
+    const cmdPath = join(cwd, '.claude/commands', name);
 
-    const localStates = targetDirs.map((dir) => {
-      const path = join(dir, name);
-      if (!existsSync(path)) return { path, state: 'missing' as const };
-      const content = readFileSync(path, 'utf8');
-      return { path, state: content === newContent ? ('same' as const) : ('diff' as const) };
-    });
+    // Migrate legacy flat layout: if the old flat file exists and the new
+    // directory/SKILL.md doesn't, treat the legacy file's content as the
+    // current "local" state (so the user gets a single overwrite prompt
+    // instead of losing edits), then delete the legacy file.
+    let migratedLegacy = false;
+    if (existsSync(legacyFlatSkillPath) && !existsSync(skillPath)) {
+      const legacyContent = readFileSync(legacyFlatSkillPath, 'utf8');
+      mkdirSync(dirname(skillPath), { recursive: true });
+      writeFileSync(skillPath, legacyContent);
+      unlinkSync(legacyFlatSkillPath);
+      migratedLegacy = true;
+    }
 
-    if (localStates.every((s) => s.state === 'missing')) {
-      for (const { path } of localStates) {
+    const targets: { path: string; state: 'missing' | 'same' | 'diff' }[] = [];
+    for (const path of [skillPath, cmdPath]) {
+      if (!existsSync(path)) {
+        targets.push({ path, state: 'missing' });
+      } else {
+        const content = readFileSync(path, 'utf8');
+        targets.push({ path, state: content === newContent ? 'same' : 'diff' });
+      }
+    }
+
+    if (targets.every((s) => s.state === 'missing')) {
+      for (const { path } of targets) {
         mkdirSync(dirname(path), { recursive: true });
         writeFileSync(path, newContent);
       }
@@ -195,8 +220,9 @@ export async function initUpdateCommand(opts: InitUpdateOptions): Promise<void> 
       continue;
     }
 
-    if (localStates.every((s) => s.state === 'same')) {
-      p.log.info(`= ${name}`);
+    if (targets.every((s) => s.state === 'same')) {
+      if (migratedLegacy) p.log.success(`migrated ${name} to .claude/skills/${base}/SKILL.md`);
+      else p.log.info(`= ${name}`);
       continue;
     }
 
@@ -209,12 +235,13 @@ export async function initUpdateCommand(opts: InitUpdateOptions): Promise<void> 
       ],
     });
     if (choice === 'overwrite') {
-      for (const { path } of localStates) {
+      for (const { path } of targets) {
         mkdirSync(dirname(path), { recursive: true });
         writeFileSync(path, newContent);
       }
       p.log.success(`overwrote ${name}`);
     } else {
+      if (migratedLegacy) p.log.success(`migrated ${name} to .claude/skills/${base}/SKILL.md`);
       p.log.warn(`kept local ${name}`);
     }
   }

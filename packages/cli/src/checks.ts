@@ -229,26 +229,42 @@ export async function runChecks(cwd: string): Promise<Check[]> {
     });
   }
 
-  // Skills
+  // Skills — Claude Code's Skill tool requires .claude/skills/<name>/SKILL.md
+  // (directory + SKILL.md inside), not the flat .claude/skills/<name>.md that
+  // earlier versions of `xera init` scaffolded. Flag legacy projects so users
+  // know to run `xera init --update` to migrate.
   const skillsDir = join(cwd, '.claude/skills');
   if (!existsSync(skillsDir)) {
     checks.push({ name: 'xera skills present', ok: false, message: 'run `xera init`' });
   } else {
     const required = [
-      'xera-run.md',
-      'xera-fetch.md',
-      'xera-feature.md',
-      'xera-script.md',
-      'xera-exec.md',
-      'xera-report.md',
-      'xera-promote.md',
+      'xera-run',
+      'xera-fetch',
+      'xera-feature',
+      'xera-script',
+      'xera-exec',
+      'xera-report',
+      'xera-promote',
     ];
-    const missing = required.filter((n) => !existsSync(join(skillsDir, n)));
+    const missing: string[] = [];
+    const legacyFlat: string[] = [];
+    for (const base of required) {
+      if (existsSync(join(skillsDir, base, 'SKILL.md'))) continue;
+      if (existsSync(join(skillsDir, `${base}.md`))) {
+        legacyFlat.push(base);
+      } else {
+        missing.push(base);
+      }
+    }
     const skillsCheck: Check = {
       name: 'xera skills present',
-      ok: missing.length === 0,
+      ok: missing.length === 0 && legacyFlat.length === 0,
     };
-    if (missing.length) skillsCheck.message = `missing: ${missing.join(', ')}`;
+    if (missing.length) {
+      skillsCheck.message = `missing: ${missing.map((b) => `${b}/SKILL.md`).join(', ')}`;
+    } else if (legacyFlat.length) {
+      skillsCheck.message = `legacy flat layout in .claude/skills/ — run \`xera init --update\` to migrate to <name>/SKILL.md (Claude Code Skill tool requires the directory layout)`;
+    }
     checks.push(skillsCheck);
   }
 

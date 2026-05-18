@@ -109,6 +109,36 @@ describe('xera init --shape mixed', () => {
   }, 30_000);
 });
 
+describe('Claude Code skill discovery layout', () => {
+  test('skills land at .claude/skills/<name>/SKILL.md (NOT flat .md)', async () => {
+    // Issue: Claude Code's Skill tool only discovers skills at
+    // .claude/skills/<name>/SKILL.md (directory + SKILL.md). Earlier
+    // versions scaffolded flat .claude/skills/<name>.md, which the slash
+    // command discovery picks up but the Skill tool ignores — leaving
+    // consumer projects unable to invoke /xera-fetch etc. as skills.
+    const cwd = await runInit('web');
+
+    for (const base of ['xera-run', 'xera-fetch', 'xera-feature', 'xera-script', 'xera-exec']) {
+      expect(existsSync(join(cwd, '.claude/skills', base, 'SKILL.md'))).toBe(true);
+      // The legacy flat layout must not be created alongside.
+      expect(existsSync(join(cwd, '.claude/skills', `${base}.md`))).toBe(false);
+      // Slash command discovery still wants the flat .md.
+      expect(existsSync(join(cwd, '.claude/commands', `${base}.md`))).toBe(true);
+    }
+
+    // Package metadata files must not leak into either target.
+    for (const meta of ['package.json', 'version.json', 'CHANGELOG.md']) {
+      expect(existsSync(join(cwd, '.claude/skills', meta))).toBe(false);
+      expect(existsSync(join(cwd, '.claude/commands', meta))).toBe(false);
+    }
+
+    // The skill content (frontmatter `name:` line) must be preserved verbatim
+    // so Claude Code reads it back correctly.
+    const skill = readFileSync(join(cwd, '.claude/skills/xera-run/SKILL.md'), 'utf8');
+    expect(skill).toMatch(/^---\s*\nname: xera-run/);
+  }, 30_000);
+});
+
 describe('defaultEnv consistency across shapes (#97)', () => {
   test('all three shapes scaffold the same canonical defaultEnv', async () => {
     // Issue #97: web used `staging` while mixed/api used `dev`. Now all three
