@@ -285,6 +285,9 @@ export async function initCommand(opts: InitOptions): Promise<void> {
   pkg.scripts['xera:impact-prepare'] = 'xera-internal impact-prepare';
   pkg.scripts['xera:heal-prepare'] = 'xera-internal heal-prepare';
   pkg.scripts['xera:disputes'] = 'xera-internal disputes';
+  // Adversarial explore (v0.9+)
+  pkg.scripts['xera:explore-prepare'] = 'xera-internal explore-prepare';
+  pkg.scripts['xera:explore-finalize'] = 'xera-internal explore-finalize';
 
   pkg.dependencies = pkg.dependencies ?? {};
   pkg.dependencies['@xera-ai/core'] = `^${CLI_VERSION}`;

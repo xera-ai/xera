@@ -8,6 +8,8 @@ import { evalDeterministicCmd } from './eval-deterministic';
 import { evalPrepareCmd } from './eval-prepare';
 import { evalReportCmd } from './eval-report';
 import { execCmd } from './exec';
+import { exploreFinalizeCmd } from './explore-finalize';
+import { explorePrepareCmd } from './explore-prepare';
 import { fetchCmd } from './fetch';
 import { fillGapFinalizeCmd } from './fill-gap-finalize';
 import { fillGapPrepareCmd } from './fill-gap-prepare';
@@ -41,6 +43,8 @@ const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
   'eval-prepare': evalPrepareCmd,
   'eval-report': evalReportCmd,
   exec: execCmd,
+  'explore-finalize': exploreFinalizeCmd,
+  'explore-prepare': explorePrepareCmd,
   'fill-gap-finalize': fillGapFinalizeCmd,
   'fill-gap-prepare': fillGapPrepareCmd,
   fetch: fetchCmd,
