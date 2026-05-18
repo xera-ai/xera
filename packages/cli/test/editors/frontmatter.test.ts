@@ -54,4 +54,14 @@ describe('serializeFrontmatter', () => {
     const out = serializeFrontmatter(frontmatter.fields);
     expect(out).toBe(md);
   });
+
+  test('quotes string containing colon (per spec §2.3)', () => {
+    const out = serializeFrontmatter({ description: 'a: b' });
+    expect(out).toBe('---\ndescription: "a: b"\n---\n');
+  });
+
+  test('quotes string containing hash (per spec §2.3)', () => {
+    const out = serializeFrontmatter({ description: 'tag#1' });
+    expect(out).toBe('---\ndescription: "tag#1"\n---\n');
+  });
 });

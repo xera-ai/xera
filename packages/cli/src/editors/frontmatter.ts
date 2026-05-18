@@ -67,6 +67,10 @@ export function serializeFrontmatter(
     } else if (value.includes('\n')) {
       lines.push(`${key}: |`);
       for (const sub of value.split('\n')) lines.push(`  ${sub}`);
+    } else if (/[:#]/.test(value)) {
+      // Spec §2.3: quote string values containing : or # to keep the output
+      // valid YAML when a description happens to include those characters.
+      lines.push(`${key}: "${value.replace(/"/g, '\\"')}"`);
     } else {
       lines.push(`${key}: ${value}`);
     }
