@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { loadConfig, readAuthState } from '@xera-ai/core';
+import { parse as parseYaml } from 'yaml';
 
 export interface Check {
   name: string;
@@ -8,7 +9,110 @@ export interface Check {
   message?: string;
 }
 
-export async function runChecks(cwd: string): Promise<Check[]> {
+export interface RunChecksOptions {
+  ticket?: string;
+}
+
+function pushTicketChecks(
+  checks: Check[],
+  cwd: string,
+  ticket: string,
+  acFieldConfigured: boolean,
+): void {
+  const ticketDir = join(cwd, '.xera', ticket);
+  if (!existsSync(ticketDir)) {
+    checks.push({
+      name: `${ticket}: .xera/${ticket}/ exists`,
+      ok: false,
+      message: `no artifact dir — run \`/xera-fetch ${ticket}\` first`,
+    });
+    return;
+  }
+
+  // graph-input.json presence + parse
+  const giPath = join(ticketDir, 'graph-input.json');
+  if (!existsSync(giPath)) {
+    checks.push({
+      name: `${ticket}: graph-input.json present`,
+      ok: false,
+      message: `missing — modifiesAreas will be []; run step 5 of /xera-fetch (extract-areas prompt)`,
+    });
+  } else {
+    try {
+      const data = JSON.parse(readFileSync(giPath, 'utf8')) as { modifiesAreas?: unknown };
+      if (!Array.isArray(data.modifiesAreas)) {
+        checks.push({
+          name: `${ticket}: graph-input.json present`,
+          ok: false,
+          message: `parsed but modifiesAreas is not an array — re-run step 5 of /xera-fetch`,
+        });
+      } else {
+        checks.push({
+          name: `${ticket}: graph-input.json present`,
+          ok: true,
+          message: `${data.modifiesAreas.length} area(s)`,
+        });
+      }
+    } catch (e) {
+      checks.push({
+        name: `${ticket}: graph-input.json present`,
+        ok: false,
+        message: `invalid JSON (${(e as Error).message}) — re-run step 5 of /xera-fetch`,
+      });
+    }
+  }
+
+  // story.md acceptanceCriteria presence
+  const storyPath = join(ticketDir, 'story.md');
+  if (!existsSync(storyPath)) {
+    checks.push({
+      name: `${ticket}: story.md acceptanceCriteria`,
+      ok: false,
+      message: `story.md missing — re-run /xera-fetch ${ticket}`,
+    });
+    return;
+  }
+  const raw = readFileSync(storyPath, 'utf8');
+  const m = raw.match(/^---\n([\s\S]*?)\n---/);
+  if (!m) {
+    checks.push({
+      name: `${ticket}: story.md acceptanceCriteria`,
+      ok: false,
+      message: `frontmatter missing — re-run /xera-fetch ${ticket}`,
+    });
+    return;
+  }
+  let fm: { acceptanceCriteria?: unknown };
+  try {
+    fm = parseYaml(m[1]!) as { acceptanceCriteria?: unknown };
+  } catch (e) {
+    checks.push({
+      name: `${ticket}: story.md acceptanceCriteria`,
+      ok: false,
+      message: `frontmatter unparseable (${(e as Error).message})`,
+    });
+    return;
+  }
+  const ac = Array.isArray(fm.acceptanceCriteria) ? fm.acceptanceCriteria : [];
+  if (ac.length === 0) {
+    const hint = acFieldConfigured
+      ? `jira.fields.acceptanceCriteria is configured but Jira returned no AC for this ticket — check the ticket in Jira`
+      : `no AC in frontmatter; AC-level coverage will be empty. Set jira.fields.acceptanceCriteria in xera.config.ts if your project stores AC in a dedicated Jira field`;
+    checks.push({
+      name: `${ticket}: story.md acceptanceCriteria`,
+      ok: false,
+      message: hint,
+    });
+  } else {
+    checks.push({
+      name: `${ticket}: story.md acceptanceCriteria`,
+      ok: true,
+      message: `${ac.length} AC item(s)`,
+    });
+  }
+}
+
+export async function runChecks(cwd: string, opts: RunChecksOptions = {}): Promise<Check[]> {
   const checks: Check[] = [];
 
   // Bun
@@ -199,6 +303,14 @@ export async function runChecks(cwd: string): Promise<Check[]> {
       } catch {
         /* malformed snapshot */
       }
+    }
+
+    // Ticket-specific checks (xera doctor --strict <TICKET>): graph-input.json
+    // presence and AC presence in story.md. These gate /xera-run Step 0 so that
+    // silently-degraded graph state surfaces before the pipeline runs.
+    if (opts.ticket) {
+      const acFieldConfigured = Boolean(cfg.jira?.fields?.acceptanceCriteria);
+      pushTicketChecks(checks, cwd, opts.ticket, acFieldConfigured);
     }
   } catch (e) {
     checks.push({

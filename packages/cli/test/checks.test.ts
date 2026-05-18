@@ -143,6 +143,158 @@ describe('runChecks xera skills layout', () => {
   });
 });
 
+describe('runChecks ticket-specific (--strict <TICKET>)', () => {
+  function writeStory(d: string, ticket: string, frontmatter: string): void {
+    const dir = join(d, '.xera', ticket);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, 'story.md'), `---\n${frontmatter}\n---\n\n# story body\n`);
+  }
+
+  test('warns when graph-input.json missing for the ticket', async () => {
+    const d = makeWebProject();
+    try {
+      writeStory(
+        d,
+        'PROJ-42',
+        `ticketId: PROJ-42\nsummary: "x"\nstoryHash: h\nacceptanceCriteria:\n  - "AC1"`,
+      );
+      const checks = await runChecks(d, { ticket: 'PROJ-42' });
+      const w = checks.find((c) => c.name.includes('PROJ-42') && c.name.includes('graph-input'));
+      expect(w).toBeDefined();
+      expect(w!.ok).toBe(false);
+      expect(w!.message ?? '').toMatch(/missing/i);
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
+
+  test('warns when graph-input.json is invalid JSON', async () => {
+    const d = makeWebProject();
+    try {
+      writeStory(
+        d,
+        'PROJ-43',
+        `ticketId: PROJ-43\nsummary: "x"\nstoryHash: h\nacceptanceCriteria:\n  - "AC1"`,
+      );
+      mkdirSync(join(d, '.xera/PROJ-43'), { recursive: true });
+      writeFileSync(join(d, '.xera/PROJ-43/graph-input.json'), '{not json');
+      const checks = await runChecks(d, { ticket: 'PROJ-43' });
+      const w = checks.find((c) => c.name.includes('PROJ-43') && c.name.includes('graph-input'));
+      expect(w).toBeDefined();
+      expect(w!.ok).toBe(false);
+      expect(w!.message ?? '').toMatch(/invalid/i);
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
+
+  test('passes when graph-input.json present and parses', async () => {
+    const d = makeWebProject();
+    try {
+      writeStory(
+        d,
+        'PROJ-44',
+        `ticketId: PROJ-44\nsummary: "x"\nstoryHash: h\nacceptanceCriteria:\n  - "AC1"`,
+      );
+      mkdirSync(join(d, '.xera/PROJ-44'), { recursive: true });
+      writeFileSync(
+        join(d, '.xera/PROJ-44/graph-input.json'),
+        JSON.stringify({ modifiesAreas: ['login'] }),
+      );
+      const checks = await runChecks(d, { ticket: 'PROJ-44' });
+      const w = checks.find((c) => c.name.includes('PROJ-44') && c.name.includes('graph-input'));
+      expect(w).toBeDefined();
+      expect(w!.ok).toBe(true);
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
+
+  test('warns when story.md frontmatter has no acceptanceCriteria AND config does not declare AC field', async () => {
+    const d = makeWebProject();
+    try {
+      writeStory(d, 'PROJ-45', `ticketId: PROJ-45\nsummary: "x"\nstoryHash: h`);
+      const checks = await runChecks(d, { ticket: 'PROJ-45' });
+      const w = checks.find(
+        (c) => c.name.includes('PROJ-45') && c.name.toLowerCase().includes('acceptance'),
+      );
+      expect(w).toBeDefined();
+      expect(w!.ok).toBe(false);
+      expect(w!.message ?? '').toMatch(/empty|missing/i);
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
+
+  test('passes AC check when story has acceptanceCriteria array', async () => {
+    const d = makeWebProject();
+    try {
+      writeStory(
+        d,
+        'PROJ-46',
+        `ticketId: PROJ-46\nsummary: "x"\nstoryHash: h\nacceptanceCriteria:\n  - "AC1"\n  - "AC2"`,
+      );
+      const checks = await runChecks(d, { ticket: 'PROJ-46' });
+      const w = checks.find(
+        (c) => c.name.includes('PROJ-46') && c.name.toLowerCase().includes('acceptance'),
+      );
+      expect(w).toBeDefined();
+      expect(w!.ok).toBe(true);
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
+
+  test('AC check is soft-ok with hint when config declares acceptanceCriteria field (AC in dedicated Jira field)', async () => {
+    const d = mkdtempSync(join(tmpdir(), 'xera-checks-ac-'));
+    try {
+      mkdirSync(join(d, '.xera'), { recursive: true });
+      writeFileSync(
+        join(d, 'xera.config.ts'),
+        `export default {\n` +
+          `  adapters: ['web'],\n` +
+          `  jira: { baseUrl: 'https://example.atlassian.net', projectKeys: ['PROJ'], fields: { story: 'description', acceptanceCriteria: 'customfield_10100' } },\n` +
+          `  web: { baseUrl: { local: 'http://localhost:3000' }, defaultEnv: 'local' }\n` +
+          `};\n`,
+      );
+      writeStory(d, 'PROJ-47', `ticketId: PROJ-47\nsummary: "x"\nstoryHash: h`);
+      const checks = await runChecks(d, { ticket: 'PROJ-47' });
+      const w = checks.find(
+        (c) => c.name.includes('PROJ-47') && c.name.toLowerCase().includes('acceptance'),
+      );
+      // Configured AC field but story.md still missing AC — flag it (true root cause: Jira ticket has no AC).
+      expect(w).toBeDefined();
+      expect(w!.ok).toBe(false);
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
+
+  test('skips ticket checks when no ticket provided', async () => {
+    const d = makeWebProject();
+    try {
+      writeStory(d, 'PROJ-48', `ticketId: PROJ-48\nsummary: "x"\nstoryHash: h`);
+      const checks = await runChecks(d);
+      const w = checks.find((c) => c.name.includes('PROJ-48'));
+      expect(w).toBeUndefined();
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
+
+  test('warns when ticket dir is missing entirely', async () => {
+    const d = makeWebProject();
+    try {
+      const checks = await runChecks(d, { ticket: 'PROJ-99' });
+      const w = checks.find((c) => c.name.includes('PROJ-99'));
+      expect(w).toBeDefined();
+      expect(w!.ok).toBe(false);
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('runChecks coverage warnings', () => {
   test('warns when coverage.staleAfterDays > 90', async () => {
     const d = makeWebProject('{ staleAfterDays: 120 }');
