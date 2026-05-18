@@ -97,6 +97,52 @@ describe('doctor http checks', () => {
   });
 });
 
+describe('runChecks xera skills layout', () => {
+  // Required skill names — Claude Code's Skill tool requires
+  // .claude/skills/<name>/SKILL.md (NOT .claude/skills/<name>.md).
+  const REQUIRED = [
+    'xera-run',
+    'xera-fetch',
+    'xera-feature',
+    'xera-script',
+    'xera-exec',
+    'xera-report',
+    'xera-promote',
+  ];
+
+  test('passes when all skills present as <name>/SKILL.md', async () => {
+    const d = makeWebProject();
+    try {
+      for (const base of REQUIRED) {
+        mkdirSync(join(d, '.claude/skills', base), { recursive: true });
+        writeFileSync(join(d, '.claude/skills', base, 'SKILL.md'), `---\nname: ${base}\n---\n`);
+      }
+      const checks = await runChecks(d);
+      const skills = checks.find((c) => c.name === 'xera skills present');
+      expect(skills?.ok).toBe(true);
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
+
+  test('flags legacy flat layout with migration hint', async () => {
+    const d = makeWebProject();
+    try {
+      mkdirSync(join(d, '.claude/skills'), { recursive: true });
+      for (const base of REQUIRED) {
+        writeFileSync(join(d, '.claude/skills', `${base}.md`), `---\nname: ${base}\n---\n`);
+      }
+      const checks = await runChecks(d);
+      const skills = checks.find((c) => c.name === 'xera skills present');
+      expect(skills?.ok).toBe(false);
+      expect(skills?.message ?? '').toContain('legacy flat layout');
+      expect(skills?.message ?? '').toContain('xera init --update');
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('runChecks coverage warnings', () => {
   test('warns when coverage.staleAfterDays > 90', async () => {
     const d = makeWebProject('{ staleAfterDays: 120 }');

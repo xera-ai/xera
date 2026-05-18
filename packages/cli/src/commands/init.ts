@@ -1,10 +1,17 @@
-import { appendFileSync, existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
 import { createRequire } from 'node:module';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import * as p from '@clack/prompts';
 import { generateKey } from '@xera-ai/core';
 import pc from 'picocolors';
-import { copyDir, scaffoldFile } from '../scaffold';
+import { scaffoldFile } from '../scaffold';
 
 const require = createRequire(import.meta.url);
 const CLI_VERSION = (require('../package.json') as { version: string }).version;
@@ -243,16 +250,28 @@ export async function initCommand(opts: InitOptions): Promise<void> {
     writeFileSync(gitignorePath, `${gitignoreAdditions.trim()}\n`);
   }
 
-  // Copy skill .md files from @xera-ai/skills into BOTH .claude/skills/ (for the
-  // Skill tool) AND .claude/commands/ (for Claude Code slash-command discovery).
-  const skillsSrc = require.resolve('@xera-ai/skills/package.json');
-  const skillsDir = join(skillsSrc, '..');
-  for (const target of ['.claude/skills', '.claude/commands']) {
-    copyDir(skillsDir, join(cwd, target));
-    for (const name of ['package.json', 'version.json', 'CHANGELOG.md']) {
-      const f = join(cwd, target, name);
-      if (existsSync(f)) unlinkSync(f);
-    }
+  // Copy skill .md files from @xera-ai/skills into BOTH:
+  //   .claude/skills/<name>/SKILL.md  — Claude Code's Skill tool discovery
+  //                                     (REQUIRES the directory + SKILL.md
+  //                                     layout; a flat .md is not discovered)
+  //   .claude/commands/<name>.md      — Claude Code's slash-command discovery
+  //                                     (flat .md file, becomes /<name>)
+  const skillsPkgPath = require.resolve('@xera-ai/skills/package.json');
+  const skillsSrcDir = join(skillsPkgPath, '..');
+  const SKILL_IGNORE = new Set(['package.json', 'version.json', 'CHANGELOG.md']);
+  for (const name of readdirSync(skillsSrcDir)) {
+    if (SKILL_IGNORE.has(name)) continue;
+    if (!name.endsWith('.md')) continue;
+    const content = readFileSync(join(skillsSrcDir, name));
+    const base = name.replace(/\.md$/, '');
+    // Skill tool: directory + SKILL.md
+    const skillFile = join(cwd, '.claude/skills', base, 'SKILL.md');
+    mkdirSync(dirname(skillFile), { recursive: true });
+    writeFileSync(skillFile, content);
+    // Slash command: flat .md
+    const cmdFile = join(cwd, '.claude/commands', name);
+    mkdirSync(dirname(cmdFile), { recursive: true });
+    writeFileSync(cmdFile, content);
   }
 
   // Add npm scripts
