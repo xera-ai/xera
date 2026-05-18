@@ -1,5 +1,46 @@
 # @xera-ai/core
 
+## 0.12.1
+
+### Patch Changes
+
+- [#102](https://github.com/xera-ai/xera/pull/102) [`89e051d`](https://github.com/xera-ai/xera/commit/89e051d8f7a6e6e7aa16e73f4548c6cd1b3218bc) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - error on unknown `--role` in `xera:auth-setup` (auto-generated from [#102](https://github.com/xera-ai/xera/issues/102))
+
+- [#99](https://github.com/xera-ai/xera/pull/99) [`e899cd4`](https://github.com/xera-ai/xera/commit/e899cd46eceb1f6e50e4cf34b6d39b8d34ee3a51) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - surface clear error when `xera:auth-setup` shape lacks matching export (auto-generated from [#99](https://github.com/xera-ai/xera/issues/99))
+
+- [#100](https://github.com/xera-ai/xera/pull/100) [`40a1488`](https://github.com/xera-ai/xera/commit/40a1488a7f0e5bbf697361a250977c680aca0dd3) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - core,cli,skills: strict config schema + remove unwired `testOutdated` config docs
+
+  - `XeraConfigSchema` is now `strictObject` and rejects unknown top-level keys instead of silently stripping them. This surfaces config typos and aspirational keys (e.g. `testOutdated`, `report`) at parse time with a clear Zod error ([#94](https://github.com/xera-ai/xera/issues/94)).
+  - Docs (`CONFIGURATION.md`, `TROUBLESHOOTING.md`) and the `/xera-report` skill no longer reference the unwired `testOutdated.threshold` / `report.testOutdatedNotify` keys; those tuning hooks are tracked for a future release.
+  - Followup to [#95](https://github.com/xera-ai/xera/issues/95) / [#92](https://github.com/xera-ai/xera/issues/92): the http-only `.env.example` template comment now references `.env` (the canonical filename) instead of `.env.local`.
+
+- [#103](https://github.com/xera-ai/xera/pull/103) [`2a6fcf4`](https://github.com/xera-ai/xera/commit/2a6fcf49d366e7cbac273e3a78fd4dcd6a943e94) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - core,http: stop loading `.env.local` and fix stale error message (closes [#92](https://github.com/xera-ai/xera/issues/92))
+
+  The init/doctor side of [#92](https://github.com/xera-ai/xera/issues/92) was already fixed in [#95](https://github.com/xera-ai/xera/issues/95)/[#100](https://github.com/xera-ai/xera/issues/100) — but the runtime
+  still preserved the silent-override trap the bug reporter described:
+
+  - `packages/core/bin/internal.ts` loaded `.env.local` _before_ `.env`. With
+    dotenv's default `override: false`, that meant `.env.local` always won —
+    so a stale empty value in `.env.local` silently masked the real value in
+    `.env` (~30-minute debug session in the report).
+  - `packages/http/src/auth-setup/preset.ts` raised
+    `Auth env var '...' is not set. Add it to .env.local.`, contradicting
+    `xera init` / `xera doctor` / `.gitignore` (all canonicalized on `.env`).
+
+  Now:
+
+  - `xera-internal` loads `.env` only. If `.env.local` exists, it prints a
+    loud warning telling the user to merge values into `.env` and delete
+    `.env.local`. Legacy users get a clear migration prompt instead of a
+    silent break or a silent override.
+  - The HTTP auth error message points at `.env`.
+  - A regression test pins the canonical filename in the error so future
+    drift is caught.
+
+- Updated dependencies [[`2a6fcf4`](https://github.com/xera-ai/xera/commit/2a6fcf49d366e7cbac273e3a78fd4dcd6a943e94)]:
+  - @xera-ai/http@0.12.1
+  - @xera-ai/web@0.12.1
+
 ## 0.12.0
 
 ### Minor Changes
