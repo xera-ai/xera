@@ -1,5 +1,17 @@
 # @xera-ai/core
 
+## 0.13.0
+
+### Minor Changes
+
+- [#114](https://github.com/xera-ai/xera/pull/114) [`4fa674a`](https://github.com/xera-ai/xera/commit/4fa674acb2bcd892c48b39382dfdb606bcfe150a) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - extract AC from description body when Jira has no dedicated AC field (auto-generated from [#114](https://github.com/xera-ai/xera/issues/114))
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xera-ai/http@0.13.0
+  - @xera-ai/web@0.13.0
+
 ## 0.12.3
 
 ### Patch Changes
