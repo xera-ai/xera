@@ -33,6 +33,12 @@ describe('resolveEditors', () => {
     ).rejects.toThrow(/vim.*claude.*cursor.*codex/);
   });
 
+  test('empty flag value throws (does not silently scaffold zero editors)', async () => {
+    await expect(
+      resolveEditors({ flag: '', cwd: dir, isUpdate: false, isYes: true }),
+    ).rejects.toThrow(/empty value/);
+  });
+
   test('no flag, no --yes, no detection → calls prompt', async () => {
     let called = false;
     const result = await resolveEditors({
