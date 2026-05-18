@@ -118,7 +118,7 @@ describe('runChecks xera skills layout', () => {
         writeFileSync(join(d, '.claude/skills', base, 'SKILL.md'), `---\nname: ${base}\n---\n`);
       }
       const checks = await runChecks(d);
-      const skills = checks.find((c) => c.name === 'xera skills present');
+      const skills = checks.find((c) => c.name === 'xera skills present (claude)');
       expect(skills?.ok).toBe(true);
     } finally {
       rmSync(d, { recursive: true, force: true });
@@ -133,7 +133,7 @@ describe('runChecks xera skills layout', () => {
         writeFileSync(join(d, '.claude/skills', `${base}.md`), `---\nname: ${base}\n---\n`);
       }
       const checks = await runChecks(d);
-      const skills = checks.find((c) => c.name === 'xera skills present');
+      const skills = checks.find((c) => c.name === 'xera skills present (claude)');
       expect(skills?.ok).toBe(false);
       expect(skills?.message ?? '').toContain('legacy flat layout');
       expect(skills?.message ?? '').toContain('xera init --update');

@@ -120,6 +120,8 @@ A frequent source of confusion when editing in this repo:
 
 Copy text **verbatim** from the implementation plans under `docs/superpowers/plans/`. Don't paraphrase, condense, or add commentary outside frontmatter. When a prompt's *shape* changes (frontmatter, output format), bump `version.json` in `packages/prompts/` — the package version itself is handled by changesets (all six packages bump in lockstep via the `fixed` group; see [AGENTS.md § Workspace deps](AGENTS.md#workspace-deps)).
 
+When a consumer project runs `xera init`, the same skill bodies are written to per-editor paths: `.claude/skills/<name>/SKILL.md`, `.cursor/rules/<name>/RULE.md`, `.agents/skills/<name>/SKILL.md`. Cursor's RULE.md gets transformed frontmatter (`description:` + `alwaysApply: false`); Claude and Codex share the source `name:` + `description:` verbatim. Editor scaffolding lives in `packages/cli/src/editors/` (one adapter per editor).
+
 ## Vendored superpowers under `.claude/`
 
 This repo vendors superpowers skills (`brainstorming`, `writing-plans`, `executing-plans`, `test-driven-development`, `systematic-debugging`, `verification-before-completion`, …) into `.claude/skills/` and three slash commands into `.claude/commands/`. They are intended for use **while developing this repo** — invoke them via the `Skill` tool when appropriate. They are not shipped to end users.

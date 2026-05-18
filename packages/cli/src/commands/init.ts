@@ -1,16 +1,12 @@
-import {
-  appendFileSync,
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  writeFileSync,
-} from 'node:fs';
+import { appendFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import * as p from '@clack/prompts';
 import { generateKey } from '@xera-ai/core';
 import pc from 'picocolors';
+import { type EditorName, editors } from '../editors';
+import { parseFrontmatter } from '../editors/frontmatter';
+import { resolveEditors } from '../editors/resolve';
 import { scaffoldFile } from '../scaffold';
 
 const require = createRequire(import.meta.url);
@@ -22,6 +18,8 @@ export type HttpAuthStrategy = 'bearer' | 'apiKey' | 'basic' | 'oauth-cc' | 'non
 export interface InitOptions {
   yes: boolean;
   shape?: ProjectShape;
+  /** Comma-separated editor names or "all"; defaults follow resolveEditors() */
+  editor?: string;
   // Jira flags
   jiraBaseUrl?: string;
   projectKeys?: string;
@@ -250,28 +248,45 @@ export async function initCommand(opts: InitOptions): Promise<void> {
     writeFileSync(gitignorePath, `${gitignoreAdditions.trim()}\n`);
   }
 
-  // Copy skill .md files from @xera-ai/skills into BOTH:
-  //   .claude/skills/<name>/SKILL.md  — Claude Code's Skill tool discovery
-  //                                     (REQUIRES the directory + SKILL.md
-  //                                     layout; a flat .md is not discovered)
-  //   .claude/commands/<name>.md      — Claude Code's slash-command discovery
-  //                                     (flat .md file, becomes /<name>)
+  // Resolve editor targets. Falls back to interactive multi-select prompt if
+  // no flag, no --yes, and no editor markers already present in the cwd.
+  const editorTargets = await resolveEditors({
+    flag: opts.editor,
+    cwd,
+    isUpdate: false,
+    isYes: opts.yes,
+    prompt: async () => {
+      const choice = await p.multiselect({
+        message: 'Which editor(s) should xera scaffold for?',
+        options: [
+          { value: 'claude', label: 'Claude Code (.claude/skills/, .claude/commands/)' },
+          { value: 'cursor', label: 'Cursor (.cursor/rules/, .cursor/commands/)' },
+          { value: 'codex', label: 'OpenAI Codex CLI (.agents/skills/)' },
+        ],
+        initialValues: ['claude'],
+        required: true,
+      });
+      if (typeof choice === 'symbol') cancel();
+      return choice as EditorName[];
+    },
+  });
+
+  // Scaffold each skill into each target editor.
   const skillsPkgPath = require.resolve('@xera-ai/skills/package.json');
   const skillsSrcDir = join(skillsPkgPath, '..');
   const SKILL_IGNORE = new Set(['package.json', 'version.json', 'CHANGELOG.md']);
   for (const name of readdirSync(skillsSrcDir)) {
     if (SKILL_IGNORE.has(name)) continue;
     if (!name.endsWith('.md')) continue;
-    const content = readFileSync(join(skillsSrcDir, name));
+    const raw = readFileSync(join(skillsSrcDir, name), 'utf8');
+    const { frontmatter, body } = parseFrontmatter(raw);
     const base = name.replace(/\.md$/, '');
-    // Skill tool: directory + SKILL.md
-    const skillFile = join(cwd, '.claude/skills', base, 'SKILL.md');
-    mkdirSync(dirname(skillFile), { recursive: true });
-    writeFileSync(skillFile, content);
-    // Slash command: flat .md
-    const cmdFile = join(cwd, '.claude/commands', name);
-    mkdirSync(dirname(cmdFile), { recursive: true });
-    writeFileSync(cmdFile, content);
+    const skillInput = { base, body, frontmatter };
+    for (const editorName of editorTargets) {
+      const adapter = editors[editorName];
+      adapter.scaffoldSkill(cwd, skillInput);
+      adapter.scaffoldCommand?.(cwd, skillInput);
+    }
   }
 
   // Add npm scripts
@@ -321,6 +336,16 @@ export async function initCommand(opts: InitOptions): Promise<void> {
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 
   // Shape-aware next steps
+  const editorLines = editorTargets
+    .map((e) => {
+      if (e === 'claude') return '       Claude Code:       /xera-run <TICKET>';
+      if (e === 'cursor') return '       Cursor:            /xera-run <TICKET>  (slash menu)';
+      if (e === 'codex')
+        return '       OpenAI Codex CLI:  type "run xera for <TICKET>" — Codex picks up the xera-run skill';
+      return '';
+    })
+    .join('\n');
+
   const nextSteps =
     shape === 'api'
       ? `
@@ -331,7 +356,7 @@ Next:
   2) Run pre-authentication:
        bun run xera:auth-setup
   3) Start testing:
-       Open Claude Code in this directory and run: /xera-run <TICKET>
+${editorLines}
 `
       : shape === 'mixed'
         ? `
@@ -341,7 +366,7 @@ Next:
   2) Run pre-authentication:
        bun run xera:auth-setup
   3) Start testing:
-       Open Claude Code in this directory and run: /xera-run <TICKET>
+${editorLines}
 `
         : `
 Next:
@@ -350,7 +375,7 @@ Next:
   2) Run pre-authentication:
        bun run xera:auth-setup
   3) Start testing:
-       Open Claude Code in this directory and run: /xera-run <TICKET>
+${editorLines}
 `;
 
   p.note(nextSteps.trim(), 'Next steps');
