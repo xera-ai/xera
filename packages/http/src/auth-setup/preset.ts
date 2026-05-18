@@ -12,7 +12,7 @@ function readEnv(name: string | undefined): string {
   if (!name) throw new Error(`Auth env-var name not configured in role`);
   const v = process.env[name];
   if (v === undefined || v === '') {
-    throw new Error(`Auth env var '${name}' is not set. Add it to .env.local.`);
+    throw new Error(`Auth env var '${name}' is not set. Add it to .env.`);
   }
   return v;
 }
