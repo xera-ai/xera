@@ -1,33 +1,35 @@
 # xera Architecture
 
-For the full specs see [design docs](superpowers/specs/) (v0.1 core, v0.2 eval, v0.3 prompt injection, v0.5 self-heal, v0.6 project knowledge graph). This is a shorter overview for developers contributing to xera itself.
+For the full specs see [design docs](superpowers/specs/) (v0.1 core, v0.2 eval, v0.3 prompt injection, v0.5 self-heal, v0.6 project knowledge graph, v0.7 http-adapter, v0.8 coverage-gap; v0.9 adversarial-explore is shipped without a published spec). This is a shorter overview for developers contributing to xera itself.
 
 ## Layers
 
 ```
 End user (QA)
-  │ uses `bunx xera init` once (scaffolds CI workflow + npm scripts)
+  │ uses `bunx xera init --shape web|api|mixed` once (scaffolds CI workflow + npm scripts)
   │ then `/xera-*` slash commands in Claude Code
   ▼
 Skills (`.claude/skills/xera-*.md`) — 12 user-facing workflows
   │ tell the session LLM what to do
   │ session LLM calls `bun run xera:*`
   ▼
-`xera-internal` binary (in @xera-ai/core) — 28 subcommands
-  │ deterministic helpers + graph data layer
+`xera-internal` binary (in @xera-ai/core) — 33 subcommands
+  │ deterministic helpers + graph data layer + coverage engine
   │ writes artifacts to .xera/<TICKET>/
   │ writes events to .xera/graph/events/
   ▼
-@xera-ai/web — Playwright adapter (supports --grep per-scenario filter)
+Adapters (dispatched by `meta.json.adapter`):
+  • @xera-ai/web   — Playwright browser adapter (`--grep` per-scenario filter)
+  • @xera-ai/http  — Playwright APIRequestContext adapter (no browser, OpenAPI-aware)
   │ generator helpers (validate, typecheck, lint)
   │ executor + trace normalizer + secret scrubber
   ▼
-Playwright + the user's app under test
+Playwright + the user's app / HTTP API under test
 ```
 
 ## v0.6 addition: Project Knowledge Graph
 
-A repo-local event-sourced data layer running parallel to the v0.1 artifact pipeline. Skills emit events on every fetch/script/exec/report/promote. The derived snapshot powers three user-facing features:
+A repo-local event-sourced data layer running parallel to the v0.1 artifact pipeline. Skills emit events on every fetch/script/exec/report/promote. The derived snapshot powers several read-only consumers — classify, impact, coverage (added in v0.8), render, and disputes:
 
 ```
    xera-fetch ──┐
@@ -39,8 +41,9 @@ A repo-local event-sourced data layer running parallel to the v0.1 artifact pipe
                           ▼
           ┌──────────────────────────────┐
           │  Consumers (read-only):      │
-          │  • classify (TEST_OUTDATED)  │  → /xera-report 5-bucket
+          │  • classify (TEST_OUTDATED)  │  → /xera-report 9-class
           │  • impact (riskScore + BFS)  │  → /xera-impact
+          │  • coverage (3-state areas)  │  → /xera-coverage + /xera-fill-gap
           │  • render (vis-network HTML) │  → CI artifact + sticky comment
           │  • disputes (CLI report)     │  → QA-lead weekly review
           └──────────────────────────────┘
@@ -59,14 +62,14 @@ A repo-local event-sourced data layer running parallel to the v0.1 artifact pipe
 
 | Package | Responsibility | Public bin |
 |---|---|---|
-| `@xera-ai/core` | Config, paths, hashing, lock, log, Jira client, classifier (8 buckets incl. v0.7 `CONTRACT_DRIFT`, `RATE_LIMITED`, `AUTH_EXPIRED`), auth state, shared scrub rules (relocated from web in v0.7), **graph module** (types, schema, store, similarity, enrich, classify, traverse, impact, render, cost), **coverage module** (status, risk, report, why) | `xera-internal` |
-| `@xera-ai/cli` | Public CLI: `init` (with `--shape web\|api\|mixed` in v0.7), `doctor` | `xera` |
-| `@xera-ai/web` | Playwright adapter (browser-driven; executor with `--grep` support) | — |
-| `@xera-ai/http` | **v0.7 NEW** — HTTP API adapter (Playwright `APIRequestContext`, no browser). Pre-auth via `defineHttpAuthSetup` + `presetHttpAuth`; runtime `newAuthedContext` for generated `spec.ts`; OpenAPI loader for schema-aware generation + `CONTRACT_DRIFT` detection | — |
-| `@xera-ai/skills` | Claude Code skill `.md` files (dispatch by `meta.json.adapter` in v0.7) | — |
-| `@xera-ai/prompts` | Versioned LLM prompt templates: `script-from-feature-web.md` + `script-from-feature-http.md` (renamed/added in v0.7); `map-ac-to-scenarios.md` + `propose-scenarios.md` (added in v0.8) | — |
+| `@xera-ai/core` | Config, paths, hashing, lock, log, Jira client (REST + MCP), classifier (9 classes: `REAL_BUG`, `CONTRACT_DRIFT`, `AUTH_EXPIRED`, `RATE_LIMITED`, `TEST_OUTDATED`, `TEST_BUG`, `SELECTOR_DRIFT`, `FLAKY`, `PASS`), auth state (AES-256-GCM), shared scrub rules (relocated from web in v0.7), **graph module** (types, schema, store, similarity, enrich, classify, traverse, impact, render, cost), **coverage module** (status, risk, report, why) | `xera-internal` |
+| `@xera-ai/cli` | Public CLI: `init` (with `--shape web\|api\|mixed`), `doctor` | `xera` |
+| `@xera-ai/web` | Playwright browser adapter (executor with `--grep` support, trace normalizer, secret scrubber, POM-scan + Gherkin lint) | — |
+| `@xera-ai/http` | HTTP API adapter (Playwright `APIRequestContext`, no browser). Pre-auth via `defineHttpAuthSetup` + `presetHttpAuth`; runtime `newAuthedContext` for generated `spec.ts`; OpenAPI loader for schema-aware generation + `CONTRACT_DRIFT` detection | — |
+| `@xera-ai/skills` | 12 Claude Code skill `.md` files (`xera-run`, `xera-fetch`, `xera-feature`, `xera-script`, `xera-exec`, `xera-report`, `xera-impact`, `xera-promote`, `xera-eval`, `xera-coverage`, `xera-fill-gap`, `xera-explore`); dispatch by `meta.json.adapter` | — |
+| `@xera-ai/prompts` | 12 versioned LLM prompt templates: `diagnose-failure`, `feature-from-story`, `script-from-feature-web`, `script-from-feature-http`, `heal-locator`, `extract-areas`, `similarity-match`, `classify-outdated`, `eval-rubric`, `map-ac-to-scenarios`, `propose-scenarios`, `adversarial-scenarios` | — |
 
-## `xera-internal` subcommands (28)
+## `xera-internal` subcommands (33)
 
 **Core flow (v0.1+):** `fetch`, `validate-feature`, `typecheck`, `lint`, `exec`, `normalize`, `report`, `post`, `status`, `unlock`, `promote`
 
@@ -150,3 +153,5 @@ The classifier, reporter, **and graph layer** are adapter-agnostic by design. A 
 | `fixtures/golden-graph/` | Snapshot/dedup/corrupt + TEST_OUTDATED scenarios (v0.6) |
 | `fixtures/golden-impact/` | impact-prepare BFS scenarios (v0.6) |
 | `fixtures/golden-coverage/` | coverage engine fixtures — 6 scenarios covering UNCOVERED/STALE/COVERED, risk formula, AC gaps (v0.8) |
+| `fixtures/golden-tickets-http/` | HTTP-adapter classifier fixtures (v0.7) — `PASS`, `REAL_BUG`, `CONTRACT_DRIFT`, `RATE_LIMITED`, `AUTH_EXPIRED` |
+| `fixtures/mock-api/` | Bun.serve mock HTTP API + `openapi.yaml` — target for http-adapter integration tests (v0.7) |
