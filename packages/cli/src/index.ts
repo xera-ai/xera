@@ -68,6 +68,7 @@ export default async function main(): Promise<void> {
     .option('--update', 'Non-destructive refresh of an existing project')
     .option('-y, --yes', 'Accept all defaults (non-interactive)')
     .option('--shape <shape>', 'Project shape: web | api | mixed')
+    .option('--editor <list>', 'Editor(s) to scaffold: claude,cursor,codex or "all" (default: auto-detect or all)')
     // Jira flags
     .option('--ju, --jira-base-url <url>', 'Jira workspace URL')
     .option('--pk, --project-keys <keys>', 'Jira project key(s), comma-separated')
@@ -88,6 +89,7 @@ export default async function main(): Promise<void> {
     .option('--hr, --http-roles <roles>', 'HTTP test roles, comma-separated (default: user)')
     .example('xera init')
     .example('xera init -y --shape web')
+    .example('xera init -y --shape web --editor claude,cursor')
     .example(
       'xera init -y --shape api --pk MYPROJ --ju https://myco.atlassian.net --au https://api.staging.example.com --as bearer',
     )
@@ -99,6 +101,7 @@ export default async function main(): Promise<void> {
         update?: boolean;
         yes?: boolean;
         shape?: string;
+        editor?: string;
         jiraBaseUrl?: string;
         projectKeys?: string;
         storyField?: string;
@@ -139,6 +142,7 @@ export default async function main(): Promise<void> {
           if (opts.stagingUrl !== undefined) updateOpts.stagingUrl = opts.stagingUrl;
           if (opts.authEnabled !== undefined) updateOpts.authEnabled = opts.authEnabled;
           if (opts.roles !== undefined) updateOpts.roles = opts.roles;
+          if (opts.editor !== undefined) updateOpts.editor = opts.editor;
           await initUpdateCommand(updateOpts);
           return;
         }
@@ -173,6 +177,7 @@ export default async function main(): Promise<void> {
         if (opts.apiBaseUrl !== undefined) initOpts.apiBaseUrl = opts.apiBaseUrl;
         if (opts.openapiPath !== undefined) initOpts.openapiPath = opts.openapiPath;
         if (opts.httpRoles !== undefined) initOpts.httpRoles = opts.httpRoles;
+        if (opts.editor !== undefined) initOpts.editor = opts.editor;
         await initCommand(initOpts);
       },
     );
