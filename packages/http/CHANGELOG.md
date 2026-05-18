@@ -1,5 +1,35 @@
 # @xera-ai/http
 
+## 0.12.1
+
+### Patch Changes
+
+- [#103](https://github.com/xera-ai/xera/pull/103) [`2a6fcf4`](https://github.com/xera-ai/xera/commit/2a6fcf49d366e7cbac273e3a78fd4dcd6a943e94) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - core,http: stop loading `.env.local` and fix stale error message (closes [#92](https://github.com/xera-ai/xera/issues/92))
+
+  The init/doctor side of [#92](https://github.com/xera-ai/xera/issues/92) was already fixed in [#95](https://github.com/xera-ai/xera/issues/95)/[#100](https://github.com/xera-ai/xera/issues/100) — but the runtime
+  still preserved the silent-override trap the bug reporter described:
+
+  - `packages/core/bin/internal.ts` loaded `.env.local` _before_ `.env`. With
+    dotenv's default `override: false`, that meant `.env.local` always won —
+    so a stale empty value in `.env.local` silently masked the real value in
+    `.env` (~30-minute debug session in the report).
+  - `packages/http/src/auth-setup/preset.ts` raised
+    `Auth env var '...' is not set. Add it to .env.local.`, contradicting
+    `xera init` / `xera doctor` / `.gitignore` (all canonicalized on `.env`).
+
+  Now:
+
+  - `xera-internal` loads `.env` only. If `.env.local` exists, it prints a
+    loud warning telling the user to merge values into `.env` and delete
+    `.env.local`. Legacy users get a clear migration prompt instead of a
+    silent break or a silent override.
+  - The HTTP auth error message points at `.env`.
+  - A regression test pins the canonical filename in the error so future
+    drift is caught.
+
+- Updated dependencies [[`89e051d`](https://github.com/xera-ai/xera/commit/89e051d8f7a6e6e7aa16e73f4548c6cd1b3218bc), [`e899cd4`](https://github.com/xera-ai/xera/commit/e899cd46eceb1f6e50e4cf34b6d39b8d34ee3a51), [`40a1488`](https://github.com/xera-ai/xera/commit/40a1488a7f0e5bbf697361a250977c680aca0dd3), [`2a6fcf4`](https://github.com/xera-ai/xera/commit/2a6fcf49d366e7cbac273e3a78fd4dcd6a943e94)]:
+  - @xera-ai/core@0.12.1
+
 ## 0.12.0
 
 ### Minor Changes

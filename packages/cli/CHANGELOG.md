@@ -1,5 +1,23 @@
 # @xera-ai/cli
 
+## 0.12.1
+
+### Patch Changes
+
+- [#101](https://github.com/xera-ai/xera/pull/101) [`398ed71`](https://github.com/xera-ai/xera/commit/398ed718bbc0ee1c77d1c08362a86d21a3d90585) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - standardize `defaultEnv` to 'staging' across all init shapes (auto-generated from [#101](https://github.com/xera-ai/xera/issues/101))
+
+- [#95](https://github.com/xera-ai/xera/pull/95) [`d304929`](https://github.com/xera-ai/xera/commit/d304929d58be65165224d9d9c123fdf39052d1f1) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - warn loudly when `init --update --shape` would change adapters (auto-generated from [#95](https://github.com/xera-ai/xera/issues/95))
+
+- [#100](https://github.com/xera-ai/xera/pull/100) [`40a1488`](https://github.com/xera-ai/xera/commit/40a1488a7f0e5bbf697361a250977c680aca0dd3) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - core,cli,skills: strict config schema + remove unwired `testOutdated` config docs
+
+  - `XeraConfigSchema` is now `strictObject` and rejects unknown top-level keys instead of silently stripping them. This surfaces config typos and aspirational keys (e.g. `testOutdated`, `report`) at parse time with a clear Zod error ([#94](https://github.com/xera-ai/xera/issues/94)).
+  - Docs (`CONFIGURATION.md`, `TROUBLESHOOTING.md`) and the `/xera-report` skill no longer reference the unwired `testOutdated.threshold` / `report.testOutdatedNotify` keys; those tuning hooks are tracked for a future release.
+  - Followup to [#95](https://github.com/xera-ai/xera/issues/95) / [#92](https://github.com/xera-ai/xera/issues/92): the http-only `.env.example` template comment now references `.env` (the canonical filename) instead of `.env.local`.
+
+- Updated dependencies [[`89e051d`](https://github.com/xera-ai/xera/commit/89e051d8f7a6e6e7aa16e73f4548c6cd1b3218bc), [`e899cd4`](https://github.com/xera-ai/xera/commit/e899cd46eceb1f6e50e4cf34b6d39b8d34ee3a51), [`40a1488`](https://github.com/xera-ai/xera/commit/40a1488a7f0e5bbf697361a250977c680aca0dd3), [`2a6fcf4`](https://github.com/xera-ai/xera/commit/2a6fcf49d366e7cbac273e3a78fd4dcd6a943e94)]:
+  - @xera-ai/core@0.12.1
+  - @xera-ai/skills@0.12.1
+
 ## 0.12.0
 
 ### Minor Changes
