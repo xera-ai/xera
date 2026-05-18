@@ -1,5 +1,11 @@
 # @xera-ai/skills
 
+## 0.12.3
+
+### Patch Changes
+
+- [#111](https://github.com/xera-ai/xera/pull/111) [`ca549e7`](https://github.com/xera-ai/xera/commit/ca549e7d8bd67bd1f48fce41ce7fadefce81b0a4) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - surface silent modifiesAreas=[] fallback across graph-record, doctor, xera-run (auto-generated from [#111](https://github.com/xera-ai/xera/issues/111))
+
 ## 0.12.2
 
 ## 0.12.1
