@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Instructions for Claude Code working in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 Claude Code follows the agent instructions in [`AGENTS.md`](AGENTS.md) — **read that first**. This file adds Claude Code–specific guidance on top of it: vendored skills, MCP usage, the skills↔prompts boundary, and a fast map of the codebase. Do not re-state AGENTS.md here; treat it as canonical for code conventions, publish flow, and spec → plan → implement.
 
@@ -18,15 +18,16 @@ packages/
                                 classifier (8 buckets incl. TEST_OUTDATED +
                                 CONTRACT_DRIFT/RATE_LIMITED/AUTH_EXPIRED),
                                 auth state, graph module, xera-internal binary
-    src/bin-internal/           28 subcommands invoked by skills via `bun run xera:*`
+    src/bin-internal/           33 subcommands invoked by skills via `bun run xera:*`
                                 v0.1: fetch, validate-feature, typecheck, lint,
                                       exec (supports --grep), normalize, report,
                                       post, status, unlock, promote
                                 v0.2: eval-prepare, eval-deterministic, eval-report
                                 v0.5: heal-prepare
-                                v0.6: graph-record, graph-snapshot, graph-query,
-                                      graph-backfill, graph-enrich, graph-render,
-                                      impact-prepare, disputes
+                                v0.6: graph-record (sub-dispatches via internal
+                                      graph-record-script module), graph-snapshot,
+                                      graph-query, graph-backfill, graph-enrich,
+                                      graph-render, impact-prepare, disputes
                                 v0.7: auth-setup
                                 v0.8: coverage-prepare, ac-coverage-backfill-prepare,
                                       ac-coverage-backfill-finalize, fill-gap-prepare,
@@ -55,6 +56,7 @@ packages/
     src/openapi/                OpenAPI loader for CONTRACT_DRIFT detection
   cli/       @xera-ai/cli       public `xera` CLI: only `init` (--shape web|api|mixed) and `doctor`
     src/commands/               init, init-update, doctor
+    src/checks.ts, scaffold.ts  shared init/doctor helpers (env, deps, prereqs)
     templates/                  scaffold templates (xera.config, playwright.config,
                                 tsconfig, env.example, auth-setup, sample/,
                                 xera-graph.yml — CI viewer workflow)
@@ -73,9 +75,12 @@ packages/
                                 map-ac-to-scenarios (v0.8), propose-scenarios (v0.8),
                                 adversarial-scenarios (v0.9 — experimental))
 fixtures/
-  sample-app/                   Next.js login+dashboard target for integration tests
+  sample-app/                   Next.js login+dashboard target for web integration tests
   mock-jira/                    Bun.serve mock Jira (deterministic tickets)
+  mock-api/                     Bun.serve mock HTTP API + openapi.yaml (v0.7 http integration)
   golden-tickets/               classifier fixtures (cwd-sensitive — see AGENTS.md)
+  golden-tickets-http/          v0.7 http classifier fixtures (CONTRACT_DRIFT,
+                                RATE_LIMITED, AUTH_EXPIRED, real-bug, validation-pass)
   golden-eval/                  /xera-eval rubric fixtures (v0.2 + EVAL-007/008/009)
   golden-graph/                 snapshot/dedup/corrupt + TEST_OUTDATED scenarios
   golden-impact/                impact-prepare BFS scenarios (depth-1/2/empty)
@@ -84,16 +89,25 @@ docs/
   ARCHITECTURE.md               condensed overview (refreshed for v0.6)
   CONFIGURATION.md              user-facing config reference (graph + cost + autoImpact)
   TROUBLESHOOTING.md            top issues (incl. graph snapshot, viewer perf, disputes)
+  PROJECT_CONTEXT.md            short narrative of *why* xera exists — share with new contributors
   superpowers/specs/            design specs — authoritative
                                 (v0.1 core-web, v0.2 eval, v0.3 prompt-injection,
                                  v0.5 self-heal, v0.6 project-knowledge-graph,
                                  v0.7 http-adapter, v0.8 coverage-gap)
   superpowers/plans/            implementation plans + POSTMORTEM.md
+                                (v0.8 set: 01-foundation, 02-skill-and-cli,
+                                 03-ac-backfill, 04-html-viewer, 05-generative-fill-gap)
+scripts/
+  auto-changeset.mjs            v0.8 helper invoked by auto-changeset.yml — infers
+                                semver bump from PR title and emits a `.changeset/*.md`
 .claude/
   skills/                       vendored superpowers skills (use via Skill tool)
   commands/                     vendored superpowers commands (brainstorm,
                                 write-plan, execute-plan)
-.github/workflows/              ci.yml (+ graph-viewer job) + nightly-e2e.yml + publish.yml
+.github/workflows/              ci.yml (+ graph-viewer job), nightly-e2e.yml,
+                                release.yml (changesets-driven, primary release path),
+                                auto-changeset.yml (PR-title → changeset bot),
+                                publish.yml (manual fallback only)
 ```
 
 ## Skills vs prompts boundary
@@ -163,6 +177,7 @@ These show up repeatedly; internalize them before touching code.
 - **Restore `process.cwd()` in `afterEach`** if a test calls `process.chdir(...)`. `fixtures/golden-tickets/` resolution depends on cwd; leaks cascade.
 - **Skill `.md` is user-facing copy.** Match implementation plans word for word. Don't "improve the wording."
 - **Workspace deps use explicit caret semver**, not `workspace:*`. All six packages share one `fixed`-group version — changesets bumps them in lockstep, so don't hand-edit individual `version` fields or sibling carets; let the Version Packages PR own it. See `AGENTS.md § Workspace deps` for why.
+- **Release flow is fully PR-title driven (v0.8+).** Conventional-commit PR titles (`feat:`, `fix:`, `chore:`) cause `auto-changeset.yml` to commit a `.changeset/*.md` onto the PR; merging to `main` opens (or updates) a "Version Packages" PR; merging that PR triggers `release.yml` → `bun run release` → `changeset publish`. Don't hand-write changesets unless you need to override the inferred bump; don't run `bun publish` locally; `publish.yml` is a manual fallback only.
 - **Don't weaken security-sensitive files.** `packages/web/src/trace-normalizer/scrub-rules.ts` and `packages/core/src/auth/encrypt.ts` require adversarial tests for relaxation. Adding rules is fine; removing is not.
 - **Don't bypass hash-based drift detection.** `story_hash` / `feature_hash` / `script_hash` / `events_hash` exist so skills can skip work; "always regenerate" defeats the design.
 - **Graph events are commit-friendly via shard-by-session.** One JSONL file per skill invocation; never append into a shared file. Snapshot is gitignored and rebuilt on demand. See `docs/superpowers/specs/2026-05-16-xera-v06-project-knowledge-graph-design.md` §3.6.
