@@ -9,11 +9,11 @@ End user (QA)
   │ uses `bunx xera init` once (scaffolds CI workflow + npm scripts)
   │ then `/xera-*` slash commands in Claude Code
   ▼
-Skills (`.claude/skills/xera-*.md`) — 8 user-facing workflows
+Skills (`.claude/skills/xera-*.md`) — 12 user-facing workflows
   │ tell the session LLM what to do
   │ session LLM calls `bun run xera:*`
   ▼
-`xera-internal` binary (in @xera-ai/core) — 19 subcommands
+`xera-internal` binary (in @xera-ai/core) — 28 subcommands
   │ deterministic helpers + graph data layer
   │ writes artifacts to .xera/<TICKET>/
   │ writes events to .xera/graph/events/
@@ -66,7 +66,7 @@ A repo-local event-sourced data layer running parallel to the v0.1 artifact pipe
 | `@xera-ai/skills` | Claude Code skill `.md` files (dispatch by `meta.json.adapter` in v0.7) | — |
 | `@xera-ai/prompts` | Versioned LLM prompt templates: `script-from-feature-web.md` + `script-from-feature-http.md` (renamed/added in v0.7); `map-ac-to-scenarios.md` + `propose-scenarios.md` (added in v0.8) | — |
 
-## `xera-internal` subcommands (19)
+## `xera-internal` subcommands (28)
 
 **Core flow (v0.1+):** `fetch`, `validate-feature`, `typecheck`, `lint`, `exec`, `normalize`, `report`, `post`, `status`, `unlock`, `promote`
 
@@ -95,6 +95,10 @@ A repo-local event-sourced data layer running parallel to the v0.1 artifact pipe
 - `fill-gap-prepare` — reads snapshot for a given area or ticket; writes `fill-gap-input.json` for skill-side `propose-scenarios.md` prompt
 - `fill-gap-finalize` — reads skill-written `fill-gap-output.json`; writes `feature.draft.md` with the accepted Gherkin proposals
 
+**Adversarial explore (v0.9, experimental):**
+- `explore-prepare <TICKET> --categories <slugs> --user-hint <text>` — assembles `adversarial-input.json` from story, AC, existing feature/spec, adapter, and QA-supplied focus
+- `explore-finalize <TICKET> --accept <ids|all|high-only>` — appends accepted proposals to `.xera/<TICKET>/explore.feature` with `@adversarial` tags
+
 **Universal:** `verify-prompts`, `doctor` (with `--auto-enrich` for CI; `--shape`-aware HTTP auth file + OpenAPI checks in v0.7; 3 new coverage checks in v0.8)
 
 ## v0.8 addition: Coverage gap & AC matrix
@@ -113,6 +117,16 @@ The coverage gap feature answers "which SUT areas have no passing tests, and whi
 **Generative gap-fill.** `/xera-fill-gap <area>` (area mode) or `/xera-fill-gap --ticket <TICKET>` (AC mode) invokes `fill-gap-prepare`, passes the input to the `propose-scenarios.md` prompt, then writes accepted proposals to `feature.draft.md` via `fill-gap-finalize`.
 
 **New graph entities:** `ACNode` (one per acceptance-criteria line on a fetched ticket), `satisfies` edge (ACNode → ScenarioNode), `coverage.snapshot` event, `ac-coverage.backfilled` event.
+
+## v0.9 addition: Adversarial exploration (experimental)
+
+The `/xera-explore` skill answers "what could go wrong with this feature that the AC does not mention?" It is **opt-in**, **QA-internal**, and **not part of `/xera-run`** — `/xera-feature` continues to produce AC-driven scenarios as before, so PO review of `test.feature` is undisturbed.
+
+**Flow.** The skill asks QA two interactive questions: (1) which of 8 adversarial categories to focus on (`negative`, `boundary`, `state-combination`, `race`, `error-recovery`, `a11y`, `security-smell`, `non-functional`), and (2) any specific concern as a free-text hint. `explore-prepare` assembles `adversarial-input.json` from the ticket's story, AC, existing `test.feature`, existing `spec.ts` (if present), adapter, and the chosen categories. The `adversarial-scenarios.md` prompt generates 5–10 proposals with `category` + `severity` (`low`/`medium`/`high`) metadata. QA accepts a subset via `all` / `high-only` / comma-separated IDs; `explore-finalize` appends them to `.xera/<TICKET>/explore.feature` tagged `@adversarial @adversarial-<category> @severity-<level>` for selective Playwright runs.
+
+**Why a separate feature file.** `test.feature` is AC-aligned and PO-reviewed; `explore.feature` is QA-brainstormed adversarial coverage. Keeping them separate avoids tripling test runtime silently and lets QA review/merge adversarial scenarios into `test.feature` on their own cadence. `/xera-script` still reads only `test.feature` — QA merges in or runs adversarial scenarios manually until multi-feature `spec.ts` generation lands.
+
+**Status.** v0.9.0 ships without golden-eval coverage and without `xera.config.ts.explore` config knobs — both deferred to follow-up releases. Treat AI output as a brainstorming partner, not a source of truth.
 
 ## Extension model
 

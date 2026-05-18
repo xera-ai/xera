@@ -6,7 +6,7 @@ Claude Code follows the agent instructions in [`AGENTS.md`](AGENTS.md) — **rea
 
 ## What this repo is (read this once)
 
-xera is the **framework that ships Claude Code skills** (`/xera-run`, `/xera-fetch`, `/xera-feature`, `/xera-script`, `/xera-exec`, `/xera-report`, `/xera-impact`, `/xera-promote`, `/xera-eval`) plus the deterministic plumbing those skills call into. The end user is a QA engineer running `bunx @xera-ai/cli init` in their own project, then driving Playwright/HTTP tests from a Claude Code session.
+xera is the **framework that ships Claude Code skills** (`/xera-run`, `/xera-fetch`, `/xera-feature`, `/xera-script`, `/xera-exec`, `/xera-report`, `/xera-impact`, `/xera-promote`, `/xera-coverage`, `/xera-fill-gap`, `/xera-explore`, `/xera-eval`) plus the deterministic plumbing those skills call into. The end user is a QA engineer running `bunx @xera-ai/cli init` in their own project, then driving Playwright/HTTP tests from a Claude Code session.
 
 In other words: when you edit this repo you are writing the prompts, skills, and helper binaries that an *end user's* Claude Code session will execute. Treat skill `.md` and prompt `.md` content as user-facing LLM instructions, not as internal docs.
 
@@ -18,7 +18,7 @@ packages/
                                 classifier (8 buckets incl. TEST_OUTDATED +
                                 CONTRACT_DRIFT/RATE_LIMITED/AUTH_EXPIRED),
                                 auth state, graph module, xera-internal binary
-    src/bin-internal/           26 subcommands invoked by skills via `bun run xera:*`
+    src/bin-internal/           28 subcommands invoked by skills via `bun run xera:*`
                                 v0.1: fetch, validate-feature, typecheck, lint,
                                       exec (supports --grep), normalize, report,
                                       post, status, unlock, promote
@@ -31,6 +31,7 @@ packages/
                                 v0.8: coverage-prepare, ac-coverage-backfill-prepare,
                                       ac-coverage-backfill-finalize, fill-gap-prepare,
                                       fill-gap-finalize
+                                v0.9: explore-prepare, explore-finalize (experimental)
                                 universal: verify-prompts, doctor (--auto-enrich)
     src/adapter/types.ts        TestAdapter interface — extension point
     src/classifier/             8-bucket classifier (REAL_BUG, TEST_BUG,
@@ -57,17 +58,20 @@ packages/
     templates/                  scaffold templates (xera.config, playwright.config,
                                 tsconfig, env.example, auth-setup, sample/,
                                 xera-graph.yml — CI viewer workflow)
-  skills/    @xera-ai/skills    Claude Code skill .md files (11 skills:
+  skills/    @xera-ai/skills    Claude Code skill .md files (12 skills:
                                 xera-run, xera-fetch, xera-feature, xera-script,
                                 xera-exec, xera-report, xera-impact, xera-promote,
                                 xera-eval [maintainer-only],
-                                xera-coverage (v0.8.0), xera-fill-gap (v0.8.2))
-  prompts/   @xera-ai/prompts   versioned LLM prompt templates (11 templates:
+                                xera-coverage (v0.8.0), xera-fill-gap (v0.8.2),
+                                xera-explore (v0.9.0 — experimental, opt-in,
+                                  not auto-chained from /xera-run))
+  prompts/   @xera-ai/prompts   versioned LLM prompt templates (12 templates:
                                 diagnose-failure, feature-from-story,
                                 script-from-feature-web, script-from-feature-http,
                                 heal-locator, extract-areas, similarity-match,
                                 classify-outdated, eval-rubric,
-                                map-ac-to-scenarios (v0.8), propose-scenarios (v0.8))
+                                map-ac-to-scenarios (v0.8), propose-scenarios (v0.8),
+                                adversarial-scenarios (v0.9 — experimental))
 fixtures/
   sample-app/                   Next.js login+dashboard target for integration tests
   mock-jira/                    Bun.serve mock Jira (deterministic tickets)
@@ -110,7 +114,7 @@ Do **not** confuse these with the `/xera-*` end-user skills in `packages/skills/
 
 ## `/xera-*` skills inside this repo
 
-Most `/xera-*` skills (`/xera-run`, `/xera-fetch`, `/xera-feature`, `/xera-script`, `/xera-exec`, `/xera-report`, `/xera-impact`, `/xera-promote`) expect a consumer project layout (with `xera.config.ts`, `.xera/` artifacts, etc.): a top-level `xera.config.ts`, a `.xera/<TICKET>/` artifact directory, generated POMs, `.xera/graph/events/` history, etc. This monorepo does not have any of that, so running them here will fail or silently no-op.
+Most `/xera-*` skills (`/xera-run`, `/xera-fetch`, `/xera-feature`, `/xera-script`, `/xera-exec`, `/xera-report`, `/xera-impact`, `/xera-promote`, `/xera-coverage`, `/xera-fill-gap`, `/xera-explore`) expect a consumer project layout (with `xera.config.ts`, `.xera/` artifacts, etc.): a top-level `xera.config.ts`, a `.xera/<TICKET>/` artifact directory, generated POMs, `.xera/graph/events/` history, etc. This monorepo does not have any of that, so running them here will fail or silently no-op.
 
 To exercise them end-to-end, scaffold a throwaway project:
 

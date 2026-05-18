@@ -1,5 +1,5 @@
 {
-  "prompts": "2.4.0",
+  "prompts": "2.5.0",
   "templates": [
     "diagnose-failure.md",
     "feature-from-story.md",
@@ -8,6 +8,7 @@
     "heal-locator.md",
     "extract-areas.md",
     "similarity-match.md",
-    "classify-outdated.md"
+    "classify-outdated.md",
+    "adversarial-scenarios.md"
   ]
 }

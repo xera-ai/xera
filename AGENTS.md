@@ -4,7 +4,7 @@ Instructions for AI coding agents (Claude Code, Codex, Cursor, etc.) working in 
 
 ## Project at a glance
 
-xera is an **AI-native test framework** that lets QA engineers generate, run, and diagnose Playwright/HTTP tests by invoking Claude Code skills against Jira tickets. The end-user surface is two CLI commands (`xera init`, `xera doctor`) plus nine Claude Code skills (`/xera-run`, `/xera-fetch`, `/xera-feature`, `/xera-script`, `/xera-exec`, `/xera-report`, `/xera-impact`, `/xera-promote`, `/xera-eval`). Everything else is internal plumbing invoked by skills via `bun run xera:*` scripts (26 `xera-internal` subcommands).
+xera is an **AI-native test framework** that lets QA engineers generate, run, and diagnose Playwright/HTTP tests by invoking Claude Code skills against Jira tickets. The end-user surface is two CLI commands (`xera init`, `xera doctor`) plus twelve Claude Code skills (`/xera-run`, `/xera-fetch`, `/xera-feature`, `/xera-script`, `/xera-exec`, `/xera-report`, `/xera-impact`, `/xera-promote`, `/xera-coverage`, `/xera-fill-gap`, `/xera-explore`, `/xera-eval`). Everything else is internal plumbing invoked by skills via `bun run xera:*` scripts (28 `xera-internal` subcommands).
 
 Since v0.6, xera maintains a **project knowledge graph** — an event-sourced, repo-local data layer that records every fetch / script / exec / report / promote, derives a snapshot, and powers TEST_OUTDATED classification, `/xera-impact` analysis, an HTML viewer, and dispute capture. Graph events are sharded one-file-per-skill-invocation so concurrent QA causes no git merge conflicts.
 
@@ -26,15 +26,15 @@ When in doubt about *why* something is shaped a certain way, the design spec is 
 packages/
   core/         # @xera-ai/core — config, paths, hashing, lock, log, Jira client,
                 # 8-bucket classifier, auth state, graph/ module (v0.6+),
-                # xera-internal binary (26 subcommands)
+                # xera-internal binary (28 subcommands)
   cli/          # @xera-ai/cli — public CLI: init (--shape web|api|mixed) + doctor only
                 # templates/ includes xera-graph.yml (CI viewer scaffold)
   web/          # @xera-ai/web — Playwright adapter
                 # (executor with --grep, trace normalizer, secret scrubber, generator)
   http/         # @xera-ai/http — HTTP API adapter (v0.7+)
                 # (executor, auth strategies, OpenAPI loader, CONTRACT_DRIFT detection)
-  skills/       # @xera-ai/skills — 9 Claude Code skill .md files
-  prompts/      # @xera-ai/prompts — 9 versioned LLM prompt templates
+  skills/       # @xera-ai/skills — 12 Claude Code skill .md files
+  prompts/      # @xera-ai/prompts — 12 versioned LLM prompt templates
 fixtures/
   sample-app/   # Next.js app for integration tests
   mock-jira/    # Bun.serve mock for offline Jira
