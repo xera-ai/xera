@@ -277,13 +277,18 @@ export function deriveSnapshot(events: Event[]): Snapshot {
       }
       case 'ac-coverage.backfilled': {
         const { ts, ticketId, mappings } = e.payload;
-        // Remove prior backfill edges for this ticket (idempotent)
+        // Upsert per scenarioId: drop only the prior backfill edges from the
+        // scenarios this event maps, then add the new edges. Scenarios not
+        // mentioned in the payload keep their prior edges so partial backfills
+        // are additive (matches every other handler — see #119).
+        const touchedScenarios = new Set(mappings.map((m) => m.scenarioId));
         for (let i = edges.length - 1; i >= 0; i--) {
           const ed = edges[i]!;
           if (
             ed.kind === 'satisfies' &&
             ed.source === 'ac-coverage' &&
-            ed.to.startsWith(`${ticketId}#ac-`)
+            ed.to.startsWith(`${ticketId}#ac-`) &&
+            touchedScenarios.has(ed.from)
           ) {
             edges.splice(i, 1);
           }

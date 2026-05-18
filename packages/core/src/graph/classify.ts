@@ -43,7 +43,7 @@ export type DecideOutdated = (args: {
 }) => Promise<OutdatedDecision>;
 
 const DEFAULT_THRESHOLD = 0.7;
-const SHORT_CIRCUIT: Classification[] = ['FLAKY', 'PASS'];
+const SHORT_CIRCUIT: Classification[] = ['FLAKY', 'PASS', 'SKIPPED'];
 
 export function findCandidateTickets(graph: Snapshot, scenario: ScenarioNode): TicketNode[] {
   const poms = graph.edges

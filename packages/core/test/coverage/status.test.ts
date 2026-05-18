@@ -63,6 +63,16 @@ describe('computeScenarioStatus', () => {
     );
     expect(computeScenarioStatus('PROJ-1#scenario-0', snap, 30, now)).toBe('NOT_PASSING');
   });
+
+  test('NOT_PASSING when latest classification is SKIPPED (does not verify AC)', () => {
+    const snap = emptySnap();
+    snap.classifications.push({
+      scenarioId: 'PROJ-1#scenario-0',
+      classification: 'SKIPPED',
+      ts: '2026-05-15T10:00:00.000Z',
+    });
+    expect(computeScenarioStatus('PROJ-1#scenario-0', snap, 30, now)).toBe('NOT_PASSING');
+  });
 });
 
 describe('computeAreaStatus', () => {

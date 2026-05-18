@@ -48,7 +48,7 @@ Read `.xera/coverage/report.json`. If `acBackfillNeeded === true`:
 bun run xera:ac-coverage-backfill-prepare
 ```
 
-This writes `.xera/coverage/ac-backfill-input.json` listing tickets that have ACs + scenarios but no `satisfies` edges yet.
+This writes `.xera/coverage/ac-backfill-input.json` listing tickets with at least one **unmapped** scenario (a scenario that has no `satisfies` edge to any of its ticket's ACs). Tickets with partially mapped scenarios surface only their unmapped scenarios — finalize is additive per scenarioId (#119), so generating decisions for just the unmapped set will not clobber prior mappings.
 
 If the input file is `{ "tickets": [] }`, skip to Step 4 — there's nothing to backfill (the `acBackfillNeeded` flag in report.json may be a leftover stale state; re-running `coverage-prepare` will refresh it).
 

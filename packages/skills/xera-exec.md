@@ -18,12 +18,14 @@ The user invoked `/xera-exec <TICKET>`. If no key, ask.
 
 4. Suggest: "Diagnose this run with `/xera-report {{TICKET}}`."
 
-## Step 5 — Record graph events (v0.6)
+## Step 5 — Record graph events
 
-After Playwright reporter writes `runs/<RUN_ID>/reporter.json`:
+`/xera-report` calls `bun run xera:normalize {{TICKET}}` as its first step, which now emits the `run.completed` events for this run automatically (see #118). No explicit `graph-record exec` call is needed here.
+
+If you skip `/xera-report` (e.g. running `/xera-exec` standalone for a smoke check), trigger the same emission with:
 
 ```bash
-bun run xera:graph-record exec <TICKET> --run-id <RUN_ID>
+bun run xera:normalize <TICKET>
 ```
 
-Non-fatal.
+Non-fatal. (The lower-level `bun run xera:graph-record exec <TICKET> --run-id <RUN_ID>` still works for manual replay, but produces duplicate events if `xera:normalize` already ran for the same run.)

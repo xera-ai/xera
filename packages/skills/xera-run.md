@@ -65,7 +65,7 @@ Run `bun run xera:exec {{TICKET}}`.
 
 ## Step 5 — Normalize
 
-Run `bun run xera:normalize {{TICKET}}`.
+Run `bun run xera:normalize {{TICKET}}`. This writes `normalized.json` AND emits `run.completed` events to the graph for every PASS/FAIL scenario in the run, so `latest_failures` and risk scoring stay in sync with reality (see #118 — earlier versions silently rendered failed scenarios green on `graph.html`).
 
 ## Step 6 — Diagnose + report + post
 

@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 const ClassificationEnum = z.enum([
   'PASS',
+  'SKIPPED',
   'REAL_BUG',
   'SELECTOR_DRIFT',
   'FLAKY',

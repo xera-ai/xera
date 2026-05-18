@@ -26,7 +26,7 @@ Step 4 below is *cognitive work that YOU, the session, must do*. It is not a she
    - `node_modules/@xera-ai/prompts/diagnose-failure.md` (the prompt template — read it in full; the rest of step 4 follows ITS rules)
 
 4. **Classify (YOUR job, no CLI shortcut here).** Follow `diagnose-failure.md`'s decision algorithm scenario-by-scenario. For each scenario in `normalized.json`, decide:
-   - `class`: one of `PASS`, `REAL_BUG`, `SELECTOR_DRIFT`, `FLAKY`, `TEST_BUG`
+   - `class`: one of `PASS`, `SKIPPED`, `REAL_BUG`, `SELECTOR_DRIFT`, `FLAKY`, `TEST_BUG`. If `outcome === "SKIPPED"`, set `class: "SKIPPED"` — never `PASS`, because skipped scenarios do not verify their AC and coverage will over-report.
    - `confidence`: `low`, `medium`, or `high`
    - `rationale`: 1–3 sentences in English citing concrete evidence (URL, HTTP status, element name, prior run timestamps, hash drift, etc.)
 
@@ -39,7 +39,7 @@ Step 4 below is *cognitive work that YOU, the session, must do*. It is not a she
        {
          "name": "<scenario name>",
          "outcome": "PASS" | "FAIL" | "SKIPPED",
-         "class": "PASS" | "REAL_BUG" | "SELECTOR_DRIFT" | "FLAKY" | "TEST_BUG",
+         "class": "PASS" | "SKIPPED" | "REAL_BUG" | "SELECTOR_DRIFT" | "FLAKY" | "TEST_BUG",
          "confidence": "low" | "medium" | "high",
          "rationale": "..."
        }

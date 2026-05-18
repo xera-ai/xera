@@ -113,7 +113,90 @@ describe('ac-coverage-backfill-prepare end-to-end', () => {
     }
   });
 
-  test('excludes tickets already fully mapped via satisfies edges', async () => {
+  test('surfaces only unmapped scenarios when a ticket is partially mapped (#119)', async () => {
+    const dir = makeProject();
+    const events: Event[] = [
+      {
+        event_id: eid('20260512100002'),
+        schema_version: 1,
+        ts: '2026-05-12T10:00:00.000Z',
+        actor: 'test',
+        type: 'ticket.fetched',
+        payload: {
+          ticketId: 'PROJ-300',
+          summary: 'Partially mapped',
+          ac: ['AC 0', 'AC 1'],
+          jiraLinks: [],
+          storyHash: 'h',
+          modifiesAreas: [],
+        },
+      },
+      {
+        event_id: eid('20260512110002'),
+        schema_version: 1,
+        ts: '2026-05-12T11:00:00.000Z',
+        actor: 'test',
+        type: 'scenario.generated',
+        payload: {
+          scenarioId: 'PROJ-300#scenario-mapped',
+          ticketId: 'PROJ-300',
+          name: 'mapped',
+          gherkin: 'g',
+          priority: 'p1',
+          featureHash: 'h',
+          generatedAt: '2026-05-12T11:00:00.000Z',
+        },
+      },
+      {
+        event_id: eid('20260512110003'),
+        schema_version: 1,
+        ts: '2026-05-12T11:01:00.000Z',
+        actor: 'test',
+        type: 'scenario.generated',
+        payload: {
+          scenarioId: 'PROJ-300#scenario-new',
+          ticketId: 'PROJ-300',
+          name: 'new',
+          gherkin: 'g',
+          priority: 'p1',
+          featureHash: 'h',
+          generatedAt: '2026-05-12T11:01:00.000Z',
+        },
+      },
+      {
+        event_id: eid('20260512120002'),
+        schema_version: 1,
+        ts: '2026-05-12T12:00:00.000Z',
+        actor: 'test',
+        type: 'edge.discovered',
+        payload: {
+          kind: 'satisfies',
+          from: 'PROJ-300#scenario-mapped',
+          to: 'PROJ-300#ac-0',
+          source: 'ac-coverage',
+          confidence: 0.9,
+        },
+      },
+    ];
+    appendEvents(dir, events, { skill: 'fetch', ticketId: 'PROJ-300' });
+    const prevCwd = process.cwd();
+    process.chdir(dir);
+    try {
+      await acCoverageBackfillPrepareCmd([]);
+      const input = JSON.parse(
+        readFileSync(join(dir, '.xera/coverage/ac-backfill-input.json'), 'utf8'),
+      );
+      expect(input.tickets).toHaveLength(1);
+      expect(input.tickets[0].id).toBe('PROJ-300');
+      const ids = input.tickets[0].scenarios.map((s: { id: string }) => s.id);
+      expect(ids).toEqual(['PROJ-300#scenario-new']);
+    } finally {
+      process.chdir(prevCwd);
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test('excludes tickets where every scenario is already mapped via satisfies edges', async () => {
     const dir = makeProject();
     const events: Event[] = [
       {
