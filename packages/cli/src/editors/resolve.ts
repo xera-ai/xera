@@ -16,9 +16,7 @@ function parseFlag(flag: string): EditorName[] {
     .map((s) => s.trim())
     .filter(Boolean);
   if (parts.length === 0) {
-    throw new Error(
-      `--editor: empty value. Valid: ${ALL_EDITORS.join(', ')} (or 'all').`,
-    );
+    throw new Error(`--editor: empty value. Valid: ${ALL_EDITORS.join(', ')} (or 'all').`);
   }
   const bad = parts.filter((p) => !(ALL_EDITORS as readonly string[]).includes(p));
   if (bad.length) {
