@@ -48,6 +48,10 @@ export function parseFrontmatter(md: string): {
       fields[key] = collected.join('\n');
     } else if (value === 'true' || value === 'false') {
       fields[key] = value === 'true';
+    } else if (value.length >= 2 && value.startsWith('"') && value.endsWith('"')) {
+      // Strip the matched outer pair of quotes produced by `serializeFrontmatter`
+      // for values containing `:` or `#`. Keeps parse/serialize round-trippable.
+      fields[key] = value.slice(1, -1).replace(/\\"/g, '"');
     } else {
       fields[key] = value;
     }

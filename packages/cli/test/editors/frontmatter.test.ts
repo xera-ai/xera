@@ -64,4 +64,10 @@ describe('serializeFrontmatter', () => {
     const out = serializeFrontmatter({ description: 'tag#1' });
     expect(out).toBe('---\ndescription: "tag#1"\n---\n');
   });
+
+  test('round-trips quoted strings (parse strips outer quotes added by serialize)', () => {
+    const md = serializeFrontmatter({ description: 'a: b' });
+    const { frontmatter } = parseFrontmatter(md);
+    expect(frontmatter.fields.description).toBe('a: b');
+  });
 });

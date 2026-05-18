@@ -25,3 +25,10 @@ per editor (`claude.ts`, `cursor.ts`, `codex.ts`) implementing a shared
 `EditorAdapter` interface. Single source of truth for skill bodies stays
 in `@xera-ai/skills`; Cursor's RULE.md frontmatter is transformed at
 scaffold time.
+
+Behavior change to note for users tracking local edits: `init --update`
+no longer prompts per-skill on diffs (the 3-way prompt from PR #106). It
+now always overwrites with the latest `@xera-ai/skills` content, after
+auto-migrating any legacy flat `.claude/skills/<name>.md` layout. Commit
+local edits in your consumer repo before running `--update` if you want
+to preserve them.
