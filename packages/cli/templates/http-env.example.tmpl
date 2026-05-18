@@ -2,6 +2,6 @@
 JIRA_EMAIL=
 JIRA_API_TOKEN=
 
-# Auth tokens for HTTP roles - set in .env.local (gitignored)
+# Auth tokens for HTTP roles - set in .env (gitignored)
 {{#each httpRoles}}{{upper this}}_BEARER_TOKEN=
 {{/each}}

@@ -148,6 +148,23 @@ describe('XeraConfigSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  test('rejects unknown top-level keys (strict)', () => {
+    // Guard against the v0.12 bug where docs referenced `testOutdated` and `report`
+    // keys not in the schema; zod's default `.strip()` silently dropped them.
+    const result = XeraConfigSchema.safeParse({
+      jira: {
+        baseUrl: 'https://x.atlassian.net',
+        projectKeys: ['X'],
+        fields: { story: 'description' },
+      },
+      web: { baseUrl: { staging: 'https://x.com' }, defaultEnv: 'staging' },
+      adapters: ['web'],
+      testOutdated: { threshold: 0.7 },
+      report: { testOutdatedNotify: 'jira-subtask' },
+    });
+    expect(result.success).toBe(false);
+  });
+
   test('auth strategy default is "none"', () => {
     const parsed = XeraConfigSchema.parse({
       jira: {
