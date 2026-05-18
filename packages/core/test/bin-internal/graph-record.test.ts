@@ -60,6 +60,42 @@ describe('graph-record fetch', () => {
     const exit = await graphRecordCmd(['fetch', 'ABC-100']);
     expect(exit).toBe(1);
   });
+
+  test('warns to stderr when graph-input.json is missing and falls back to []', async () => {
+    seedFetch('ABC-101');
+    // Remove the seeded graph-input.json to simulate the skipped step-5 case.
+    rmSync(join(root, '.xera', 'ABC-101', 'graph-input.json'));
+    const w = captureWarn();
+    try {
+      const exit = await graphRecordCmd(['fetch', 'ABC-101']);
+      expect(exit).toBe(0);
+      const joined = w.lines.join('\n');
+      expect(joined).toContain('graph-input.json');
+      expect(joined).toContain('ABC-101');
+      expect(joined).toContain('modifiesAreas=[]');
+      const events = loadAllEvents(root);
+      const fetched = events.find((e) => e.type === 'ticket.fetched');
+      expect((fetched!.payload as { modifiesAreas: string[] }).modifiesAreas).toEqual([]);
+    } finally {
+      w.restore();
+    }
+  });
+
+  test('warns to stderr when graph-input.json is invalid JSON and falls back to []', async () => {
+    seedFetch('ABC-102');
+    writeFileSync(join(root, '.xera', 'ABC-102', 'graph-input.json'), '{not json');
+    const w = captureWarn();
+    try {
+      const exit = await graphRecordCmd(['fetch', 'ABC-102']);
+      expect(exit).toBe(0);
+      const joined = w.lines.join('\n');
+      expect(joined).toContain('graph-input.json');
+      expect(joined).toContain('invalid');
+      expect(joined).toContain('ABC-102');
+    } finally {
+      w.restore();
+    }
+  });
 });
 
 describe('graph-record promote', () => {

@@ -125,10 +125,18 @@ function readStoryFrontmatter(repoRoot: string, ticket: string): StoryFrontmatte
 
 function readGraphInput(repoRoot: string, ticket: string): { modifiesAreas: string[] } {
   const path = join(repoRoot, '.xera', ticket, 'graph-input.json');
-  if (!existsSync(path)) return { modifiesAreas: [] };
+  if (!existsSync(path)) {
+    console.warn(
+      `[graph-record fetch] graph-input.json missing for ${ticket} — modifiesAreas=[] (run step 5 of /xera-fetch to populate)`,
+    );
+    return { modifiesAreas: [] };
+  }
   try {
     return JSON.parse(readFileSync(path, 'utf8'));
-  } catch {
+  } catch (err) {
+    console.warn(
+      `[graph-record fetch] graph-input.json invalid JSON for ${ticket} at ${path} — modifiesAreas=[] (${(err as Error).message})`,
+    );
     return { modifiesAreas: [] };
   }
 }

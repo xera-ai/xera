@@ -29,7 +29,7 @@ export async function doctorCommand(opts: {
     return 0;
   }
 
-  const checks = await runChecks(cwd);
+  const checks = await runChecks(cwd, opts.strict ? { ticket: opts.strict } : {});
   for (const c of checks) {
     const icon = c.ok ? pc.green('✓') : pc.red('✗');
     console.log(`${icon} ${c.name}${c.message ? pc.dim(` — ${c.message}`) : ''}`);
