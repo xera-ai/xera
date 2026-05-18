@@ -2,6 +2,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { loadConfig, readAuthState } from '@xera-ai/core';
 import { parse as parseYaml } from 'yaml';
+import { detectEditors } from './editors/detect';
+import { editors } from './editors';
 
 export interface Check {
   name: string;
@@ -367,43 +369,30 @@ export async function runChecks(cwd: string, opts: RunChecksOptions = {}): Promi
     });
   }
 
-  // Skills — Claude Code's Skill tool requires .claude/skills/<name>/SKILL.md
-  // (directory + SKILL.md inside), not the flat .claude/skills/<name>.md that
-  // earlier versions of `xera init` scaffolded. Flag legacy projects so users
-  // know to run `xera init --update` to migrate.
-  const skillsDir = join(cwd, '.claude/skills');
-  if (!existsSync(skillsDir)) {
-    checks.push({ name: 'xera skills present', ok: false, message: 'run `xera init`' });
+  // Editor integrations — each detected editor contributes its own checks.
+  // Required skill names cover the core workflow; doctor doesn't pin newer
+  // optional skills (xera-coverage, xera-impact, etc.) to keep the check
+  // surface stable across releases.
+  const REQUIRED_SKILLS = [
+    'xera-run',
+    'xera-fetch',
+    'xera-feature',
+    'xera-script',
+    'xera-exec',
+    'xera-report',
+    'xera-promote',
+  ];
+  const detected = detectEditors(cwd);
+  if (detected.length === 0) {
+    checks.push({
+      name: 'xera editor integration present',
+      ok: false,
+      message: 'run `xera init` (scaffolds for Claude Code, Cursor, and/or Codex)',
+    });
   } else {
-    const required = [
-      'xera-run',
-      'xera-fetch',
-      'xera-feature',
-      'xera-script',
-      'xera-exec',
-      'xera-report',
-      'xera-promote',
-    ];
-    const missing: string[] = [];
-    const legacyFlat: string[] = [];
-    for (const base of required) {
-      if (existsSync(join(skillsDir, base, 'SKILL.md'))) continue;
-      if (existsSync(join(skillsDir, `${base}.md`))) {
-        legacyFlat.push(base);
-      } else {
-        missing.push(base);
-      }
+    for (const name of detected) {
+      checks.push(...editors[name].doctorChecks(cwd, REQUIRED_SKILLS));
     }
-    const skillsCheck: Check = {
-      name: 'xera skills present',
-      ok: missing.length === 0 && legacyFlat.length === 0,
-    };
-    if (missing.length) {
-      skillsCheck.message = `missing: ${missing.map((b) => `${b}/SKILL.md`).join(', ')}`;
-    } else if (legacyFlat.length) {
-      skillsCheck.message = `legacy flat layout in .claude/skills/ — run \`xera init --update\` to migrate to <name>/SKILL.md (Claude Code Skill tool requires the directory layout)`;
-    }
-    checks.push(skillsCheck);
   }
 
   return checks;
