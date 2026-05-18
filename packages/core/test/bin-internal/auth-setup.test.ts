@@ -120,25 +120,23 @@ describe('authSetupCmd shape mismatch detection (#93)', () => {
     expect(stderr).toContain('no `http` block');
   });
 
-  test('--shape all (default) on mixed config with no http export → exit 1', async () => {
+  test('--shape all (default) on mixed config with no exports → exit 1 with both warnings', async () => {
     // This is the infinite-loop case from the issue: doctor says "run auth-setup",
     // user runs `bun run xera:auth-setup` (no --shape flag, defaults to `all`),
-    // it used to silently no-op on http. Now it surfaces the problem.
+    // it used to silently no-op. Now both warnings fire from the pre-flight.
+    // Using a no-export auth-setup.ts keeps the test hermetic — the web branch
+    // would otherwise try to launch chromium which isn't installed in CI.
     writeConfig(mixedConfig(repoRoot));
-    writeAuthSetup(WEB_ONLY_SETUP);
+    writeAuthSetup('// no exports');
 
     const cap = captureStderr();
-    // Need creds so the web branch doesn't bail first (it will still warn, but
-    // that's fine — we want to see the http warning emerge before silent exit).
-    process.env.A_E = 'a@b.c';
-    process.env.A_P = 'pwd';
     const exit = await authSetupCmd(['--shape', 'all']);
     const stderr = cap.restore();
-    delete process.env.A_E;
-    delete process.env.A_P;
 
     expect(exit).toBe(1);
     expect(stderr).toContain('http adapter is configured');
     expect(stderr).toContain('missing the `http` export');
+    expect(stderr).toContain('web adapter is configured');
+    expect(stderr).toContain('missing the `web` export');
   });
 });
