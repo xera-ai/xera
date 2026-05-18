@@ -10,6 +10,7 @@ Every project has a single root config: `xera.config.ts`. This file is committed
 Flags (all optional):
   -y, --yes                         Accept all defaults for any unflagged field
   --shape web|api|mixed             Project shape (default: web)
+  --editor <list>                   Editor(s) to scaffold: claude,cursor,codex or "all" (default: auto-detect or all)
 
   Jira:
   --ju, --jira-base-url <url>       Jira workspace URL

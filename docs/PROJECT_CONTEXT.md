@@ -4,7 +4,7 @@ A single-page brief on **what xera is, who it is for, and where it is going**. R
 
 ## 1. One-paragraph vision
 
-xera is an **AI-native test framework** for QA teams. A QA opens Claude Code, types `/xera-run JIRA-123`, and the framework fetches the story from Jira, generates Gherkin scenarios, writes Playwright `spec.ts` + page objects, executes the run, classifies the outcome (real bug vs. test rot vs. flake vs. contract drift vs. auth/rate-limit issue), and posts a diagnosis back to Jira — all driven by Claude Code skills calling deterministic helpers in `xera-internal`. The same loop works for browser-driven web tests (`@xera-ai/web`) and HTTP API tests (`@xera-ai/http`).
+xera is an **AI-native test framework** for QA teams. A QA opens their AI coding agent (Claude Code, Cursor, or OpenAI Codex CLI), types `/xera-run JIRA-123`, and the framework fetches the story from Jira, generates Gherkin scenarios, writes Playwright `spec.ts` + page objects, executes the run, classifies the outcome (real bug vs. test rot vs. flake vs. contract drift vs. auth/rate-limit issue), and posts a diagnosis back to Jira — all driven by AI coding-agent skills calling deterministic helpers in `xera-internal`. The same loop works for browser-driven web tests (`@xera-ai/web`) and HTTP API tests (`@xera-ai/http`).
 
 The non-obvious bet: keep the AI work inside the user's Claude Code session, and keep everything else in plain, deterministic, file-in/file-out binaries that any QA can read, debug, and trust.
 
@@ -24,7 +24,7 @@ That is xera.
 
 | Audience | Why they touch xera |
 |---|---|
-| **QA engineer (primary)** | Runs `/xera-*` skills in Claude Code; reviews + commits Gherkin and generated `spec.ts`; disputes classifications they disagree with. |
+| **QA engineer (primary)** | Runs `/xera-*` skills in their AI coding agent (Claude Code, Cursor, or Codex CLI); reviews + commits Gherkin and generated `spec.ts`; disputes classifications they disagree with. |
 | **PO / BA (secondary)** | Reviews `test.feature` as the contract between AC and tests; never needs to read `spec.ts`. |
 | **Eng manager / QA lead** | Opens the graph HTML viewer (built in CI, sticky-commented on PRs) to see coverage, impact, and disputes without cloning the repo. |
 | **Dev** | Sees Jira comments posted by xera; occasionally chases a `CONTRACT_DRIFT` finding against an OpenAPI change. |
@@ -72,7 +72,7 @@ Six packages, one fixed-group version (currently `0.8.x`; v0.9 in flight). All b
 | `@xera-ai/cli` | Public CLI — only `init` and `doctor`. Everything else is via skills. |
 | `@xera-ai/web` | Browser adapter — Playwright + trace normalizer + POM-scan + Gherkin lint. |
 | `@xera-ai/http` | HTTP API adapter — Playwright `APIRequestContext`, OpenAPI loader, pre-auth helpers, `CONTRACT_DRIFT` detection. |
-| `@xera-ai/skills` | The 12 user-facing `.md` workflows that drive everything from a Claude Code session. |
+| `@xera-ai/skills` | The 12 user-facing `.md` workflows that drive everything from an AI coding-agent session (Claude Code, Cursor, or Codex CLI). Scaffolded per editor by `xera init`. |
 | `@xera-ai/prompts` | The 12 versioned LLM prompt templates the skills point at. |
 
 ### 4.3 Where data lives
@@ -159,7 +159,7 @@ These are the guardrails that decide design trade-offs. When in doubt, fall back
 - **Web E2E** via Playwright (browser-driven, with auth-state refresh).
 - **HTTP API** via Playwright `APIRequestContext` (no browser, OpenAPI-aware).
 - **Jira** as the ticket source of record (REST + MCP backends).
-- **Claude Code** as the only supported AI session (`/xera-*` skills are Claude Code skills).
+- **AI coding agents** — Claude Code, Cursor ≥1.6, and OpenAI Codex CLI — as the supported skill runners (`/xera-*` skills are scaffolded per editor by `xera init --editor <list>`).
 - **Project knowledge graph** — ticket ↔ scenario ↔ POM ↔ SUT-area ↔ AC links, kept as committed event JSONL.
 - **Coverage & AC matrix** — three-state area model (UNCOVERED / STALE / COVERED) + AC-level gaps.
 - **Self-heal of selector drift** — auto-fix POM locators when the SUT moved.
@@ -167,7 +167,7 @@ These are the guardrails that decide design trade-offs. When in doubt, fall back
 
 ### Out of scope
 
-- **Other AI clients.** Codex CLI, Cursor, ChatGPT — not supported. Skills assume Claude Code's tool-use loop.
+- **Other AI clients.** ChatGPT, Gemini CLI, and similar tools are not supported. xera targets Claude Code, Cursor ≥1.6, and OpenAI Codex CLI only.
 - **Mobile, performance, security, messaging adapters.** Designed for via the adapter pattern but not built (planned v1.x for messaging; mobile/perf/security have no current owner).
 - **Cloud backend / multi-tenant SaaS.** Considered v2.0 only if multi-org demand emerges.
 - **Test data factories / cleanup automation.** Out of scope — QA's responsibility via fixtures and `auth-setup`.

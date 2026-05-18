@@ -66,6 +66,16 @@ bunx xera init --update
 # Restart Claude Code to refresh skill discovery.
 ```
 
+### Skill not discovered in Cursor / Codex
+
+If `/xera-run` works in Claude Code but Cursor's slash menu doesn't list xera commands (or Codex's agent doesn't pick up the xera-run skill), the project was scaffolded before multi-editor support. Run:
+
+```bash
+xera init --update --editor cursor   # or --editor codex, or --editor all
+```
+
+`xera doctor` flags this case with `xera skills present (cursor): missing`.
+
 ## 10. `Auth file not found for role 'X'` (v0.7+ http adapter)
 
 The runtime helper `newAuthedContext` couldn't find `.xera/.auth/http/<role>.json`. Run pre-authentication:

@@ -7,9 +7,9 @@ For the full specs see [design docs](superpowers/specs/) (v0.1 core, v0.2 eval, 
 ```
 End user (QA)
   │ uses `bunx xera init --shape web|api|mixed` once (scaffolds CI workflow + npm scripts)
-  │ then `/xera-*` slash commands in Claude Code
+  │ then `/xera-*` slash commands in their AI coding agent (Claude Code, Cursor, or Codex CLI)
   ▼
-Skills (`.claude/skills/xera-*.md`) — 12 user-facing workflows
+Skills — 12 user-facing workflows (Claude Code / Cursor / OpenAI Codex CLI via the editor adapter registry in `packages/cli/src/editors/`)
   │ tell the session LLM what to do
   │ session LLM calls `bun run xera:*`
   ▼
@@ -26,6 +26,16 @@ Adapters (dispatched by `meta.json.adapter`):
   ▼
 Playwright + the user's app / HTTP API under test
 ```
+
+### Editor skill paths
+
+`xera init` scaffolds skills and commands for each supported editor:
+
+| Editor      | Skill path                         | Command path                  |
+|-------------|------------------------------------|-------------------------------|
+| Claude Code | `.claude/skills/<n>/SKILL.md`      | `.claude/commands/<n>.md`     |
+| Cursor      | `.cursor/rules/<n>/RULE.md`        | `.cursor/commands/<n>.md`     |
+| Codex CLI   | `.agents/skills/<n>/SKILL.md`      | (no project-level slash)      |
 
 ## v0.6 addition: Project Knowledge Graph
 
@@ -54,7 +64,7 @@ A repo-local event-sourced data layer running parallel to the v0.1 artifact pipe
 - The public CLI exposes only `init` and `doctor`. Everything else is via skills.
 - Skill prompts + `xera-internal` form a closed pair: the skill knows when to call which subcommand and what to do with its output.
 - Every `xera-internal` subcommand reads from disk and writes to disk. No subcommand keeps state across invocations.
-- AI work happens in the QA's Claude Code session — there is no `claude` binary shell-out from `xera-internal`. Even the graph similarity / TEST_OUTDATED classifier calls Claude **from the skill** (skill writes input JSON, calls binary, binary reads input).
+- AI work happens in the QA's coding-agent session — there is no AI binary shell-out from `xera-internal`. Even the graph similarity / TEST_OUTDATED classifier calls the LLM **from the skill** (skill writes input JSON, calls binary, binary reads input).
 - Secret scrubbing is deterministic and runs before LLM ever sees normalized run data.
 - Graph events are sharded one-file-per-skill-invocation → zero git merge conflicts when multiple QA work in parallel.
 
@@ -66,7 +76,7 @@ A repo-local event-sourced data layer running parallel to the v0.1 artifact pipe
 | `@xera-ai/cli` | Public CLI: `init` (with `--shape web\|api\|mixed`), `doctor` | `xera` |
 | `@xera-ai/web` | Playwright browser adapter (executor with `--grep` support, trace normalizer, secret scrubber, POM-scan + Gherkin lint) | — |
 | `@xera-ai/http` | HTTP API adapter (Playwright `APIRequestContext`, no browser). Pre-auth via `defineHttpAuthSetup` + `presetHttpAuth`; runtime `newAuthedContext` for generated `spec.ts`; OpenAPI loader for schema-aware generation + `CONTRACT_DRIFT` detection | — |
-| `@xera-ai/skills` | 12 Claude Code skill `.md` files (`xera-run`, `xera-fetch`, `xera-feature`, `xera-script`, `xera-exec`, `xera-report`, `xera-impact`, `xera-promote`, `xera-eval`, `xera-coverage`, `xera-fill-gap`, `xera-explore`); dispatch by `meta.json.adapter` | — |
+| `@xera-ai/skills` | 12 AI coding-agent skill `.md` files (`xera-run`, `xera-fetch`, `xera-feature`, `xera-script`, `xera-exec`, `xera-report`, `xera-impact`, `xera-promote`, `xera-eval`, `xera-coverage`, `xera-fill-gap`, `xera-explore`); scaffolded per editor (Claude Code / Cursor / Codex CLI) by `xera init`; dispatch by `meta.json.adapter` | — |
 | `@xera-ai/prompts` | 12 versioned LLM prompt templates: `diagnose-failure`, `feature-from-story`, `script-from-feature-web`, `script-from-feature-http`, `heal-locator`, `extract-areas`, `similarity-match`, `classify-outdated`, `eval-rubric`, `map-ac-to-scenarios`, `propose-scenarios`, `adversarial-scenarios` | — |
 
 ## `xera-internal` subcommands (33)
