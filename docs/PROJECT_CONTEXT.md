@@ -32,7 +32,115 @@ That is xera.
 
 End users **never** install xera via `npm install @xera-ai/core`. They use `bunx @xera-ai/cli init` once and from then on interact through `/xera-*` slash commands.
 
-## 4. Product principles
+## 4. System at a glance
+
+A high-level mental model of the moving parts. For details (subcommand list, classifier classes, graph schema) jump to [`ARCHITECTURE.md`](ARCHITECTURE.md).
+
+### 4.1 The three-layer triad
+
+xera is built on a deliberate split between **what to do**, **how to think**, and **how to act on disk**:
+
+```
+   ┌──────────────────────────────────────────────────────────┐
+   │ Skills  (packages/skills/*.md)   — workflows             │
+   │   "Call this binary, then read this file, then call      │
+   │    this prompt, then write that file."                   │
+   └────────────────┬─────────────────────────────────────────┘
+                    │ skill points at ↓ in same session
+   ┌────────────────▼─────────────────────────────────────────┐
+   │ Prompts (packages/prompts/*.md) — LLM instructions       │
+   │   "Here is how to generate Gherkin / diagnose a          │
+   │    failure / classify outdatedness."                     │
+   └────────────────┬─────────────────────────────────────────┘
+                    │ skill also calls ↓ via `bun run xera:*`
+   ┌────────────────▼─────────────────────────────────────────┐
+   │ xera-internal (packages/core/src/bin-internal/)          │
+   │   Deterministic file-in / file-out binaries.             │
+   │   No AI shell-out, no network except Jira + the SUT.     │
+   └──────────────────────────────────────────────────────────┘
+```
+
+A skill is data the LLM reads to know the *workflow*. A prompt is data the LLM reads to know *how to generate*. A binary is the deterministic seam that touches disk, Jira, traces, and the graph. **Mixing these layers is the most common design mistake.**
+
+### 4.2 Packages
+
+Six packages, one fixed-group version (currently `0.8.x`; v0.9 in flight). All bump in lockstep via changesets.
+
+| Package | One-line role |
+|---|---|
+| `@xera-ai/core` | Config, paths, hashing, Jira client, classifier (9 classes), auth-state crypto, **graph module**, **coverage module**, and the `xera-internal` binary (deterministic helpers). |
+| `@xera-ai/cli` | Public CLI — only `init` and `doctor`. Everything else is via skills. |
+| `@xera-ai/web` | Browser adapter — Playwright + trace normalizer + POM-scan + Gherkin lint. |
+| `@xera-ai/http` | HTTP API adapter — Playwright `APIRequestContext`, OpenAPI loader, pre-auth helpers, `CONTRACT_DRIFT` detection. |
+| `@xera-ai/skills` | The 12 user-facing `.md` workflows that drive everything from a Claude Code session. |
+| `@xera-ai/prompts` | The 12 versioned LLM prompt templates the skills point at. |
+
+### 4.3 Where data lives
+
+Three categories of artifact, with very different lifecycles:
+
+```
+.xera/<TICKET>/                  per-ticket scratch (mostly gitignored)
+  story.md, meta.json            ◄── from xera:fetch
+  test.feature                   ◄── LLM-generated, human-reviewed, COMMITTED
+  spec.ts, page-objects/         ◄── LLM-generated, human-reviewed, COMMITTED
+  runs/<ts>/                     ◄── Playwright outputs (gitignored)
+  normalized.json, report.json   ◄── derived (gitignored)
+
+.xera/graph/
+  events/<session>.jsonl         ◄── append-only, sharded, COMMITTED
+  snapshot.json                  ◄── derived from events (gitignored)
+  graph.html                     ◄── viewer artifact (gitignored, CI publishes)
+
+.xera/.auth/{web,http}/<role>.json   AES-256-GCM encrypted storage state
+                                     (gitignored; never logged)
+```
+
+Commit-friendly text wins; everything derived is rebuildable from what is committed.
+
+### 4.4 The pipeline a QA actually triggers
+
+`/xera-run <TICKET>` orchestrates the full loop. Each arrow is a skill step that calls one or more `xera-internal` subcommands, often with an LLM-in-the-loop generation step in between.
+
+```
+   Jira ticket
+       │
+       ▼
+   fetch ──► story.md + meta.json     (deterministic; MCP or REST)
+       │
+       ▼
+   feature  ──► test.feature           (LLM via feature-from-story.md)
+       │        (validate-feature gate)
+       ▼
+   script   ──► spec.ts + POMs         (LLM via script-from-feature-{web,http}.md)
+       │        (typecheck + lint gate)
+       ▼
+   exec     ──► runs/<ts>/             (Playwright run; trace.zip)
+       │
+       ▼
+   normalize ─► normalized.json        (parse trace + secret-scrub)
+       │
+       ▼
+   report   ──► classification         (9 classes; in-session LLM uses
+       │                                diagnose-failure.md +
+       │                                classify-outdated.md against graph)
+       ▼
+   post     ──► Jira comment           (deterministic)
+```
+
+Skill steps emit `graph-record` events at every relevant boundary, so the project knowledge graph stays current without any extra QA action.
+
+### 4.5 The graph and its consumers
+
+The v0.6 project knowledge graph is the most under-appreciated component. It is a **commit-friendly event log** (`events/*.jsonl`, one file per skill invocation) plus a **derived snapshot** (`snapshot.json`, gitignored). Five read-only consumers stand on top of it:
+
+- **classify** — detects `TEST_OUTDATED` by reading recent run history; bumps `/xera-report` confidence.
+- **impact** — BFS over `modifies`/`covers` edges; answers "which scenarios may break if I merge ticket X?"
+- **coverage** (v0.8) — three-state area model + AC matrix; risk-weighted gap list.
+- **render** — single-file HTML viewer (vis-network); CI artifact + sticky comment.
+- **disputes** — CLI report of QA-overridden classifications; weekly QA-lead signal.
+
+## 5. Product principles
 
 These are the guardrails that decide design trade-offs. When in doubt, fall back to these:
 
@@ -44,7 +152,7 @@ These are the guardrails that decide design trade-offs. When in doubt, fall back
 6. **CI is a viewer, not a gate.** xera does not block PRs by default. It renders graph HTML + coverage tabs and posts sticky comments. Adoption beats enforcement.
 7. **No vendor lock to a cloud backend.** Everything lives in the user's repo. SaaS is a v2.x option contingent on multi-org demand, not a foundational assumption.
 
-## 5. Scope
+## 6. Scope
 
 ### In scope
 
@@ -66,7 +174,7 @@ These are the guardrails that decide design trade-offs. When in doubt, fall back
 - **CI-side test authoring.** xera generates tests **in the QA's local session**; CI only renders the graph viewer and runs the tests QA has already committed.
 - **Sources other than Jira** (Linear, GitHub Issues, Notion). Possible via the same client interface but not committed.
 
-## 6. Version journey
+## 7. Version journey
 
 xera releases under a single fixed-group version — all six packages bump in lockstep via changesets. Roadmap and reasons:
 
@@ -86,7 +194,7 @@ xera releases under a single fixed-group version — all six packages bump in lo
 
 Skip-numbering (v0.4 was rolled into v0.5; v0.8 absorbed release-infra) is deliberate — versions are scoped to ship a coherent user-visible bundle, not a single sub-feature.
 
-## 7. Where to go next
+## 8. Where to go next
 
 | If you want to… | Read |
 |---|---|
