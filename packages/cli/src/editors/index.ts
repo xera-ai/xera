@@ -1,4 +1,5 @@
 import type { ParsedFrontmatter } from './frontmatter';
+import { claudeAdapter } from './claude';
 
 export type EditorName = 'claude' | 'cursor' | 'codex';
 export const ALL_EDITORS: readonly EditorName[] = ['claude', 'cursor', 'codex'] as const;
@@ -29,4 +30,6 @@ export interface EditorAdapter {
 
 // Populated by Tasks 4 (claude), 5 (cursor), 6 (codex).
 // Imports added once each adapter file exists.
-export const editors: Partial<Record<EditorName, EditorAdapter>> = {};
+export const editors: Partial<Record<EditorName, EditorAdapter>> = {
+  claude: claudeAdapter,
+};
