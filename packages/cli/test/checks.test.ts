@@ -245,6 +245,47 @@ describe('runChecks ticket-specific (--strict <TICKET>)', () => {
     }
   });
 
+  test('AC check passes with provenance suffix when source: body-extraction', async () => {
+    const d = makeWebProject();
+    try {
+      writeStory(
+        d,
+        'PROJ-46B',
+        `ticketId: PROJ-46B\nsummary: "x"\nstoryHash: h\nacceptanceCriteria:\n  - "AC1"\nacceptanceCriteriaSource: body-extraction`,
+      );
+      const checks = await runChecks(d, { ticket: 'PROJ-46B' });
+      const w = checks.find(
+        (c) => c.name.includes('PROJ-46B') && c.name.toLowerCase().includes('acceptance'),
+      );
+      expect(w).toBeDefined();
+      expect(w!.ok).toBe(true);
+      expect(w!.message ?? '').toContain('body-extraction');
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
+
+  test('AC check hint for source: none (skill body-extraction tried and failed)', async () => {
+    const d = makeWebProject();
+    try {
+      writeStory(
+        d,
+        'PROJ-46C',
+        `ticketId: PROJ-46C\nsummary: "x"\nstoryHash: h\nacceptanceCriteriaSource: none`,
+      );
+      const checks = await runChecks(d, { ticket: 'PROJ-46C' });
+      const w = checks.find(
+        (c) => c.name.includes('PROJ-46C') && c.name.toLowerCase().includes('acceptance'),
+      );
+      expect(w).toBeDefined();
+      expect(w!.ok).toBe(false);
+      // Should mention step 4 / body section, NOT just "set jira.fields.acceptanceCriteria".
+      expect(w!.message ?? '').toMatch(/step 4|body|description/i);
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
+
   test('AC check is soft-ok with hint when config declares acceptanceCriteria field (AC in dedicated Jira field)', async () => {
     const d = mkdtempSync(join(tmpdir(), 'xera-checks-ac-'));
     try {

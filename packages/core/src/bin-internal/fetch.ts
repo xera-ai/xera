@@ -47,7 +47,11 @@ export async function fetchCmd(argv: string[], opts: FetchCmdOpts = {}): Promise
   const body = renderStoryBody(t);
   const storyHash = hashString(body);
   const acLines = parseAcLines(t.acceptanceCriteria);
-  const full = renderStory(t.key, t.summary, storyHash, acLines, body);
+  // Track where AC came from so /xera-fetch step 3.5 (cognitive body-extraction)
+  // and `xera doctor --strict <TICKET>` can act on accurate provenance.
+  // `body-extraction` is set later by the skill if it finds AC in the description.
+  const acSource: 'jira-field' | 'none' = acLines.length > 0 ? 'jira-field' : 'none';
+  const full = renderStory(t.key, t.summary, storyHash, acLines, acSource, body);
   mkdirSync(dirname(paths.storyPath), { recursive: true });
   writeFileSync(paths.storyPath, full);
 
@@ -112,6 +116,7 @@ function renderStory(
   summary: string,
   storyHash: string,
   acLines: string[],
+  acSource: 'jira-field' | 'none',
   body: string,
 ): string {
   const yamlLines = [
@@ -124,6 +129,7 @@ function renderStory(
     yamlLines.push('acceptanceCriteria:');
     for (const ac of acLines) yamlLines.push(`  - ${JSON.stringify(ac)}`);
   }
+  yamlLines.push(`acceptanceCriteriaSource: ${acSource}`);
   yamlLines.push('---', '');
   return yamlLines.join('\n') + body;
 }

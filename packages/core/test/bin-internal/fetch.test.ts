@@ -6,22 +6,27 @@ import { fetchCmd } from '../../src/bin-internal/fetch';
 
 const DEFINE_PATH = resolve(__dirname, '../../src/config/define.ts');
 
-describe('xera-internal fetch', () => {
-  test('writes story.md and meta.json', async () => {
-    const cwd = mkdtempSync(join(tmpdir(), 'xera-fetch-'));
-    // Write xera.config.ts
-    writeFileSync(
-      join(cwd, 'xera.config.ts'),
-      `
+function writeConfig(cwd: string, withAcField = false): void {
+  const fields = withAcField
+    ? `{ story: 'description', acceptanceCriteria: 'customfield_10100' }`
+    : `{ story: 'description' }`;
+  writeFileSync(
+    join(cwd, 'xera.config.ts'),
+    `
       import { defineConfig } from '${DEFINE_PATH}';
       export default defineConfig({
-        jira: { baseUrl: 'https://x.atlassian.net', projectKeys: ['JIRA'], fields: { story: 'description' } },
+        jira: { baseUrl: 'https://x.atlassian.net', projectKeys: ['JIRA'], fields: ${fields} },
         web: { baseUrl: { staging: 'https://x.com' }, defaultEnv: 'staging' },
         adapters: ['web'],
       });
     `,
-    );
-    // Stub the jira client via env-injected factory
+  );
+}
+
+describe('xera-internal fetch', () => {
+  test('writes story.md and meta.json', async () => {
+    const cwd = mkdtempSync(join(tmpdir(), 'xera-fetch-'));
+    writeConfig(cwd);
     process.env.XERA_TEST_JIRA = JSON.stringify({
       key: 'JIRA-1',
       summary: 'A summary',
@@ -43,5 +48,52 @@ describe('xera-internal fetch', () => {
 
     delete process.env.XERA_TEST_JIRA;
     rmSync(cwd, { recursive: true });
+  });
+
+  test('writes acceptanceCriteriaSource: none when Jira returns no AC', async () => {
+    const cwd = mkdtempSync(join(tmpdir(), 'xera-fetch-'));
+    writeConfig(cwd, true);
+    process.env.XERA_TEST_JIRA = JSON.stringify({
+      key: 'JIRA-2',
+      summary: 'No AC',
+      story: 'Body only, AC nowhere',
+      attachments: [],
+      raw: {},
+    });
+    try {
+      const exit = await fetchCmd(['JIRA-2'], { cwd });
+      expect(exit).toBe(0);
+      const story = readFileSync(join(cwd, '.xera/JIRA-2/story.md'), 'utf8');
+      expect(story).toContain('acceptanceCriteriaSource: none');
+      expect(story).not.toContain('acceptanceCriteria:');
+    } finally {
+      delete process.env.XERA_TEST_JIRA;
+      rmSync(cwd, { recursive: true });
+    }
+  });
+
+  test('writes acceptanceCriteriaSource: jira-field when Jira returned AC', async () => {
+    const cwd = mkdtempSync(join(tmpdir(), 'xera-fetch-'));
+    writeConfig(cwd, true);
+    process.env.XERA_TEST_JIRA = JSON.stringify({
+      key: 'JIRA-3',
+      summary: 'Has AC',
+      story: 'Body',
+      acceptanceCriteria: '- AC1\n- AC2',
+      attachments: [],
+      raw: {},
+    });
+    try {
+      const exit = await fetchCmd(['JIRA-3'], { cwd });
+      expect(exit).toBe(0);
+      const story = readFileSync(join(cwd, '.xera/JIRA-3/story.md'), 'utf8');
+      expect(story).toContain('acceptanceCriteriaSource: jira-field');
+      expect(story).toContain('acceptanceCriteria:');
+      expect(story).toContain('"AC1"');
+      expect(story).toContain('"AC2"');
+    } finally {
+      delete process.env.XERA_TEST_JIRA;
+      rmSync(cwd, { recursive: true });
+    }
   });
 });
