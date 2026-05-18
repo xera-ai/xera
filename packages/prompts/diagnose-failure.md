@@ -1,6 +1,6 @@
 ---
 id: diagnose-failure
-version: 1.0.0
+version: 1.1.0
 inputs:
   - .xera/<TICKET>/runs/<latest>/normalized.json
   - .xera/<TICKET>/test.feature
@@ -30,6 +30,7 @@ You will read a normalized run output (already secret-scrubbed) and decide what 
 Choose exactly one class per scenario:
 
 - **PASS** — the scenario passed.
+- **SKIPPED** — the scenario did not run (e.g. `test.skip`, `test.fixme`, conditional skip on missing fixture, rate-limited backend). The AC is not actually verified by this run.
 - **REAL_BUG** — the app behaves differently from the story.
   - Examples: element shown with wrong text; HTTP 500 on a request that should succeed; missing required UI.
 - **SELECTOR_DRIFT** — the UI changed but the story did not.
@@ -43,18 +44,19 @@ Choose exactly one class per scenario:
 ## Decision algorithm
 
 1. If outcome is PASS → class = PASS.
-2. If element NOT in DOM at failure point:
+2. If outcome is SKIPPED → class = SKIPPED. Do not pick PASS for skipped scenarios — they did not verify their AC, and downstream coverage will silently over-report if you do.
+3. If element NOT in DOM at failure point:
    - Search for similar element nearby (text, role variants).
    - Found similar → SELECTOR_DRIFT.
    - Not found AND story does not require the element → TEST_BUG.
    - Not found AND story requires it → REAL_BUG.
-3. If element IN DOM but assertion mismatch:
+4. If element IN DOM but assertion mismatch:
    - Mismatch matches story intent → REAL_BUG.
    - Mismatch contradicts story (spec asserts wrong thing) → TEST_BUG.
-4. If timeout / network error:
+5. If timeout / network error:
    - Prior runs passed, no spec change → FLAKY.
    - Network 5xx from app endpoint → REAL_BUG.
-5. If `spec.ts` changed recently AND failure mode is novel → TEST_BUG.
+6. If `spec.ts` changed recently AND failure mode is novel → TEST_BUG.
 
 ## Confidence
 
@@ -77,7 +79,7 @@ Write `classifier-input.json` with this shape:
     {
       "name": "<scenario name>",
       "outcome": "PASS" | "FAIL" | "SKIPPED",
-      "class": "PASS" | "REAL_BUG" | "SELECTOR_DRIFT" | "FLAKY" | "TEST_BUG",
+      "class": "PASS" | "SKIPPED" | "REAL_BUG" | "SELECTOR_DRIFT" | "FLAKY" | "TEST_BUG",
       "confidence": "low" | "medium" | "high",
       "rationale": "..."
     }

@@ -114,17 +114,26 @@ export function buildCoverageReport(
 }
 
 function needsBackfill(snap: Snapshot): boolean {
+  // True when at least one scenario lacks a `satisfies` edge to its ticket's
+  // ACs. Mirrors `findUnmapped` in ac-coverage-backfill-prepare so the flag
+  // and the prepare output stay consistent for partially mapped tickets (#119).
   for (const ticket of Object.values(snap.tickets)) {
-    const acsForTicket = Object.values(snap.acNodes).filter((ac) => ac.ticketId === ticket.id);
-    if (acsForTicket.length === 0) continue;
+    const acIdsForTicket = new Set(
+      Object.values(snap.acNodes)
+        .filter((ac) => ac.ticketId === ticket.id)
+        .map((ac) => ac.id),
+    );
+    if (acIdsForTicket.size === 0) continue;
     const scenariosForTicket = Object.values(snap.scenarios).filter(
       (s) => s.ticketId === ticket.id,
     );
     if (scenariosForTicket.length === 0) continue;
-    const hasAnyEdge = snap.edges.some(
-      (e) => e.kind === 'satisfies' && acsForTicket.some((ac) => ac.id === e.to),
-    );
-    if (!hasAnyEdge) return true;
+    for (const s of scenariosForTicket) {
+      const mapped = snap.edges.some(
+        (e) => e.kind === 'satisfies' && e.from === s.id && acIdsForTicket.has(e.to),
+      );
+      if (!mapped) return true;
+    }
   }
   return false;
 }

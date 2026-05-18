@@ -18,16 +18,26 @@ function findUnmapped(snap: Snapshot): BackfillInput {
     if (ticket.ac.length === 0) continue;
     const ticketScenarios = Object.values(snap.scenarios).filter((s) => s.ticketId === ticket.id);
     if (ticketScenarios.length === 0) continue;
-    const acsForTicket = Object.values(snap.acNodes).filter((ac) => ac.ticketId === ticket.id);
-    const hasAnyEdge = snap.edges.some(
-      (e) => e.kind === 'satisfies' && acsForTicket.some((ac) => ac.id === e.to),
+    const acIdsForTicket = new Set(
+      Object.values(snap.acNodes)
+        .filter((ac) => ac.ticketId === ticket.id)
+        .map((ac) => ac.id),
     );
-    if (hasAnyEdge) continue;
+    // Per-scenario: a scenario is "unmapped" if it has no `satisfies` edge to
+    // any of this ticket's ACs. Surface only those — finalize is now additive
+    // (#119) so partial mappings won't clobber prior edges.
+    const unmappedScenarios = ticketScenarios.filter(
+      (s) =>
+        !snap.edges.some(
+          (e) => e.kind === 'satisfies' && e.from === s.id && acIdsForTicket.has(e.to),
+        ),
+    );
+    if (unmappedScenarios.length === 0) continue;
     out.push({
       id: ticket.id,
       summary: ticket.summary,
       acs: ticket.ac,
-      scenarios: ticketScenarios.map((s) => ({
+      scenarios: unmappedScenarios.map((s) => ({
         id: s.id,
         name: s.name,
         gherkin: s.gherkin,

@@ -78,6 +78,7 @@ const classification = z.enum([
   'SELECTOR_DRIFT',
   'FLAKY',
   'PASS',
+  'SKIPPED',
   'TEST_OUTDATED',
   'CONTRACT_DRIFT',
   'RATE_LIMITED',

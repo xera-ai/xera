@@ -190,7 +190,7 @@ async function recordScript(repoRoot: string, ticket: string): Promise<number> {
   return recordScriptImpl(repoRoot, ticket);
 }
 
-async function recordExec(repoRoot: string, ticket: string, runId: string): Promise<number> {
+export async function recordExec(repoRoot: string, ticket: string, runId: string): Promise<number> {
   const { normalizedPath } = resolveArtifactPaths(repoRoot, ticket).runPath(runId);
   if (!existsSync(normalizedPath)) {
     console.error(`[graph-record exec] normalized.json missing`);
@@ -362,6 +362,7 @@ export async function graphRecordCmd(argv: string[]): Promise<number> {
         'SELECTOR_DRIFT',
         'FLAKY',
         'PASS',
+        'SKIPPED',
         'TEST_OUTDATED',
         'CONTRACT_DRIFT',
         'RATE_LIMITED',

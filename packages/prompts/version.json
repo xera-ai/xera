@@ -1,5 +1,5 @@
 {
-  "prompts": "2.5.0",
+  "prompts": "2.6.0",
   "templates": [
     "diagnose-failure.md",
     "feature-from-story.md",
