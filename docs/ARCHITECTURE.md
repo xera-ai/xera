@@ -6,14 +6,15 @@ For the full specs see [design docs](superpowers/specs/) (v0.1 core, v0.2 eval, 
 
 ```
 End user (QA)
-  │ uses `bunx xera init --shape web|api|mixed` once (scaffolds CI workflow + npm scripts)
+  │ uses `bunx xera init --shape web|api|mixed --tracker jira|github` once
+  │ (scaffolds CI workflow + npm scripts + per-editor skill paths)
   │ then `/xera-*` slash commands in their AI coding agent (Claude Code, Cursor, or Codex CLI)
   ▼
 Skills — 12 user-facing workflows (Claude Code / Cursor / OpenAI Codex CLI via the editor adapter registry in `packages/cli/src/editors/`)
   │ tell the session LLM what to do
   │ session LLM calls `bun run xera:*`
   ▼
-`xera-internal` binary (in @xera-ai/core) — 33 subcommands
+`xera-internal` binary (in @xera-ai/core) — 34 subcommands
   │ deterministic helpers + graph data layer + coverage engine
   │ writes artifacts to .xera/<TICKET>/
   │ writes events to .xera/graph/events/
@@ -61,7 +62,7 @@ A repo-local event-sourced data layer running parallel to the v0.1 artifact pipe
 
 ## Key invariants
 
-- The public CLI exposes only `init` and `doctor`. Everything else is via skills.
+- The public CLI exposes `init`, `doctor`, and `samples remove`. Everything else is via skills.
 - Skill prompts + `xera-internal` form a closed pair: the skill knows when to call which subcommand and what to do with its output.
 - Every `xera-internal` subcommand reads from disk and writes to disk. No subcommand keeps state across invocations.
 - AI work happens in the QA's coding-agent session — there is no AI binary shell-out from `xera-internal`. Even the graph similarity / TEST_OUTDATED classifier calls the LLM **from the skill** (skill writes input JSON, calls binary, binary reads input).
@@ -72,14 +73,14 @@ A repo-local event-sourced data layer running parallel to the v0.1 artifact pipe
 
 | Package | Responsibility | Public bin |
 |---|---|---|
-| `@xera-ai/core` | Config, paths, hashing, lock, log, Jira client (REST + MCP), classifier (9 classes: `REAL_BUG`, `CONTRACT_DRIFT`, `AUTH_EXPIRED`, `RATE_LIMITED`, `TEST_OUTDATED`, `TEST_BUG`, `SELECTOR_DRIFT`, `FLAKY`, `PASS`), auth state (AES-256-GCM), shared scrub rules (relocated from web in v0.7), **graph module** (types, schema, store, similarity, enrich, classify, traverse, impact, render, cost), **coverage module** (status, risk, report, why) | `xera-internal` |
-| `@xera-ai/cli` | Public CLI: `init` (with `--shape web\|api\|mixed`), `doctor` | `xera` |
+| `@xera-ai/core` | Config, paths, hashing, lock, log, IssueProvider (jira + github backends behind a unified interface, v0.16+), classifier (9 classes: `REAL_BUG`, `CONTRACT_DRIFT`, `AUTH_EXPIRED`, `RATE_LIMITED`, `TEST_OUTDATED`, `TEST_BUG`, `SELECTOR_DRIFT`, `FLAKY`, `PASS`), auth state (AES-256-GCM), shared scrub rules (relocated from web in v0.7), **graph module** (types, schema, store, similarity, enrich, classify, traverse, impact, render, cost), **coverage module** (status, risk, report, why) | `xera-internal` |
+| `@xera-ai/cli` | Public CLI: `init` (with `--shape web\|api\|mixed`, `--tracker jira\|github`, `--editor claude\|cursor\|codex\|all`), `doctor` (with `--strict [ticket]`), `samples remove` | `xera` |
 | `@xera-ai/web` | Playwright browser adapter (executor with `--grep` support, trace normalizer, secret scrubber, POM-scan + Gherkin lint) | — |
 | `@xera-ai/http` | HTTP API adapter (Playwright `APIRequestContext`, no browser). Pre-auth via `defineHttpAuthSetup` + `presetHttpAuth`; runtime `newAuthedContext` for generated `spec.ts`; OpenAPI loader for schema-aware generation + `CONTRACT_DRIFT` detection | — |
 | `@xera-ai/skills` | 12 AI coding-agent skill `.md` files (`xera-run`, `xera-fetch`, `xera-feature`, `xera-script`, `xera-exec`, `xera-report`, `xera-impact`, `xera-promote`, `xera-eval`, `xera-coverage`, `xera-fill-gap`, `xera-explore`); scaffolded per editor (Claude Code / Cursor / Codex CLI) by `xera init`; dispatch by `meta.json.adapter` | — |
 | `@xera-ai/prompts` | 12 versioned LLM prompt templates: `diagnose-failure`, `feature-from-story`, `script-from-feature-web`, `script-from-feature-http`, `heal-locator`, `extract-areas`, `similarity-match`, `classify-outdated`, `eval-rubric`, `map-ac-to-scenarios`, `propose-scenarios`, `adversarial-scenarios` | — |
 
-## `xera-internal` subcommands (33)
+## `xera-internal` subcommands (34)
 
 **Core flow (v0.1+):** `fetch`, `validate-feature`, `typecheck`, `lint`, `exec`, `normalize`, `report`, `post`, `status`, `unlock`, `promote`
 
@@ -99,6 +100,7 @@ A repo-local event-sourced data layer running parallel to the v0.1 artifact pipe
 
 **HTTP adapter (v0.7):**
 - `auth-setup [--role <name>] [--shape web|http|all]` — pre-authenticate, writes encrypted `.xera/.auth/{web,http}/<role>.json`
+- `openapi-resolve` — load + dereference an OpenAPI spec for downstream classifier / generator use
 - `exec`, `normalize`, `report` extended to dispatch by `meta.json.adapter`
 
 **Coverage gap (v0.8):**
@@ -112,7 +114,7 @@ A repo-local event-sourced data layer running parallel to the v0.1 artifact pipe
 - `explore-prepare <TICKET> --categories <slugs> --user-hint <text>` — assembles `adversarial-input.json` from story, AC, existing feature/spec, adapter, and QA-supplied focus
 - `explore-finalize <TICKET> --accept <ids|all|high-only>` — appends accepted proposals to `.xera/<TICKET>/explore.feature` with `@adversarial` tags
 
-**Universal:** `verify-prompts`, `doctor` (with `--auto-enrich` for CI; `--shape`-aware HTTP auth file + OpenAPI checks in v0.7; 3 new coverage checks in v0.8)
+**Universal:** `verify-prompts`, `doctor` (with `--auto-enrich` for CI; `--shape`-aware HTTP auth file + OpenAPI checks in v0.7; 3 new coverage checks in v0.8; `--strict [ticket]` accepts optional ticket since v0.16.1 — `--strict` alone runs strict env-only checks, `--strict <TICKET>` adds ticket-specific checks. See [#149](https://github.com/xera-ai/xera/issues/149) for the chicken-and-egg root cause).
 
 ## v0.8 addition: Coverage gap & AC matrix
 

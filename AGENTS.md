@@ -4,7 +4,7 @@ Instructions for AI coding agents (Claude Code, Codex, Cursor, etc.) working in 
 
 ## Project at a glance
 
-xera is an **AI-native test framework** that lets QA engineers generate, run, and diagnose Playwright/HTTP tests by invoking Claude Code skills against Jira tickets. The end-user surface is two CLI commands (`xera init`, `xera doctor`) plus twelve Claude Code skills (`/xera-run`, `/xera-fetch`, `/xera-feature`, `/xera-script`, `/xera-exec`, `/xera-report`, `/xera-impact`, `/xera-promote`, `/xera-coverage`, `/xera-fill-gap`, `/xera-explore`, `/xera-eval`). Everything else is internal plumbing invoked by skills via `bun run xera:*` scripts (28 `xera-internal` subcommands).
+xera is an **AI-native test framework** that lets QA engineers generate, run, and diagnose Playwright/HTTP tests by invoking AI coding-agent skills (Claude Code, Cursor, Codex CLI) against tickets in Jira **or GitHub Issues**. The end-user surface is three CLI commands (`xera init`, `xera doctor`, `xera samples remove`) plus twelve skills (`/xera-run`, `/xera-fetch`, `/xera-feature`, `/xera-script`, `/xera-exec`, `/xera-report`, `/xera-impact`, `/xera-promote`, `/xera-coverage`, `/xera-fill-gap`, `/xera-explore`, `/xera-eval`). Everything else is internal plumbing invoked by skills via `bun run xera:*` scripts (34 `xera-internal` subcommands).
 
 Since v0.6, xera maintains a **project knowledge graph** — an event-sourced, repo-local data layer that records every fetch / script / exec / report / promote, derives a snapshot, and powers TEST_OUTDATED classification, `/xera-impact` analysis, an HTML viewer, and dispute capture. Graph events are sharded one-file-per-skill-invocation so concurrent QA causes no git merge conflicts.
 
@@ -14,6 +14,8 @@ Since v0.6, xera maintains a **project knowledge graph** — an event-sourced, r
 - Core design spec: `docs/superpowers/specs/2026-05-14-xera-core-web-design.md`
 - v0.6 knowledge graph spec: `docs/superpowers/specs/2026-05-16-xera-v06-project-knowledge-graph-design.md`
 - v0.7 HTTP adapter spec: `docs/superpowers/specs/2026-05-16-xera-v07-http-adapter-design.md`
+- v0.8 coverage gap spec: `docs/superpowers/specs/2026-05-17-xera-v08-coverage-gap-design.md`
+- Multi-editor support spec: `docs/superpowers/specs/2026-05-18-xera-multi-editor-support-design.md`
 - All implementation plans: `docs/superpowers/plans/`
 - Architecture overview: `docs/ARCHITECTURE.md`
 - Configuration reference: `docs/CONFIGURATION.md`
@@ -24,16 +26,19 @@ When in doubt about *why* something is shaped a certain way, the design spec is 
 
 ```
 packages/
-  core/         # @xera-ai/core — config, paths, hashing, lock, log, Jira client,
-                # 8-bucket classifier, auth state, graph/ module (v0.6+),
-                # xera-internal binary (28 subcommands)
-  cli/          # @xera-ai/cli — public CLI: init (--shape web|api|mixed) + doctor only
+  core/         # @xera-ai/core — config, paths, hashing, lock, log,
+                # IssueProvider (jira + github backends), 9-class classifier,
+                # auth state, graph/ module (v0.6+), coverage/ module (v0.8+),
+                # xera-internal binary (34 subcommands)
+  cli/          # @xera-ai/cli — public CLI: init (--shape web|api|mixed
+                # --tracker jira|github --editor claude|cursor|codex|all),
+                # doctor [--strict [ticket]], samples remove
                 # templates/ includes xera-graph.yml (CI viewer scaffold)
   web/          # @xera-ai/web — Playwright adapter
                 # (executor with --grep, trace normalizer, secret scrubber, generator)
   http/         # @xera-ai/http — HTTP API adapter (v0.7+)
                 # (executor, auth strategies, OpenAPI loader, CONTRACT_DRIFT detection)
-  skills/       # @xera-ai/skills — 12 Claude Code skill .md files
+  skills/       # @xera-ai/skills — 12 skill .md files (Claude / Cursor / Codex)
   prompts/      # @xera-ai/prompts — 12 versioned LLM prompt templates
 fixtures/
   sample-app/   # Next.js app for integration tests
@@ -99,9 +104,9 @@ Tests live at `packages/<pkg>/test/<area>/<name>.test.ts` mirroring `src/`. Use 
 
 ## Workspace deps
 
-The six packages reference each other with **explicit caret semver** (`"@xera-ai/core": "^0.8.0"`), **not** `workspace:*`. This was a deliberate fix after `bun publish`'s `workspace:*` substitution lagged by one lockfile version on first launch. Keep using explicit semver until Bun fixes that.
+The six packages reference each other with **explicit caret semver** (`"@xera-ai/core": "^0.16.1"`), **not** `workspace:*`. This was a deliberate fix after `bun publish`'s `workspace:*` substitution lagged by one lockfile version on first launch. Keep using explicit semver until Bun fixes that.
 
-**All six packages share one version** — `cli`, `core`, `web`, `http`, `prompts`, `skills` move in lockstep via the `fixed` group in `.changeset/config.json`. A patch/minor/major bump declared in any single changeset propagates to all six. "Xera v0.8.1" = every package at `0.8.1`. This trades some npm churn (packages without code changes still get a new published version) for a single unambiguous marketing version.
+**All six packages share one version** — `cli`, `core`, `web`, `http`, `prompts`, `skills` move in lockstep via the `fixed` group in `.changeset/config.json`. A patch/minor/major bump declared in any single changeset propagates to all six. "Xera v0.16.1" = every package at `0.16.1`. This trades some npm churn (packages without code changes still get a new published version) for a single unambiguous marketing version.
 
 **Versions are bumped by [changesets](https://github.com/changesets/changesets), not by hand.** Two things take care of changesets automatically; you only intervene if neither fires.
 
@@ -146,7 +151,7 @@ When adding any new event type:
 
 ## Things to be careful about
 
-- **Public CLI surface**: only `xera init` and `xera doctor`. Adding a public command requires a spec update. Everything else is `xera-internal` (called by skills via `bun run xera:*`).
+- **Public CLI surface**: `xera init`, `xera doctor`, and `xera samples remove`. Adding a public command requires a spec update. Everything else is `xera-internal` (called by skills via `bun run xera:*`).
 
 - **Skill `.md` content** (`packages/skills/`): user-facing instructions for Claude Code sessions. Copy verbatim from the implementation plan; don't paraphrase or condense.
 
@@ -213,8 +218,11 @@ Bug fixes, dep bumps, refactors of code you're already touching, and doc tweaks 
 | **v0.6.3** | ✅ | HTML viewer (vendored vis-network), CI artifact + sticky PR comment, consumer scaffold `xera-graph.yml` |
 | **v0.6.4** | ✅ | QA polish — `--grep` per-scenario filter, priority auto-detect from AC keywords, threshold tuning, disputed marker in viewer, `xera doctor --auto-enrich`, `xera-internal disputes` CLI |
 | **v0.7** | ✅ | HTTP API adapter (`@xera-ai/http`) — no-browser executor, pre-auth helpers (`defineHttpAuthSetup`, `presetHttpAuth`), OpenAPI loader; 3 new classifier buckets (`CONTRACT_DRIFT`, `RATE_LIMITED`, `AUTH_EXPIRED`); `xera init --shape web\|api\|mixed`; `script-from-feature-http.md` prompt; `xera:auth-setup` subcommand |
-| **v0.8** | ✅ | Release pipeline overhaul — all six packages unified at one version (`fixed` group in `.changeset/config.json`); `release.yml` (changesets-driven publish) replaces tag-triggered `publish.yml` (kept as manual fallback); `auto-changeset.yml` infers bumps from conventional-commit PR titles; `xera-automation` GitHub App mints installation tokens so bot pushes trigger downstream CI; branch protection on `main` + changeset-bot required-comment; legacy v0.x npm versions unpublished or deprecated, registry starts fresh from 0.8.0 |
+| **v0.8** | ✅ | Release pipeline overhaul — six packages unified at one version (`fixed` group in `.changeset/config.json`); `release.yml` (changesets-driven publish) replaces tag-triggered `publish.yml` (kept as manual fallback); `auto-changeset.yml` infers bumps from conventional-commit PR titles; `xera-automation` GitHub App mints installation tokens so bot pushes trigger downstream CI; branch protection on `main` + changeset-bot required-comment. **Coverage gap & AC matrix** — `/xera-coverage` (3-state area model UNCOVERED/STALE/COVERED + AC-level gaps), `/xera-fill-gap` (AI-drafted Gherkin), `ACNode` + `satisfies` edge + `coverage.snapshot` event on the graph |
+| **v0.9** | ✅ | **Adversarial exploration (experimental, opt-in)** — `/xera-explore <TICKET>` brainstorms negative / boundary / state-combination / race / error-recovery / a11y / security-smell / non-functional scenarios with `category` + `severity` (low/medium/high) metadata; appends accepted proposals to `.xera/<TICKET>/explore.feature` tagged `@adversarial`. Not auto-chained from `/xera-run`; `xera-feature` continues producing AC-driven scenarios so PO review of `test.feature` is undisturbed |
+| **v0.10–v0.15** | ✅ | Multi-editor support (`xera init --editor claude\|cursor\|codex\|all`, adapter registry in `packages/cli/src/editors/`) · CLI UX hardening (help-on-no-args, did-you-mean, non-TTY guard) · cognitive AC extraction from Jira description body when no dedicated AC field configured · `xera init --update --shape` upgrade path · http-shape `.env.example` hints · `.d.ts` declarations emitted for all packages |
+| **v0.16** | ✅ | **GitHub Issues tracker** — `github: { repo: 'owner/repo' }` block, ticket keys `GH-<n>`, `IssueProvider` abstraction with GitHub MCP + `gh` CLI backends (no token env vars), `xera init --tracker github`, `gh auth status` check in `xera doctor`. **`/xera-run` first-run unblocked** — health gate split into env-only Step 0 + ticket-specific Step 1.6 (after fetch); CLI flag `xera doctor --strict [ticket]` accepts optional ticket arg. `samples remove` public subcommand wired |
 
-New projects are scaffolded via `bunx @xera-ai/cli init` — `xera init` produces an always-current scaffold for any shape (web, api, mixed). The `--editor <list>` flag controls which AI coding agents are scaffolded (`claude`, `cursor`, `codex`, or `all`); by default, `init` auto-detects the active editor, falling back to `all` when run non-interactively (`--yes`). ~350 unit tests across `@xera-ai/core` + `@xera-ai/web` + `@xera-ai/http`.
+New projects are scaffolded via `bunx @xera-ai/cli init` — `xera init` produces an always-current scaffold for any shape (web, api, mixed). The `--editor <list>` flag controls which AI coding agents are scaffolded (`claude`, `cursor`, `codex`, or `all`); by default, `init` auto-detects the active editor, falling back to `all` when run non-interactively (`--yes`). The `--tracker <jira|github>` flag picks the issue provider (default `jira`). ~600 tests across `@xera-ai/core` + `@xera-ai/web` + `@xera-ai/http` (root `bun run test` runs the first three; `packages/cli/test/*` runs in nightly E2E + `bun run test:integration`).
 
 **Not yet shipped** (each is a separate future spec): `/xera-sprint` multi-ticket orchestration, production trace → test backfill, Mobile/Performance/Security adapters, live dashboard.

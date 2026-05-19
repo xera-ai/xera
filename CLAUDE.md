@@ -14,11 +14,13 @@ In other words: when you edit this repo you are writing the prompts, skills, and
 
 ```
 packages/
-  core/      @xera-ai/core      config, paths, hashing, lock, log, Jira client,
-                                classifier (8 buckets incl. TEST_OUTDATED +
+  core/      @xera-ai/core      config, paths, hashing, lock, log,
+                                IssueProvider (jira + github backends, v0.16+),
+                                9-class classifier (incl. TEST_OUTDATED +
                                 CONTRACT_DRIFT/RATE_LIMITED/AUTH_EXPIRED),
-                                auth state, graph module, xera-internal binary
-    src/bin-internal/           33 subcommands invoked by skills via `bun run xera:*`
+                                auth state, graph + coverage modules,
+                                xera-internal binary
+    src/bin-internal/           34 subcommands invoked by skills via `bun run xera:*`
                                 v0.1: fetch, validate-feature, typecheck, lint,
                                       exec (supports --grep), normalize, report,
                                       post, status, unlock, promote
@@ -28,14 +30,15 @@ packages/
                                       graph-record-script module), graph-snapshot,
                                       graph-query, graph-backfill, graph-enrich,
                                       graph-render, impact-prepare, disputes
-                                v0.7: auth-setup
+                                v0.7: auth-setup, openapi-resolve
                                 v0.8: coverage-prepare, ac-coverage-backfill-prepare,
                                       ac-coverage-backfill-finalize, fill-gap-prepare,
                                       fill-gap-finalize
                                 v0.9: explore-prepare, explore-finalize (experimental)
-                                universal: verify-prompts, doctor (--auto-enrich)
+                                universal: verify-prompts, doctor (--auto-enrich,
+                                  --strict [ticket] split since v0.16)
     src/adapter/types.ts        TestAdapter interface — extension point
-    src/classifier/             8-bucket classifier (REAL_BUG, TEST_BUG,
+    src/classifier/             9-class classifier (REAL_BUG, TEST_BUG,
                                 SELECTOR_DRIFT, FLAKY, TEST_OUTDATED, PASS,
                                 CONTRACT_DRIFT, RATE_LIMITED, AUTH_EXPIRED)
     src/graph/                  v0.6 project knowledge graph data layer
@@ -45,6 +48,8 @@ packages/
     src/coverage/               v0.8 coverage engine (pure fns: status, risk, report, why)
     src/auth/                   AES-256-GCM encryption for storageState
     src/jira/                   REST + MCP backends behind one client
+    src/github/                 v0.16 — gh CLI + GitHub MCP backends
+    src/providers/              v0.16 — IssueProvider factory routes jira vs github
   web/       @xera-ai/web       Playwright adapter (--grep support since v0.6.4)
     src/executor/               run Playwright + JSON reporter
     src/generator/              selector rules, lint, pom-scan, gherkin-validate
@@ -54,11 +59,16 @@ packages/
     src/executor/               HTTP request runner + JSON reporter
     src/auth/                   defineHttpAuthSetup, presetHttpAuth, newAuthedContext
     src/openapi/                OpenAPI loader for CONTRACT_DRIFT detection
-  cli/       @xera-ai/cli       public `xera` CLI: only `init` (--shape web|api|mixed) and `doctor`
-    src/commands/               init, init-update, doctor
+  cli/       @xera-ai/cli       public `xera` CLI: `init` (--shape web|api|mixed
+                                --tracker jira|github --editor claude|cursor|codex|all),
+                                `doctor` (--strict [ticket]), `samples remove`
+    src/commands/               init, init-update, doctor, samples
+    src/editors/                v0.10 — per-editor scaffold adapters
+                                (claude, cursor, codex registry)
     src/checks.ts, scaffold.ts  shared init/doctor helpers (env, deps, prereqs)
     templates/                  scaffold templates (xera.config, playwright.config,
                                 tsconfig, env.example, auth-setup, sample/,
+                                http-xera.config + mixed-xera.config + http-env (v0.7),
                                 xera-graph.yml — CI viewer workflow)
   skills/    @xera-ai/skills    Claude Code skill .md files (12 skills:
                                 xera-run, xera-fetch, xera-feature, xera-script,
@@ -93,7 +103,10 @@ docs/
   superpowers/specs/            design specs — authoritative
                                 (v0.1 core-web, v0.2 eval, v0.3 prompt-injection,
                                  v0.5 self-heal, v0.6 project-knowledge-graph,
-                                 v0.7 http-adapter, v0.8 coverage-gap)
+                                 v0.7 http-adapter, v0.8 coverage-gap,
+                                 multi-editor-support;
+                                 v0.9 adversarial-explore shipped without a
+                                 published spec)
   superpowers/plans/            implementation plans + POSTMORTEM.md
                                 (v0.8 set: 01-foundation, 02-skill-and-cli,
                                  03-ac-backfill, 04-html-viewer, 05-generative-fill-gap)
