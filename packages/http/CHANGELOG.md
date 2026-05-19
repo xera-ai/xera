@@ -1,5 +1,14 @@
 # @xera-ai/http
 
+## 0.15.3
+
+### Patch Changes
+
+- [#141](https://github.com/xera-ai/xera/pull/141) [`36250b3`](https://github.com/xera-ai/xera/commit/36250b3d921c9d348c89c95f0d3843321e93cab7) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - address 9 verified bugs across core, http, web packages (auto-generated from [#141](https://github.com/xera-ai/xera/issues/141))
+
+- Updated dependencies [[`36250b3`](https://github.com/xera-ai/xera/commit/36250b3d921c9d348c89c95f0d3843321e93cab7)]:
+  - @xera-ai/core@0.15.3
+
 ## 0.15.2
 
 ### Patch Changes
