@@ -220,10 +220,13 @@ export default async function main(): Promise<void> {
 
   cli
     .command('doctor', 'Run a health check')
-    .option('--strict <ticket>', 'Treat ticket-specific checks as required')
+    .option(
+      '--strict [ticket]',
+      'Exit non-zero on any failing check; pass a ticket key to add ticket-specific checks',
+    )
     .option('--logs <ticket>', 'Pretty-print xera.log for a ticket')
     .option('--usage', 'Show token/usage summary from recent runs')
-    .action(async (opts: { strict?: string; logs?: string; usage?: boolean }) => {
+    .action(async (opts: { strict?: string | boolean; logs?: string; usage?: boolean }) => {
       const exit = await doctorCommand(opts);
       process.exit(exit);
     });

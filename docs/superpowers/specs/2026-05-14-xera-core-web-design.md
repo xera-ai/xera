@@ -216,7 +216,7 @@ my-test-project/
 | `bunx xera init` | Interactive scaffold of a new project (generates config, installs deps, copies skills, seeds sample ticket, optionally generates auth setup) |
 | `bunx xera init --update` | Non-destructive refresh of an existing project: bump deps, refresh skills with 3-way merge, update prompts version; never overwrite `xera.config.ts`, `.xera/`, `shared/` |
 | `bunx xera doctor` | Read-only health check: bun + Playwright + browsers + config validity + Jira reachability + MCP detection + skill versions vs `@xera-ai/skills` |
-| `bunx xera doctor --strict <TICKET>` | Same as doctor but exits non-zero if anything required for running `<TICKET>` is broken; invoked by `xera-run` skill at start |
+| `bunx xera doctor --strict [TICKET]` | Same as doctor but exits non-zero on any failing check. `--strict` alone: env-only strict (invoked by `xera-run` skill Step 0). `--strict <TICKET>`: env + ticket-specific strict (invoked by Step 1.6 after fetch materializes `.xera/<TICKET>/`). |
 | `bunx xera doctor --logs <TICKET>` | Pretty-print `.xera/<TICKET>/xera.log` |
 
 ### 4.2 Internal CLI (invoked only by skills via `bun run xera:*`)
@@ -328,8 +328,9 @@ description: Run the full xera pipeline for a Jira ticket end-to-end — fetch s
 
 You will run the xera pipeline for ticket {{TICKET}}.
 
-Step 0 — Health gate
-  Run: `bunx xera doctor --strict {{TICKET}}`
+Step 0 — Health gate (environment only)
+  Run: `bunx xera doctor --strict`
+  Env-level checks only (bun, xera.config.ts, baseUrl reachability, auth files, OpenAPI, .env, editor skill layout). The ticket-specific gate runs as Step 1.6 below; Step 0 must not require `.xera/{{TICKET}}/` since that dir doesn't exist on the very first invocation (chicken-and-egg, see #149).
   If non-zero exit → STOP. Show the doctor output to the user and ask them to fix env before retrying.
 
 Step 1 — Fetch
@@ -337,6 +338,11 @@ Step 1 — Fetch
   On success, .xera/{{TICKET}}/story.md and meta.json now exist.
   On exit 1 (Jira auth / config): show error, ask user to fix .env or xera.config.ts; STOP.
   On exit 4 (Jira reachable but ticket not found): confirm ticket key with user; STOP.
+
+Step 1.6 — Ticket health gate
+  Run: `bunx xera doctor --strict {{TICKET}}`
+  Re-runs doctor with the ticket arg now that `/xera-fetch` has materialized `.xera/{{TICKET}}/`. Validates artifact dir present, graph-input.json parses with valid modifiesAreas array, and story.md frontmatter has acceptanceCriteria.
+  If non-zero exit → STOP. Most failures are recoverable in-place by re-running a single substep of `/xera-fetch`.
 
 Step 2 — Generate test.feature
   Read .xera/{{TICKET}}/story.md.
