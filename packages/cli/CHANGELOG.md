@@ -1,5 +1,15 @@
 # @xera-ai/cli
 
+## 0.15.5
+
+### Patch Changes
+
+- [#147](https://github.com/xera-ai/xera/pull/147) [`6ca82c4`](https://github.com/xera-ai/xera/commit/6ca82c45dfdb33f23122cc575d400be09b567896) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - wire `samples remove` so it actually dispatches ([#143](https://github.com/xera-ai/xera/issues/143)) (auto-generated from [#147](https://github.com/xera-ai/xera/issues/147))
+
+- Updated dependencies []:
+  - @xera-ai/core@0.15.5
+  - @xera-ai/skills@0.15.5
+
 ## 0.15.4
 
 ### Patch Changes
