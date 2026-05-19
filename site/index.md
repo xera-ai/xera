@@ -17,7 +17,7 @@ hero:
       link: /guide/getting-started
     - theme: alt
       text: Try the sample app
-      link: https://github.com/xera-ai/xera-sample-app
+      link: '#try-it-on-a-real-app'
     - theme: alt
       text: View on GitHub
       link: https://github.com/xera-ai/xera
@@ -116,6 +116,17 @@ xera init -y --shape mixed --tracker github \
   --su http://localhost:5173 \
   --au http://localhost:3000
 ```
+
+::: tip Pair `/xera-run` with `/xera-explore`
+FlowBoard's intentional surfaces (stored XSS, JWT edge cases, file upload risks, SQL injection points) are exactly the territory the experimental [`/xera-explore`](/guide/architecture#v09-addition-adversarial-exploration-experimental) skill brainstorms:
+
+```
+> /xera-run <TICKET>      # AC-driven happy path → test.feature
+> /xera-explore <TICKET>  # negative / boundary / race / a11y / security-smell → explore.feature
+```
+
+`/xera-explore` writes to a separate `explore.feature` (tagged `@adversarial`) so PO review of `test.feature` stays undisturbed.
+:::
 
 ## What you get out of the box
 
