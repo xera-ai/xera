@@ -50,6 +50,38 @@ xera init -y --shape mixed --tracker jira --editor all
 
 Run `xera init --help` for the full flag reference.
 
+## Try it on the sample app
+
+If you don't have a real app to test yet, point xera at **[FlowBoard](https://github.com/xera-ai/xera-sample-app)** — the official sample target. It's a Fastify + React + SQLite project-management app with JWT auth, a Swagger-documented REST API, and intentional security surfaces, so it exercises the full classifier (`REAL_BUG`, `CONTRACT_DRIFT`, `AUTH_EXPIRED`, …) on a realistic SUT.
+
+Bring FlowBoard up locally:
+
+```bash
+git clone https://github.com/xera-ai/xera-sample-app
+cd xera-sample-app
+npm install
+npm run dev:backend &       # API → http://localhost:3000
+npm run dev:frontend        # UI  → http://localhost:5173
+# or: docker compose up --build
+```
+
+Then in a sibling directory, scaffold a xera project pointed at it:
+
+```bash
+cd .. && mkdir flowboard-tests && cd flowboard-tests
+xera init -y --shape mixed --tracker github \
+  --gr xera-ai/xera-sample-app \
+  --su http://localhost:5173 \
+  --au http://localhost:3000 \
+  --as bearer
+cp .env.example .env        # set FlowBoard credentials per the sample-app README
+bun install
+bunx playwright install chromium
+bun run xera:auth-setup
+```
+
+Now `/xera-run SAMPLE-001` and `/xera-run SAMPLE-HTTP-001` will run against FlowBoard.
+
 ## First test
 
 ```bash
