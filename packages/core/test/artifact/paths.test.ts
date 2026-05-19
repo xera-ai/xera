@@ -44,14 +44,34 @@ describe('resolveArtifactPaths', () => {
     );
   });
 
-  test('rejects malformed sample keys', () => {
+  test('accepts multi-segment ticket keys (any project, not just SAMPLE)', () => {
+    // Real-world conventions surfaced by issue #127 — these used to be rejected
+    // because the old regex hard-coded SAMPLE as the only multi-segment prefix.
+    expect(resolveArtifactPaths('/repo', 'PROJ-MODULE-001').ticketDir).toBe(
+      '/repo/.xera/PROJ-MODULE-001',
+    );
+    expect(resolveArtifactPaths('/repo', 'TEAM-FEATURE-42').ticketDir).toBe(
+      '/repo/.xera/TEAM-FEATURE-42',
+    );
+    expect(resolveArtifactPaths('/repo', 'MY-API-V2-42').ticketDir).toBe(
+      '/repo/.xera/MY-API-V2-42',
+    );
+    expect(resolveArtifactPaths('/repo', 'SAMPLE-HTTP-AUTH-001').ticketDir).toBe(
+      '/repo/.xera/SAMPLE-HTTP-AUTH-001',
+    );
+  });
+
+  test('rejects malformed ticket keys', () => {
     // No digits at all
     expect(() => resolveArtifactPaths('/repo', 'SAMPLE-HTTP')).toThrow();
     // Empty middle segment (double dash)
     expect(() => resolveArtifactPaths('/repo', 'SAMPLE--001')).toThrow();
     // Non-uppercase middle segment
     expect(() => resolveArtifactPaths('/repo', 'SAMPLE-http-001')).toThrow();
-    // Multiple middle segments (intentionally not supported — keep regex tight)
-    expect(() => resolveArtifactPaths('/repo', 'SAMPLE-HTTP-AUTH-001')).toThrow();
+    // Middle segment starting with a digit (intentional — avoids ambiguity
+    // with version-style suffixes; key V2 works but bare 2 does not)
+    expect(() => resolveArtifactPaths('/repo', 'JIRA-2-001')).toThrow();
+    // No numeric suffix
+    expect(() => resolveArtifactPaths('/repo', 'JIRA-MODULE')).toThrow();
   });
 });
