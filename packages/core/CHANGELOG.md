@@ -1,5 +1,15 @@
 # @xera-ai/core
 
+## 0.15.2
+
+### Patch Changes
+
+- [#128](https://github.com/xera-ai/xera/pull/128) [`cc25421`](https://github.com/xera-ai/xera/commit/cc2542184ceca561ce7c62ebe4bc9b60358e9720) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - widen TICKET_RE to accept any multi-segment ticket key (auto-generated from [#128](https://github.com/xera-ai/xera/issues/128))
+
+- Updated dependencies []:
+  - @xera-ai/web@0.15.2
+  - @xera-ai/http@0.15.2
+
 ## 0.15.1
 
 ### Patch Changes
