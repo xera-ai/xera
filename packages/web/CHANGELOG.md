@@ -1,5 +1,14 @@
 # @xera-ai/web
 
+## 0.15.4
+
+### Patch Changes
+
+- [#144](https://github.com/xera-ai/xera/pull/144) [`8b6630d`](https://github.com/xera-ai/xera/commit/8b6630d6670c34a556636e7a665bbf9c31c66a2e) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - emit .d.ts type defs for core, http, web packages (auto-generated from [#144](https://github.com/xera-ai/xera/issues/144))
+
+- Updated dependencies [[`8b6630d`](https://github.com/xera-ai/xera/commit/8b6630d6670c34a556636e7a665bbf9c31c66a2e)]:
+  - @xera-ai/core@0.15.4
+
 ## 0.15.3
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@xera-ai/prompts",
-  "version": "0.15.3",
+  "version": "0.15.4",
   "files": [
     "*.md",
     "version.json"
