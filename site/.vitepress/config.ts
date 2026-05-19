@@ -11,6 +11,7 @@ export default defineConfig({
   // Override at build time with VITEPRESS_BASE if hosting at a custom domain.
   base: process.env.VITEPRESS_BASE ?? '/xera/',
   head: [
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/xera/logo.svg' }],
     ['meta', { name: 'theme-color', content: '#646cff' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:title', content: 'xera — AI-native test framework' }],
@@ -24,6 +25,7 @@ export default defineConfig({
     ],
   ],
   themeConfig: {
+    logo: { src: '/logo.svg', alt: 'xera' },
     nav: [
       { text: 'Guide', link: '/guide/getting-started' },
       { text: 'Architecture', link: '/guide/architecture' },

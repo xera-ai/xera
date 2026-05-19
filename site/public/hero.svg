@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" fill="none" role="img" aria-label="xera knowledge graph">
+  <defs>
+    <linearGradient id="xera-hero-gradient" x1="40" y1="40" x2="280" y2="280" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#646cff" />
+      <stop offset="1" stop-color="#41d1ff" />
+    </linearGradient>
+    <radialGradient id="xera-hero-glow" cx="160" cy="160" r="160" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#646cff" stop-opacity="0.22" />
+      <stop offset="0.55" stop-color="#41d1ff" stop-opacity="0.08" />
+      <stop offset="1" stop-color="#41d1ff" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <circle cx="160" cy="160" r="150" fill="url(#xera-hero-glow)" />
+
+  <!-- outer dashed frame: the four edges between corner nodes -->
+  <path d="M60 60 H260 V260 H60 Z" stroke="url(#xera-hero-gradient)" stroke-width="1.6" stroke-opacity="0.35" stroke-dasharray="5 6" />
+
+  <!-- main X strokes -->
+  <path d="M60 60 L260 260 M260 60 L60 260" stroke="url(#xera-hero-gradient)" stroke-width="6" stroke-linecap="round" />
+
+  <!-- satellite scenarios (small nodes hinting at the knowledge graph) -->
+  <circle cx="160"  cy="38"  r="4.5" fill="url(#xera-hero-gradient)" fill-opacity="0.55" />
+  <circle cx="282"  cy="160" r="4.5" fill="url(#xera-hero-gradient)" fill-opacity="0.55" />
+  <circle cx="160"  cy="282" r="4.5" fill="url(#xera-hero-gradient)" fill-opacity="0.55" />
+  <circle cx="38"   cy="160" r="4.5" fill="url(#xera-hero-gradient)" fill-opacity="0.55" />
+  <path d="M160 38 L60 60 M160 38 L260 60" stroke="url(#xera-hero-gradient)" stroke-width="1" stroke-opacity="0.4" />
+  <path d="M282 160 L260 60 M282 160 L260 260" stroke="url(#xera-hero-gradient)" stroke-width="1" stroke-opacity="0.4" />
+  <path d="M160 282 L60 260 M160 282 L260 260" stroke="url(#xera-hero-gradient)" stroke-width="1" stroke-opacity="0.4" />
+  <path d="M38 160 L60 60 M38 160 L60 260" stroke="url(#xera-hero-gradient)" stroke-width="1" stroke-opacity="0.4" />
+
+  <!-- 4 corner nodes (ticket / scenario / POM / area) -->
+  <circle cx="60"  cy="60"  r="14" fill="url(#xera-hero-gradient)" />
+  <circle cx="260" cy="60"  r="14" fill="url(#xera-hero-gradient)" />
+  <circle cx="60"  cy="260" r="14" fill="url(#xera-hero-gradient)" />
+  <circle cx="260" cy="260" r="14" fill="url(#xera-hero-gradient)" />
+
+  <!-- center "AC" node -->
+  <circle cx="160" cy="160" r="22" fill="none" stroke="url(#xera-hero-gradient)" stroke-width="1.5" stroke-opacity="0.5" />
+  <circle cx="160" cy="160" r="13" fill="url(#xera-hero-gradient)" />
+</svg>
