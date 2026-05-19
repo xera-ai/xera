@@ -25,7 +25,7 @@
     "bin"
   ],
   "scripts": {
-    "build": "bun build ./src/index.ts ./bin/internal.ts --outdir ./dist --target bun --external @playwright/test --external @xera-ai/web --external @xera-ai/http --external zod && cp -r src/graph/templates dist/bin/",
+    "build": "bun build ./src/index.ts ./src/adapter/types.ts --outdir ./dist --root ./src --target bun --external @playwright/test --external @xera-ai/web --external @xera-ai/http --external zod && bun build ./bin/internal.ts --outfile ./dist/bin/internal.js --target bun --external @playwright/test --external @xera-ai/web --external @xera-ai/http --external zod && cp -r src/graph/templates dist/bin/",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "bun run build"
   },

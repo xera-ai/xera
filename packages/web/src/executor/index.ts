@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildPlaywrightArgs } from './playwright-args';
 
@@ -39,9 +40,17 @@ export async function runPlaywright(input: RunPlaywrightInput): Promise<RunPlayw
     ...process.env,
     ...input.env,
   });
-  return {
-    outcome: exitCode === 0 ? 'PASS' : 'FAIL',
-    rawReportPath: join(input.outputDir, 'report.json'),
-    exitCode,
-  };
+  const rawReportPath = join(input.outputDir, 'report.json');
+  let outcome: 'PASS' | 'FAIL' = exitCode === 0 ? 'PASS' : 'FAIL';
+  if (outcome === 'PASS') {
+    try {
+      const report = JSON.parse(readFileSync(rawReportPath, 'utf8')) as {
+        stats?: { expected?: number };
+      };
+      if ((report.stats?.expected ?? 0) === 0) outcome = 'FAIL';
+    } catch {
+      outcome = 'FAIL';
+    }
+  }
+  return { outcome, rawReportPath, exitCode };
 }
