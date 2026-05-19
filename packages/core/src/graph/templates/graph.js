@@ -278,12 +278,12 @@
     spActions.innerHTML = '';
 
     if (isFailure) {
-      var m = orig.meta || {};
+      const m = orig.meta || {};
       spGroup.textContent = 'Failure';
       spTitle.textContent = m.scenarioName || orig.label || nodeId;
       spDesc.textContent = '';
       if (m.classification) {
-        var classVal = `${m.classification}${m.confidence ? ` (${m.confidence} confidence)` : ''}`;
+        const classVal = `${m.classification}${m.confidence ? ` (${m.confidence} confidence)` : ''}`;
         spDesc.appendChild(spRow('class', classVal));
       } else {
         spDesc.appendChild(spRow('class', 'not yet classified', 'muted'));
@@ -450,13 +450,13 @@
   var legendBtn = document.getElementById('legend-btn');
   var legendModal = document.getElementById('legend-modal');
   if (legendBtn && legendModal) {
-    var legendClose = document.getElementById('legend-close');
-    var legendBackdrop = legendModal.querySelector('.legend-backdrop');
-    var openLegend = () => {
+    const legendClose = document.getElementById('legend-close');
+    const legendBackdrop = legendModal.querySelector('.legend-backdrop');
+    const openLegend = () => {
       legendModal.classList.remove('hidden');
       legendModal.setAttribute('aria-hidden', 'false');
     };
-    var closeLegend = () => {
+    const closeLegend = () => {
       legendModal.classList.add('hidden');
       legendModal.setAttribute('aria-hidden', 'true');
     };
