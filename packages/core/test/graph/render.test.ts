@@ -169,6 +169,29 @@ describe('transformForVisNetwork', () => {
     expect(failure?.title).toContain('trace-xyz');
   });
 
+  test('Failure tooltip + meta surface human-readable scenario name, not the hash id', () => {
+    const snap = mkSnapshot();
+    // sc-100's snapshot name is "user signs in" — that is what QA should see,
+    // not the scenarioId (which in real snapshots is a SHA1 content hash).
+    snap.latest_failures['sc-100'] = {
+      id: 'fail-named',
+      scenarioId: 'sc-100',
+      runId: 'r1',
+      ts: '2026-05-15T00:00:00Z',
+      classification: 'SELECTOR_DRIFT',
+      confidence: 'medium',
+    };
+    const { nodes } = transformForVisNetwork(snap, {});
+    const failure = nodes.find((n) => n.id === 'fail-named');
+    expect(failure?.title).toContain('user signs in');
+    expect(failure?.title).not.toContain('sc-100 @');
+    expect(failure?.meta?.scenarioName).toBe('user signs in');
+    expect(failure?.meta?.classification).toBe('SELECTOR_DRIFT');
+    expect(failure?.meta?.confidence).toBe('medium');
+    expect(failure?.meta?.runId).toBe('r1');
+    expect(failure?.meta?.disputed).toBeUndefined();
+  });
+
   test('Failure label falls back to "fail" when classification missing', () => {
     const snap = mkSnapshot();
     snap.latest_failures['sc-100'] = {
@@ -182,6 +205,7 @@ describe('transformForVisNetwork', () => {
     expect(failure?.label).toBe('fail');
     expect(failure?.title).not.toContain('classification:');
     expect(failure?.title).not.toContain('disputed');
+    expect(failure?.meta?.classification).toBeUndefined();
   });
 
   test('Modifies edges are red dashed', () => {
@@ -269,6 +293,18 @@ describe('renderHtml', () => {
     const data = transformForVisNetwork(snap, {});
     const html = renderHtml({ data, generatedAt: '2026-05-16T08:00:00Z', stats: data.stats });
     expect(html.length).toBeLessThan(1_500_000);
+  });
+
+  test('embeds Legend modal with classifier glossary', () => {
+    const snap = mkSnapshot();
+    const data = transformForVisNetwork(snap, {});
+    const html = renderHtml({ data, generatedAt: '2026-05-16T08:00:00Z', stats: data.stats });
+    expect(html).toContain('id="legend-btn"');
+    expect(html).toContain('id="legend-modal"');
+    expect(html).toContain('REAL_BUG');
+    expect(html).toContain('SELECTOR_DRIFT');
+    expect(html).toContain('CONTRACT_DRIFT');
+    expect(html).toContain('AUTH_EXPIRED');
   });
 });
 

@@ -13,6 +13,18 @@ export interface VisNode {
   size?: number;
   title?: string;
   borderWidth?: number;
+  // Structured failure data for the click-panel — only set on Failure nodes.
+  // vis-network ignores unknown fields, so this travels through to the client
+  // alongside the rendered visual props.
+  meta?: {
+    scenarioName?: string;
+    classification?: string;
+    confidence?: string;
+    runId?: string;
+    disputed?: boolean;
+    traceId?: string;
+    ts?: string;
+  };
 }
 
 export interface VisEdge {
@@ -125,8 +137,13 @@ function buildAreaNode(snap: Snapshot, areaId: string): VisNode {
   return node;
 }
 
-function buildFailureNode(_snap: Snapshot, failure: FailureNode): VisNode {
-  const titleParts: string[] = [`failure on ${failure.scenarioId} @ ${failure.ts}`];
+function buildFailureNode(snap: Snapshot, failure: FailureNode): VisNode {
+  // scenarioId is a content hash; surface the human-readable scenario name
+  // instead so QA sees "Successful login redirects to dashboard" rather than
+  // "bd911645a4a5d5…" in the tooltip + click panel.
+  const scenarioName = snap.scenarios[failure.scenarioId]?.name ?? failure.scenarioId;
+
+  const titleParts: string[] = [`failure on "${scenarioName}" @ ${failure.ts}`];
   if (failure.classification) {
     const conf = failure.confidence ? ` (${failure.confidence})` : '';
     titleParts.push(`classification: ${failure.classification}${conf}`);
@@ -134,6 +151,16 @@ function buildFailureNode(_snap: Snapshot, failure: FailureNode): VisNode {
   titleParts.push(`runId: ${failure.runId}`);
   if (failure.disputed) titleParts.push('disputed by QA');
   if (failure.traceId) titleParts.push(`trace: ${failure.traceId}`);
+
+  const meta: NonNullable<VisNode['meta']> = {
+    scenarioName,
+    runId: failure.runId,
+    ts: failure.ts,
+  };
+  if (failure.classification) meta.classification = failure.classification;
+  if (failure.confidence) meta.confidence = failure.confidence;
+  if (failure.disputed) meta.disputed = true;
+  if (failure.traceId) meta.traceId = failure.traceId;
 
   const node: VisNode = {
     id: failure.id,
@@ -143,6 +170,7 @@ function buildFailureNode(_snap: Snapshot, failure: FailureNode): VisNode {
     shape: 'triangle',
     size: 10,
     title: titleParts.join(' · '),
+    meta,
   };
   return node;
 }
