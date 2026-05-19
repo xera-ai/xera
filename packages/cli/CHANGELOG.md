@@ -1,5 +1,15 @@
 # @xera-ai/cli
 
+## 0.15.3
+
+### Patch Changes
+
+- [#130](https://github.com/xera-ai/xera/pull/130) [`3597490`](https://github.com/xera-ai/xera/commit/3597490a87d364056328698ca05549be89284d2b) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - hint PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD in api-shape .env.example (auto-generated from [#130](https://github.com/xera-ai/xera/issues/130))
+
+- Updated dependencies [[`36250b3`](https://github.com/xera-ai/xera/commit/36250b3d921c9d348c89c95f0d3843321e93cab7)]:
+  - @xera-ai/core@0.15.3
+  - @xera-ai/skills@0.15.3
+
 ## 0.15.2
 
 ### Patch Changes
