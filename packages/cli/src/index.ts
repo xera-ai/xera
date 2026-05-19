@@ -198,9 +198,7 @@ export default async function main(): Promise<void> {
     .option('-y, --yes', 'Skip confirmation; remove all installed samples')
     .action(async (action: string, opts: { yes?: boolean }) => {
       if (action !== 'remove') {
-        console.error(
-          pc.red(`\n  error: Unknown samples action '${action}'. Supported: remove\n`),
-        );
+        console.error(pc.red(`\n  error: Unknown samples action '${action}'. Supported: remove\n`));
         process.exit(1);
       }
       const exit = await samplesRemoveCommand({ yes: !!opts.yes });
