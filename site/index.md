@@ -124,5 +124,6 @@ Then in your AI coding agent (Claude Code, Cursor, or Codex CLI):
 | v1.0 | 🚧 planned | Cross-adapter graph linkage (endpoint as first-class graph node), live dashboard |
 | v1.x | 🔭 planned | Messaging adapters (Kafka, AMQP, WebSocket), GraphQL, gRPC |
 | v2.0 | 🔭 planned | Optional SaaS backend (only if multi-org demand) |
+| Future | 💡 designed-for | Mobile, performance, and security adapters — the `TestAdapter` interface is built to accept them; no timeline or owner yet |
 
 Released under the [MIT License](https://github.com/xera-ai/xera/blob/main/README.md#license).
