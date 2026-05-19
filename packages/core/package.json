@@ -1,6 +1,6 @@
 {
   "name": "@xera-ai/core",
-  "version": "0.15.5",
+  "version": "0.16.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -32,8 +32,8 @@
   },
   "dependencies": {
     "zod": "4.4.3",
-    "@xera-ai/web": "^0.15.5",
-    "@xera-ai/http": "^0.15.5",
+    "@xera-ai/web": "^0.16.0",
+    "@xera-ai/http": "^0.16.0",
     "@playwright/test": "1.60.0",
     "dotenv": "^16.0.0",
     "fflate": "0.8.3",
