@@ -7,10 +7,12 @@ The user invoked `/xera-run <TICKET>`. If no key, ask.
 
 This skill orchestrates the other six skills with quality gates between each step. If any step fails non-recoverably, STOP and surface the cause.
 
-## Step 0 — Health gate
+## Step 0 — Health gate (environment only)
 
-Run: `bunx xera doctor --strict {{TICKET}}`
+Run: `bunx xera doctor --strict`
 If non-zero exit → STOP. Show the output verbatim. Suggest the user fix env and re-run.
+
+This runs the environment-level checks (bun, `xera.config.ts`, baseUrl reachability, auth files, OpenAPI, `.env`, editor skill layout). The ticket-specific gate runs as Step 1.6 after fetch, since `.xera/{{TICKET}}/` legitimately does not exist on the very first invocation of `/xera-run`.
 
 ## Step 1 — Fetch
 
@@ -50,6 +52,14 @@ This means the auto-trigger is effectively a "high-risk alarm" rather than a per
 - **[details]:** Suggest the user run `/xera-impact {{TICKET}}` interactively for full details, then ask again.
 
 Non-fatal: if `xera:impact-prepare` itself exits abnormally, log the warning but continue to Step 2 — graph features are advisory, not gating.
+
+## Step 1.6 — Ticket health gate
+
+Run: `bunx xera doctor --strict {{TICKET}}`
+
+This re-runs doctor with the ticket arg now that `/xera-fetch` has materialized `.xera/{{TICKET}}/` (story.md, meta.json, graph-input.json). Checks include: artifact dir present, `graph-input.json` parses with a valid `modifiesAreas` array, and `story.md` frontmatter has acceptanceCriteria (or an actionable hint if not).
+
+If non-zero exit → STOP. Show the output verbatim. The most common failures are recoverable in-place (re-run a single substep of `/xera-fetch`); pick the hint that matches the failing check.
 
 ## Step 2 — Feature
 

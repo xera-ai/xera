@@ -330,6 +330,13 @@ describe('runChecks ticket-specific (--strict <TICKET>)', () => {
       const w = checks.find((c) => c.name.includes('PROJ-99'));
       expect(w).toBeDefined();
       expect(w!.ok).toBe(false);
+      // Regression for #149: don't render the contradictory "exists — no artifact dir"
+      // message. The check name asserts the dir is "present"; the message says where
+      // it would be and what to do next.
+      expect(w!.name).toContain('artifact directory present');
+      expect(w!.name).not.toContain('exists');
+      expect(w!.message ?? '').toContain('.xera/PROJ-99/');
+      expect(w!.message ?? '').toContain('/xera-fetch PROJ-99');
     } finally {
       rmSync(d, { recursive: true, force: true });
     }
