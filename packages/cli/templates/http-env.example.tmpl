@@ -5,3 +5,11 @@ JIRA_API_TOKEN=
 # Auth tokens for HTTP roles - set in .env (gitignored)
 {{#each httpRoles}}{{upper this}}_BEARER_TOKEN=
 {{/each}}
+
+# Pure-API project tip: @playwright/test no longer auto-downloads browsers on
+# install (since Playwright 1.27), so a fresh `bun install` is already lean.
+# BUT if your CI pipeline calls `npx playwright install --with-deps` blindly
+# (common in container base images), export this BEFORE that step to skip the
+# ~300MB Chromium/Firefox/Webkit download — none of which are needed for HTTP
+# tests. If you later add the web adapter, drop this line.
+# PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
