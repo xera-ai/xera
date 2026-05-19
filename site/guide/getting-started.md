@@ -82,6 +82,17 @@ bun run xera:auth-setup
 
 Now `/xera-run SAMPLE-001` and `/xera-run SAMPLE-HTTP-001` will run against FlowBoard.
 
+### Push it: pair `/xera-run` with `/xera-explore`
+
+FlowBoard ships intentional security surfaces (stored XSS, JWT handling edge cases, file upload risks, SQL injection points). These map directly to the categories the experimental [`/xera-explore`](./architecture#v09-addition-adversarial-exploration-experimental) skill brainstorms — `negative`, `boundary`, `race`, `error-recovery`, `a11y`, `security-smell`, `non-functional`. The natural onboarding loop is two-step:
+
+```
+> /xera-run <TICKET>      # AC-driven happy path → test.feature
+> /xera-explore <TICKET>  # adversarial scenarios → explore.feature
+```
+
+`/xera-explore` is opt-in and writes to a separate `explore.feature` tagged `@adversarial @adversarial-<category> @severity-<level>`, so PO review of `test.feature` stays AC-aligned while QA keeps drumming up edge cases on the side. It's not auto-chained from `/xera-run`, so the loop only runs when you invoke it.
+
 ## First test
 
 ```bash
