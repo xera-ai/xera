@@ -4,7 +4,7 @@ import pc from 'picocolors';
 import { runChecks } from '../checks';
 
 export async function doctorCommand(opts: {
-  strict?: string;
+  strict?: string | boolean;
   logs?: string;
   usage?: boolean;
 }): Promise<number> {
@@ -29,13 +29,20 @@ export async function doctorCommand(opts: {
     return 0;
   }
 
-  const checks = await runChecks(cwd, opts.strict ? { ticket: opts.strict } : {});
+  // --strict        → strict === true   (env-only checks, exit non-zero on failure)
+  // --strict XFB-7  → strict === 'XFB-7' (env + ticket-specific checks)
+  // --no-strict     → strict === false  (env-only, exit 0 — explicit opt-out)
+  // omitted         → strict === undefined (env-only, exit 0)
+  const strict = opts.strict === true || typeof opts.strict === 'string';
+  const ticket = typeof opts.strict === 'string' ? opts.strict : undefined;
+
+  const checks = await runChecks(cwd, ticket ? { ticket } : {});
   for (const c of checks) {
     const icon = c.ok ? pc.green('✓') : pc.red('✗');
     console.log(`${icon} ${c.name}${c.message ? pc.dim(` — ${c.message}`) : ''}`);
   }
   const allOk = checks.every((c) => c.ok);
-  if (opts.strict) {
+  if (strict) {
     return allOk ? 0 : 1;
   }
   return 0;
