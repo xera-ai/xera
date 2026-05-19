@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" role="img" aria-label="xera">
+  <defs>
+    <linearGradient id="xera-logo-gradient" x1="4" y1="4" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#646cff" />
+      <stop offset="1" stop-color="#41d1ff" />
+    </linearGradient>
+  </defs>
+  <path d="M8 8 L24 24 M24 8 L8 24" stroke="url(#xera-logo-gradient)" stroke-width="2.6" stroke-linecap="round" />
+  <circle cx="8"  cy="8"  r="3" fill="url(#xera-logo-gradient)" />
+  <circle cx="24" cy="8"  r="3" fill="url(#xera-logo-gradient)" />
+  <circle cx="8"  cy="24" r="3" fill="url(#xera-logo-gradient)" />
+  <circle cx="24" cy="24" r="3" fill="url(#xera-logo-gradient)" />
+</svg>

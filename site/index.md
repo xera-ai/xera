@@ -8,6 +8,9 @@ hero:
     Fetch a ticket from Jira or GitHub Issues, generate Gherkin + Playwright
     spec, run the test, diagnose the failure, and post results back — driven
     by AI coding-agent skills (Claude Code, Cursor, OpenAI Codex CLI).
+  image:
+    src: /hero.svg
+    alt: xera knowledge graph
   actions:
     - theme: brand
       text: Get started
