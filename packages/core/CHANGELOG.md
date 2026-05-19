@@ -1,5 +1,15 @@
 # @xera-ai/core
 
+## 0.16.2
+
+### Patch Changes
+
+- [#164](https://github.com/xera-ai/xera/pull/164) [`4f3a72a`](https://github.com/xera-ai/xera/commit/4f3a72aee624f678c2706c365548f2304d5ce0f9) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - anchor failure triangles + classifier-aware viewer panel & legend (auto-generated from [#164](https://github.com/xera-ai/xera/issues/164))
+
+- Updated dependencies []:
+  - @xera-ai/web@0.16.2
+  - @xera-ai/http@0.16.2
+
 ## 0.16.1
 
 ### Patch Changes
