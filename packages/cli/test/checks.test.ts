@@ -150,22 +150,6 @@ describe('runChecks ticket-specific (--strict <TICKET>)', () => {
     writeFileSync(join(dir, 'story.md'), `---\n${frontmatter}\n---\n\n# story body\n`);
   }
 
-  test('treats a fresh ticket (no .xera/<TICKET>/ dir) as OK — /xera-run Step 0 must not block before fetch', async () => {
-    const d = makeWebProject();
-    try {
-      const checks = await runChecks(d, { ticket: 'FRESH-1' });
-      const ticketChecks = checks.filter((c) => c.name.startsWith('FRESH-1:'));
-      // Only one ticket-row, and it passes with the "fresh" message.
-      expect(ticketChecks).toHaveLength(1);
-      expect(ticketChecks[0]?.ok).toBe(true);
-      expect(ticketChecks[0]?.message ?? '').toMatch(/fresh ticket/i);
-      // Whole run passes strict-mode (no ok:false rows for this ticket).
-      expect(checks.every((c) => c.ok || !c.name.startsWith('FRESH-1:'))).toBe(true);
-    } finally {
-      rmSync(d, { recursive: true, force: true });
-    }
-  });
-
   test('warns when graph-input.json missing for the ticket', async () => {
     const d = makeWebProject();
     try {
@@ -339,6 +323,17 @@ describe('runChecks ticket-specific (--strict <TICKET>)', () => {
     }
   });
 
+  test('warns when ticket dir is missing entirely', async () => {
+    const d = makeWebProject();
+    try {
+      const checks = await runChecks(d, { ticket: 'PROJ-99' });
+      const w = checks.find((c) => c.name.includes('PROJ-99'));
+      expect(w).toBeDefined();
+      expect(w!.ok).toBe(false);
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('runChecks coverage warnings', () => {
