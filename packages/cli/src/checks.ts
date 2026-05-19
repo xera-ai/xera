@@ -25,9 +25,9 @@ function pushTicketChecks(
   const ticketDir = join(cwd, '.xera', ticket);
   if (!existsSync(ticketDir)) {
     checks.push({
-      name: `${ticket}: .xera/${ticket}/ exists`,
+      name: `${ticket}: artifact directory present`,
       ok: false,
-      message: `no artifact dir — run \`/xera-fetch ${ticket}\` first`,
+      message: `.xera/${ticket}/ not found — run \`/xera-fetch ${ticket}\` first`,
     });
     return;
   }
