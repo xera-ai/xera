@@ -123,4 +123,4 @@ Then in your AI coding agent (Claude Code, Cursor, or Codex CLI):
 | v0.16 | ✅ shipped | GitHub Issues tracker, `/xera-run` first-run fix |
 | v1.0 | 🚧 planned | Cross-adapter graph linkage, live dashboard |
 
-Released under the [MIT License](https://github.com/xera-ai/xera/blob/main/README.md#license).
+Released under the [Apache 2.0 License](https://github.com/xera-ai/xera/blob/main/LICENSE).

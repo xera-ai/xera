@@ -65,7 +65,7 @@ export default defineConfig({
       text: 'Edit this page on GitHub',
     },
     footer: {
-      message: 'Released under the MIT License.',
+      message: 'Released under the Apache 2.0 License.',
       copyright: 'Copyright © 2026 xera contributors',
     },
     outline: { level: [2, 3] },
