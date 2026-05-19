@@ -1,6 +1,18 @@
-# xera
+<p align="center">
+  <img src="site/public/hero.svg" alt="xera knowledge graph" width="180" />
+</p>
 
-AI-native test framework for QA teams — fetch a ticket from Jira **or GitHub Issues**, generate Gherkin + Playwright spec, run the test, diagnose the failure, and post results back to the tracker. Driven by AI coding-agent skills (Claude Code, Cursor, OpenAI Codex CLI).
+<h1 align="center">xera</h1>
+
+<p align="center">
+  AI-native test framework for QA teams — fetch a ticket from Jira <b>or GitHub Issues</b>, generate Gherkin + Playwright spec, run the test, diagnose the failure, and post results back to the tracker. Driven by AI coding-agent skills (Claude Code, Cursor, OpenAI Codex CLI).
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/@xera-ai/cli"><img alt="npm" src="https://img.shields.io/npm/v/%40xera-ai%2Fcli?label=%40xera-ai%2Fcli&color=646cff"></a>
+  <a href="https://github.com/xera-ai/xera/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-blue.svg"></a>
+  <a href="https://xera-ai.github.io/xera/"><img alt="Docs" src="https://img.shields.io/badge/docs-xera--ai.github.io-41d1ff"></a>
+</p>
 
 **v0.16:** [GitHub Issues](docs/CONFIGURATION.md#issue-tracker-jira-vs-github) as an alternative to Jira (`xera init --tracker github`, ticket keys `GH-<n>`, no token required — uses the GitHub MCP or `gh` CLI). `/xera-run` first-run fix: the health gate is split into env-only Step 0 + ticket-specific Step 1.6 (after fetch), so a fresh ticket no longer deadlocks on its own missing artifacts.
 
@@ -97,8 +109,8 @@ See [the design spec](docs/superpowers/specs/2026-05-14-xera-core-web-design.md)
 | v0.9 | ✅ shipped | **Adversarial exploration (experimental, opt-in)** — `/xera-explore <TICKET>` brainstorms negative / boundary / race / a11y / security-smell scenarios with `category` + `severity` metadata; writes accepted proposals to a separate `explore.feature` so PO review of `test.feature` stays undisturbed. Not auto-chained from `/xera-run` |
 | v0.10–v0.15 | ✅ shipped | Multi-editor support (`xera init --editor claude\|cursor\|codex\|all`) · CLI UX hardening (help-on-no-args, did-you-mean, non-TTY guard) · cognitive AC extraction from Jira description body when no dedicated AC field is configured · `xera init --update --shape` upgrade path · http-shape `.env.example` hints `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD` · `.d.ts` declarations emitted for all packages |
 | v0.16 | ✅ shipped | **GitHub Issues tracker** (`github: { repo: 'owner/repo' }`, ticket keys `GH-<n>`, GitHub MCP + `gh` CLI fallback, no token env vars) · `/xera-run` first-run unblocked: env-only Step 0 + ticket-specific Step 1.6 after fetch (chicken-and-egg fix) · `xera doctor --strict [ticket]` accepts optional ticket arg · `samples remove` subcommand on the public CLI |
-| v1.0 | planned | Cross-adapter graph linkage (endpoint as first-class graph node) · live dashboard |
-| v1.x | planned | Messaging adapters (Kafka, AMQP, WebSocket) · GraphQL · gRPC |
+| v1.0 | planned | **Stability commitment** (semver from 1.0, frozen `TestAdapter` interface) · public [documentation site](https://xera-ai.github.io/xera/) · cross-adapter graph linkage (endpoint as first-class graph node) |
+| v1.x | planned | `/xera-sprint` multi-ticket orchestration · production trace → test backfill · hosted live dashboard (graph + coverage + disputes) · messaging adapters (Kafka, AMQP, WebSocket) · GraphQL · gRPC |
 | v2.0 | planned | Optional SaaS backend (only if multi-org demand) |
 | Future | designed-for | Mobile, performance, and security adapters — `TestAdapter` is built to accept them; no timeline or owner yet (see [`AGENTS.md`](AGENTS.md#adapter-pattern)) |
 

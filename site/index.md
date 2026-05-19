@@ -124,8 +124,8 @@ Then in your AI coding agent (Claude Code, Cursor, or Codex CLI):
 | v0.9 | ✅ shipped | Adversarial exploration (`/xera-explore`, experimental, opt-in) |
 | v0.10–v0.15 | ✅ shipped | Multi-editor support (Claude / Cursor / Codex), cognitive AC extraction from Jira description, `xera init --update --shape` upgrade path, `.d.ts` declarations for all packages |
 | v0.16 | ✅ shipped | GitHub Issues tracker (`xera init --tracker github`, no token required), `samples remove` subcommand |
-| v1.0 | 🚧 planned | Cross-adapter graph linkage (endpoint as first-class graph node), live dashboard |
-| v1.x | 🔭 planned | Messaging adapters (Kafka, AMQP, WebSocket), GraphQL, gRPC |
+| v1.0 | 🚧 planned | **Stability commitment** (semver from 1.0, frozen `TestAdapter` interface), public documentation site, cross-adapter graph linkage (endpoint as first-class graph node) |
+| v1.x | 🔭 planned | `/xera-sprint` multi-ticket orchestration, production trace → test backfill, hosted live dashboard (graph + coverage + disputes), messaging adapters (Kafka, AMQP, WebSocket), GraphQL, gRPC |
 | v2.0 | 🔭 planned | Optional SaaS backend (only if multi-org demand) |
 | Future | 💡 designed-for | Mobile, performance, and security adapters — the `TestAdapter` interface is built to accept them; no timeline or owner yet |
 
