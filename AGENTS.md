@@ -201,20 +201,20 @@ Bug fixes, dep bumps, refactors of code you're already touching, and doc tweaks 
 
 ## What's already shipped
 
-| Version | Highlights |
-|---|---|
-| **v0.1** | Core platform + Web adapter, Jira REST + MCP, encrypted auth state, 4-bucket classifier, deterministic secret scrubber, sample-app + mock-jira fixtures, nightly E2E |
-| **v0.2** | AI gen evaluation harness (`/xera-eval`), `golden-eval/` rubric fixtures |
-| **v0.3** | Prompt injection defense (boundary tags `<XR_*>` + `injection-follow` refusal label across all prompts) |
-| **v0.5** | Self-healing selector drift — `/xera-report` auto-proposes POM heal, applies, re-runs, stages on pass / reverts on fail |
-| **v0.6.0** | Graph foundation — event store, snapshot, 4 graph subcommands, cost telemetry, 5 skill emission patches |
-| **v0.6.1** | TEST_OUTDATED classifier (5th bucket), lazy similarity enrichment, dispute event capture, Jira sub-task routing |
-| **v0.6.2** | `/xera-impact` skill, auto-trigger in `/xera-run`, `RunSchema.autoImpact` config |
-| **v0.6.3** | HTML viewer (vendored vis-network), CI artifact + sticky PR comment, consumer scaffold `xera-graph.yml` |
-| **v0.6.4** | QA polish — `--grep` per-scenario filter, priority auto-detect from AC keywords, threshold tuning, disputed marker in viewer, `xera doctor --auto-enrich`, `xera-internal disputes` CLI |
-| **v0.7** | HTTP API adapter (`@xera-ai/http`) — no-browser executor, pre-auth helpers (`defineHttpAuthSetup`, `presetHttpAuth`), OpenAPI loader; 3 new classifier buckets (`CONTRACT_DRIFT`, `RATE_LIMITED`, `AUTH_EXPIRED`); `xera init --shape web\|api\|mixed`; `script-from-feature-http.md` prompt; `xera:auth-setup` subcommand |
-| **v0.8** | Release pipeline overhaul — all six packages unified at one version (`fixed` group in `.changeset/config.json`); `release.yml` (changesets-driven publish) replaces tag-triggered `publish.yml` (kept as manual fallback); `auto-changeset.yml` infers bumps from conventional-commit PR titles; `xera-automation` GitHub App mints installation tokens so bot pushes trigger downstream CI; branch protection on `main` + changeset-bot required-comment; legacy v0.x npm versions unpublished or deprecated, registry starts fresh from 0.8.0 |
+| Version | Status | Highlights |
+|---|---|---|
+| **v0.1** | ✅ | Core platform + Web adapter, Jira REST + MCP, encrypted auth state, 4-bucket classifier, deterministic secret scrubber, sample-app + mock-jira fixtures, nightly E2E |
+| **v0.2** | ✅ | AI gen evaluation harness (`/xera-eval`), `golden-eval/` rubric fixtures |
+| **v0.3** | ✅ | Prompt injection defense (boundary tags `<XR_*>` + `injection-follow` refusal label across all prompts) |
+| **v0.5** | ✅ | Self-healing selector drift — `/xera-report` auto-proposes POM heal, applies, re-runs, stages on pass / reverts on fail |
+| **v0.6.0** | ✅ | Graph foundation — event store, snapshot, 4 graph subcommands, cost telemetry, 5 skill emission patches |
+| **v0.6.1** | ✅ | TEST_OUTDATED classifier (5th bucket), lazy similarity enrichment, dispute event capture, Jira sub-task routing |
+| **v0.6.2** | ✅ | `/xera-impact` skill, auto-trigger in `/xera-run`, `RunSchema.autoImpact` config |
+| **v0.6.3** | ✅ | HTML viewer (vendored vis-network), CI artifact + sticky PR comment, consumer scaffold `xera-graph.yml` |
+| **v0.6.4** | ✅ | QA polish — `--grep` per-scenario filter, priority auto-detect from AC keywords, threshold tuning, disputed marker in viewer, `xera doctor --auto-enrich`, `xera-internal disputes` CLI |
+| **v0.7** | ✅ | HTTP API adapter (`@xera-ai/http`) — no-browser executor, pre-auth helpers (`defineHttpAuthSetup`, `presetHttpAuth`), OpenAPI loader; 3 new classifier buckets (`CONTRACT_DRIFT`, `RATE_LIMITED`, `AUTH_EXPIRED`); `xera init --shape web\|api\|mixed`; `script-from-feature-http.md` prompt; `xera:auth-setup` subcommand |
+| **v0.8** | ✅ | Release pipeline overhaul — all six packages unified at one version (`fixed` group in `.changeset/config.json`); `release.yml` (changesets-driven publish) replaces tag-triggered `publish.yml` (kept as manual fallback); `auto-changeset.yml` infers bumps from conventional-commit PR titles; `xera-automation` GitHub App mints installation tokens so bot pushes trigger downstream CI; branch protection on `main` + changeset-bot required-comment; legacy v0.x npm versions unpublished or deprecated, registry starts fresh from 0.8.0 |
 
-Repo at `xera-ai/xera`, public, MIT. 6 packages on npm under `@xera-ai/*` — all currently at the same `fixed`-group version. New projects are scaffolded via `bunx @xera-ai/cli init` (the previously-recommended `xera-ai/xera-starter` GitHub-template repo has been deprecated — `xera init` produces a strictly larger and always-current scaffold). The `--editor <list>` flag controls which AI coding agents are scaffolded (`claude`, `cursor`, `codex`, or `all`); by default, `init` auto-detects the active editor, falling back to `all` when run non-interactively (`--yes`). ~350 unit tests across `@xera-ai/core` + `@xera-ai/web` + `@xera-ai/http`.
+New projects are scaffolded via `bunx @xera-ai/cli init` — `xera init` produces an always-current scaffold for any shape (web, api, mixed). The `--editor <list>` flag controls which AI coding agents are scaffolded (`claude`, `cursor`, `codex`, or `all`); by default, `init` auto-detects the active editor, falling back to `all` when run non-interactively (`--yes`). ~350 unit tests across `@xera-ai/core` + `@xera-ai/web` + `@xera-ai/http`.
 
 **Not yet shipped** (each is a separate future spec): `/xera-sprint` multi-ticket orchestration, production trace → test backfill, Mobile/Performance/Security adapters, live dashboard.
