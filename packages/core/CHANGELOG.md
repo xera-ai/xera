@@ -1,5 +1,15 @@
 # @xera-ai/core
 
+## 0.15.1
+
+### Patch Changes
+
+- [#125](https://github.com/xera-ai/xera/pull/125) [`953e462`](https://github.com/xera-ai/xera/commit/953e462240f6c30b9a987b82b2e595ae0c49a568) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - accept SAMPLE-HTTP-NNN ticket keys (unblocks `init --samples`) (auto-generated from [#125](https://github.com/xera-ai/xera/issues/125))
+
+- Updated dependencies []:
+  - @xera-ai/web@0.15.1
+  - @xera-ai/http@0.15.1
+
 ## 0.15.0
 
 ### Minor Changes
