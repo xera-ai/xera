@@ -16,11 +16,11 @@ hero:
       text: Get started
       link: /guide/getting-started
     - theme: alt
+      text: Try the sample app
+      link: https://github.com/xera-ai/xera-sample-app
+    - theme: alt
       text: View on GitHub
       link: https://github.com/xera-ai/xera
-    - theme: alt
-      text: Architecture
-      link: /guide/architecture
 
 features:
   - icon: 🎫
@@ -95,6 +95,26 @@ Then in your AI coding agent (Claude Code, Cursor, or Codex CLI):
 > /xera-run SAMPLE-HTTP-001     # api sample
 > /xera-run JIRA-123            # your first real ticket
 > /xera-run GH-42               # …or a GitHub issue
+```
+
+## Try it on a real app
+
+Don't have an app to point xera at yet? **[FlowBoard](https://github.com/xera-ai/xera-sample-app)** is the official sample target — a full-stack project-management app (Fastify + React + SQLite, JWT auth, REST API with Swagger, intentional security surfaces). It covers both `web` and `api` shapes, so the same FlowBoard checkout exercises the entire `/xera-run` pipeline end-to-end:
+
+```bash
+git clone https://github.com/xera-ai/xera-sample-app
+cd xera-sample-app && npm install && npm run dev:backend & npm run dev:frontend
+# UI on http://localhost:5173, API on http://localhost:3000
+```
+
+Then in a sibling directory point a new xera project at it:
+
+```bash
+mkdir flowboard-tests && cd flowboard-tests
+xera init -y --shape mixed --tracker github \
+  --gr xera-ai/xera-sample-app \
+  --su http://localhost:5173 \
+  --au http://localhost:3000
 ```
 
 ## What you get out of the box
