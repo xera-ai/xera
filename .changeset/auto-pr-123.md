@@ -4,4 +4,4 @@
 '@xera-ai/skills': minor
 ---
 
-deterministic OpenAPI loading via xera:openapi-resolve (auto-generated from #123)
+deterministic OpenAPI loading + opt-in sample tickets (auto-generated from #123)
