@@ -9,13 +9,14 @@ import {
   type ProjectShape,
 } from './commands/init';
 import { type InitUpdateOptions, initUpdateCommand } from './commands/init-update';
+import { samplesRemoveCommand } from './commands/samples';
 
 const require = createRequire(import.meta.url);
 const VERSION = (require('../package.json') as { version: string }).version;
 
 const VALID_SHAPES: ProjectShape[] = ['web', 'api', 'mixed'];
 const VALID_AUTH_STRATEGIES: HttpAuthStrategy[] = ['bearer', 'apiKey', 'basic', 'oauth-cc', 'none'];
-const KNOWN_COMMANDS = ['init', 'doctor'];
+const KNOWN_COMMANDS = ['init', 'doctor', 'samples'];
 
 function levenshtein(a: string, b: string): number {
   const m = a.length;
@@ -90,6 +91,11 @@ export default async function main(): Promise<void> {
       `API auth strategy: ${VALID_AUTH_STRATEGIES.join(' | ')}`,
     )
     .option('--hr, --http-roles <roles>', 'HTTP test roles, comma-separated (default: user)')
+    // Sample tickets (opt-in)
+    .option(
+      '--samples',
+      'Scaffold sample ticket(s) under .xera/SAMPLE-001/ (web) or .xera/SAMPLE-HTTP-001/ (api) so /xera-run works out of the box',
+    )
     .example('xera init')
     .example('xera init -y --shape web')
     .example('xera init -y --shape web --editor claude,cursor')
@@ -116,6 +122,7 @@ export default async function main(): Promise<void> {
         openapiPath?: string;
         authStrategy?: string;
         httpRoles?: string;
+        samples?: boolean;
       }) => {
         if (opts.update) {
           const updateOpts: InitUpdateOptions = { yes: !!opts.yes };
@@ -181,9 +188,18 @@ export default async function main(): Promise<void> {
         if (opts.openapiPath !== undefined) initOpts.openapiPath = opts.openapiPath;
         if (opts.httpRoles !== undefined) initOpts.httpRoles = opts.httpRoles;
         if (opts.editor !== undefined) initOpts.editor = opts.editor;
+        if (opts.samples !== undefined) initOpts.samples = opts.samples;
         await initCommand(initOpts);
       },
     );
+
+  cli
+    .command('samples remove', 'Remove scaffolded sample tickets from .xera/')
+    .option('-y, --yes', 'Skip confirmation; remove all installed samples')
+    .action(async (opts: { yes?: boolean }) => {
+      const exit = await samplesRemoveCommand({ yes: !!opts.yes });
+      process.exit(exit);
+    });
 
   cli
     .command('doctor', 'Run a health check')
