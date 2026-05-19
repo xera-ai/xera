@@ -114,13 +114,16 @@ Then in your AI coding agent (Claude Code, Cursor, or Codex CLI):
 
 | Version | Status | Highlights |
 |---|---|---|
-| v0.1 – v0.5 | ✅ shipped | Core platform, Web adapter, eval harness, prompt-injection defense, self-healing selectors |
-| v0.6 | ✅ shipped | Project knowledge graph, TEST_OUTDATED classifier, `/xera-impact`, HTML viewer |
-| v0.7 | ✅ shipped | HTTP API adapter, pre-auth pattern, CONTRACT_DRIFT / RATE_LIMITED / AUTH_EXPIRED |
-| v0.8 | ✅ shipped | Coverage gap & AC matrix, release infra overhaul (changesets `fixed` group) |
+| v0.1 – v0.5 | ✅ shipped | Core platform, Web adapter, eval harness (`/xera-eval`), prompt-injection defense, self-healing selectors |
+| v0.6 | ✅ shipped | Project knowledge graph, TEST_OUTDATED classifier, `/xera-impact`, HTML viewer + CI artifact |
+| v0.7 | ✅ shipped | HTTP API adapter (`@xera-ai/http`), pre-auth pattern, CONTRACT_DRIFT / RATE_LIMITED / AUTH_EXPIRED classifiers |
+| v0.8 | ✅ shipped | Coverage gap & AC matrix (`/xera-coverage`, `/xera-fill-gap`), release infra overhaul (changesets `fixed` group, auto-changeset from PR titles, `xera-automation` GitHub App) |
 | v0.9 | ✅ shipped | Adversarial exploration (`/xera-explore`, experimental, opt-in) |
-| v0.10–v0.15 | ✅ shipped | Multi-editor support, CLI UX hardening, cognitive AC extraction |
-| v0.16 | ✅ shipped | GitHub Issues tracker, `/xera-run` first-run fix |
-| v1.0 | 🚧 planned | Cross-adapter graph linkage, live dashboard |
+| v0.10–v0.15 | ✅ shipped | Multi-editor support (Claude / Cursor / Codex), cognitive AC extraction from Jira description, `xera init --update --shape` upgrade path, `.d.ts` declarations for all packages |
+| v0.16 | ✅ shipped | GitHub Issues tracker (`xera init --tracker github`, no token required), `samples remove` subcommand |
+| v1.0 | 🚧 planned | Cross-adapter graph linkage (endpoint as first-class graph node), live dashboard |
+| v1.x | 🔭 planned | Messaging adapters (Kafka, AMQP, WebSocket), GraphQL, gRPC |
+| v2.0 | 🔭 planned | Optional SaaS backend (only if multi-org demand) |
+| Future | 💡 designed-for | Mobile, performance, and security adapters — the `TestAdapter` interface is built to accept them; no timeline or owner yet |
 
 Released under the [Apache 2.0 License](https://github.com/xera-ai/xera/blob/main/LICENSE).
