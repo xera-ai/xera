@@ -5,16 +5,16 @@ import { join } from 'node:path';
 import { runPlaywright } from '../../src/executor';
 
 describe('runPlaywright', () => {
-  test('returns PASS when subprocess exits 0', async () => {
+  test('returns PASS when subprocess exits 0 and tests ran', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'xera-exec-'));
-    const fakeReport = { suites: [], stats: { unexpected: 0 } };
-    writeFileSync(join(dir, 'report.json'), JSON.stringify(fakeReport));
-
+    writeFileSync(
+      join(dir, 'report.json'),
+      JSON.stringify({ suites: [], stats: { expected: 2, unexpected: 0 } }),
+    );
     const result = await runPlaywright({
       specPath: '/tmp/spec.ts',
       configPath: '/tmp/playwright.config.ts',
       outputDir: dir,
-      // DI hook: simulate subprocess
       spawn: async () => ({ exitCode: 0 }),
     });
     expect(result.outcome).toBe('PASS');
@@ -22,11 +22,39 @@ describe('runPlaywright', () => {
     rmSync(dir, { recursive: true });
   });
 
+  test('returns FAIL when subprocess exits 0 but no tests ran (false-pass guard)', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'xera-exec-'));
+    writeFileSync(
+      join(dir, 'report.json'),
+      JSON.stringify({ suites: [], stats: { expected: 0, unexpected: 0 } }),
+    );
+    const result = await runPlaywright({
+      specPath: '/tmp/spec.ts',
+      configPath: '/tmp/playwright.config.ts',
+      outputDir: dir,
+      spawn: async () => ({ exitCode: 0 }),
+    });
+    expect(result.outcome).toBe('FAIL');
+    rmSync(dir, { recursive: true });
+  });
+
+  test('returns FAIL when report is missing despite exit 0', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'xera-exec-'));
+    const result = await runPlaywright({
+      specPath: '/tmp/spec.ts',
+      configPath: '/tmp/playwright.config.ts',
+      outputDir: dir,
+      spawn: async () => ({ exitCode: 0 }),
+    });
+    expect(result.outcome).toBe('FAIL');
+    rmSync(dir, { recursive: true });
+  });
+
   test('returns FAIL when subprocess exits non-zero', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'xera-exec-'));
     writeFileSync(
       join(dir, 'report.json'),
-      JSON.stringify({ suites: [], stats: { unexpected: 1 } }),
+      JSON.stringify({ suites: [], stats: { expected: 1, unexpected: 1 } }),
     );
     const result = await runPlaywright({
       specPath: '/tmp/spec.ts',

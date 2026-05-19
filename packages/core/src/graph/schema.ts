@@ -7,12 +7,12 @@ const iso = z.string().datetime({ offset: false });
 
 const ticketFetched = z
   .object({
-    ticketId: z.string().regex(/^[A-Z][A-Z0-9]*-\d+$/),
+    ticketId: z.string().regex(/^[A-Z][A-Z0-9-]*-\d+$/),
     summary: z.string(),
     ac: z.array(z.string()),
     jiraLinks: z.array(
       z.object({
-        ticketId: z.string().regex(/^[A-Z][A-Z0-9]*-\d+$/),
+        ticketId: z.string().regex(/^[A-Z][A-Z0-9-]*-\d+$/),
         relation: z.enum(['blocks', 'duplicates', 'relates', 'supersedes']),
       }),
     ),
@@ -142,7 +142,7 @@ const coverageSnapshot = z
     ),
     tickets: z.array(
       z.object({
-        id: z.string().regex(/^[A-Z][A-Z0-9]*-\d+$/),
+        id: z.string().regex(/^[A-Z][A-Z0-9-]*-\d+$/),
         acCount: z.number().int().nonnegative(),
         satisfiedCount: z.number().int().nonnegative(),
         gapScore: z.number().nonnegative(),
@@ -154,7 +154,7 @@ const coverageSnapshot = z
 const acCoverageBackfilled = z
   .object({
     ts: iso,
-    ticketId: z.string().regex(/^[A-Z][A-Z0-9]*-\d+$/),
+    ticketId: z.string().regex(/^[A-Z][A-Z0-9-]*-\d+$/),
     mappings: z.array(
       z.object({
         scenarioId: z.string().min(1),

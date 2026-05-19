@@ -6,6 +6,7 @@ import { generateHttpPlaywrightConfig } from './playwright-config';
 export interface RunHttpScenariosInput {
   specPath: string;
   runDir: string;
+  runId: string;
   config: XeraConfig;
   env: string;
 }
@@ -44,6 +45,7 @@ export async function runHttpScenarios(
       XERA_BASE_URL: baseURL,
       XERA_AUTH_DIR: join(process.cwd(), '.xera', '.auth'),
       XERA_HTTP_TRACE: traceFile,
+      XERA_RUN_ID: input.runId,
     },
     stdout: 'inherit',
     stderr: 'inherit',

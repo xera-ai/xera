@@ -147,6 +147,7 @@ export async function execCmd(argv: string[]): Promise<number> {
       env: {
         XERA_BASE_URL: baseURL,
         XERA_ENV: envName,
+        XERA_RUN_ID: runId,
         // Playwright's JSON reporter prints to stdout by default. Redirect it
         // to a file inside the run dir so xera:normalize has a deterministic
         // path to read.

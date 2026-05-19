@@ -11,12 +11,13 @@ function q(s: string): string {
 }
 
 export function generateHttpPlaywrightConfig(input: GenerateConfigInput): string {
+  const testResultsDir = `${input.outputDir}/test-results`;
   return `import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: ${q(dirname(input.specPath))},
   testMatch: ${q(basename(input.specPath))},
-  outputDir: ${q(input.outputDir)},
+  outputDir: ${q(testResultsDir)},
   reporter: [['json', { outputFile: ${q(`${input.outputDir}/raw-report.json`)} }]],
   use: { baseURL: ${q(input.baseURL)} },
   projects: [{ name: 'http' }],

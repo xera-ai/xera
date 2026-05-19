@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { request as pwRequest } from '@playwright/test';
 import { writeAuthState, type XeraConfig } from '@xera-ai/core';
-import type { HttpAuthRoleCreds, HttpAuthSetupFn } from './define';
+import type { HttpAuthRoleCreds, HttpAuthSetupFn, HttpAuthSetupResult } from './define';
 
 export interface RunHttpAuthSetupInput {
   authDir: string;
@@ -16,7 +16,9 @@ export async function runHttpAuthSetup(input: RunHttpAuthSetupInput): Promise<vo
   const baseURL = input.config.baseUrl[input.config.defaultEnv];
   const ctx = await pwRequest.newContext(baseURL ? { baseURL } : {});
   try {
-    const result = await input.setupFn(ctx, input.role, input.creds);
+    const raw = await input.setupFn(ctx, input.role, input.creds);
+    const result: HttpAuthSetupResult =
+      typeof raw === 'string' ? { type: 'bearer', token: raw } : raw;
     const now = input.now ?? new Date();
     const expiresAtMs = result.expiresAt ?? now.getTime() + 8 * 3600 * 1000;
 

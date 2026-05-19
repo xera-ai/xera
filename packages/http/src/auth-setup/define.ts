@@ -24,7 +24,7 @@ export type HttpAuthSetupFn = (
   request: APIRequestContext,
   role: string,
   creds: HttpAuthRoleCreds,
-) => Promise<HttpAuthSetupResult>;
+) => Promise<HttpAuthSetupResult | string>;
 
 export function defineHttpAuthSetup(fn: HttpAuthSetupFn): HttpAuthSetupFn {
   return fn;

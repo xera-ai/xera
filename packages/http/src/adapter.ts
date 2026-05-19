@@ -26,6 +26,7 @@ export const HttpAdapter: TestAdapter = {
     const raw = await runHttpScenarios({
       specPath,
       runDir,
+      runId: input.runId,
       config: input.config,
       env: input.env,
     });

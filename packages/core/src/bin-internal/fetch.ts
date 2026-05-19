@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { hashString } from '../artifact/hash';
 import { readMeta, writeMeta } from '../artifact/meta';
@@ -21,6 +21,27 @@ export async function fetchCmd(argv: string[], opts: FetchCmdOpts = {}): Promise
   }
   const config = await loadConfig(cwd);
   const paths = resolveArtifactPaths(cwd, ticket);
+
+  // Local source: skip Jira, stamp frontmatter from existing story.md body.
+  const existingMeta = readMeta(paths.metaPath);
+  if (existingMeta?.source === 'local') {
+    const rawFile = existsSync(paths.storyPath) ? readFileSync(paths.storyPath, 'utf8') : '';
+    const body = stripFrontmatter(rawFile);
+    const summary = parseLocalSummary(ticket, body);
+    const acText = parseAcSection(body);
+    const acLines = parseAcLines(acText);
+    const storyHash = hashString(body);
+    const full = renderStory(ticket, summary, storyHash, acLines, 'body-extraction', body);
+    mkdirSync(dirname(paths.storyPath), { recursive: true });
+    writeFileSync(paths.storyPath, full);
+    writeMeta(paths.metaPath, {
+      ...existingMeta,
+      story_hash: storyHash,
+      fetched_at: new Date().toISOString(),
+    });
+    console.log(`[xera:fetch] local source — wrote ${paths.storyPath}`);
+    return 0;
+  }
 
   // Test injection: skip real Jira when XERA_TEST_JIRA env is set.
   let t: JiraTicket;
@@ -111,12 +132,29 @@ function renderStoryBody(t: JiraTicket): string {
   return lines.join('\n');
 }
 
+function stripFrontmatter(raw: string): string {
+  if (!raw.startsWith('---\n') && !raw.startsWith('---\r\n')) return raw;
+  const end = raw.indexOf('\n---', 4);
+  if (end === -1) return raw;
+  return raw.slice(end + 4).replace(/^\n/, '');
+}
+
+function parseLocalSummary(ticket: string, body: string): string {
+  const m = body.match(/^#\s+[A-Z][A-Z0-9-]*-\d+[\s—:\-]+(.+)/m);
+  return m?.[1]?.trim() ?? ticket;
+}
+
+function parseAcSection(body: string): string | undefined {
+  const m = body.match(/##\s+acceptance\s+criteria\b[^\n]*\n([\s\S]*?)(?=\n##\s|$)/im);
+  return m?.[1]?.trim() || undefined;
+}
+
 function renderStory(
   key: string,
   summary: string,
   storyHash: string,
   acLines: string[],
-  acSource: 'jira-field' | 'none',
+  acSource: 'jira-field' | 'body-extraction' | 'none',
   body: string,
 ): string {
   const yamlLines = [
