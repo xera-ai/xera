@@ -44,3 +44,16 @@ describe('xera samples remove', () => {
     expect(existsSync(join(dir, '.xera/SAMPLE-001'))).toBe(false);
   });
 });
+
+describe('cli routing: `samples remove`', () => {
+  // Regression for #143: cac.command('samples remove') silently fails to match.
+  // Must be defined as `samples <action>` so cac dispatches.
+  test('cac matches `samples remove` to a registered command', async () => {
+    const { cac } = await import('cac');
+    const cli = cac('xera');
+    cli.command('samples <action>', '').action(() => {});
+    cli.parse(['node', 'xera', 'samples', 'remove', '-y'], { run: false });
+    expect(cli.matchedCommand?.name).toBe('samples');
+    expect(cli.args).toEqual(['remove']);
+  });
+});
