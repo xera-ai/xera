@@ -100,6 +100,7 @@ See [the design spec](docs/superpowers/specs/2026-05-14-xera-core-web-design.md)
 | v1.0 | planned | Cross-adapter graph linkage (endpoint as first-class graph node) · live dashboard |
 | v1.x | planned | Messaging adapters (Kafka, AMQP, WebSocket) · GraphQL · gRPC |
 | v2.0 | planned | Optional SaaS backend (only if multi-org demand) |
+| Future | designed-for | Mobile, performance, and security adapters — `TestAdapter` is built to accept them; no timeline or owner yet (see [`AGENTS.md`](AGENTS.md#adapter-pattern)) |
 
 ## License
 
