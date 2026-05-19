@@ -17,7 +17,7 @@ hero:
       link: /guide/getting-started
     - theme: alt
       text: Try the sample app
-      link: https://github.com/xera-ai/xera-sample-app
+      link: '#try-it-on-a-real-app'
     - theme: alt
       text: View on GitHub
       link: https://github.com/xera-ai/xera
