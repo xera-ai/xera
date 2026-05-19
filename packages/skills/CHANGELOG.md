@@ -1,5 +1,11 @@
 # @xera-ai/skills
 
+## 0.15.0
+
+### Minor Changes
+
+- [#123](https://github.com/xera-ai/xera/pull/123) [`e2f8694`](https://github.com/xera-ai/xera/commit/e2f8694017cc06f00515d8dc605ec7c2a8634925) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - deterministic OpenAPI loading + opt-in sample tickets (auto-generated from [#123](https://github.com/xera-ai/xera/issues/123))
+
 ## 0.14.0
 
 ### Minor Changes
