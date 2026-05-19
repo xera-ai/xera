@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 
-const TICKET_RE = /^[A-Z][A-Z0-9_]*-\d+$|^SAMPLE-\d+$/;
+const TICKET_RE = /^[A-Z][A-Z0-9_]*-\d+$|^SAMPLE(?:-[A-Z][A-Z0-9_]*)?-\d+$/;
 
 export interface RunPaths {
   runDir: string;
@@ -28,7 +28,9 @@ export interface ArtifactPaths {
 
 export function resolveArtifactPaths(repoRoot: string, ticket: string): ArtifactPaths {
   if (!TICKET_RE.test(ticket)) {
-    throw new Error(`Invalid ticket key: "${ticket}" (expected e.g. JIRA-123 or SAMPLE-001)`);
+    throw new Error(
+      `Invalid ticket key: "${ticket}" (expected e.g. JIRA-123, SAMPLE-001, or SAMPLE-HTTP-001)`,
+    );
   }
   const ticketDir = join(repoRoot, '.xera', ticket);
   return {

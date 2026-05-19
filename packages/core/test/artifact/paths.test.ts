@@ -33,4 +33,25 @@ describe('resolveArtifactPaths', () => {
     expect(() => resolveArtifactPaths('/repo', '../etc')).toThrow();
     expect(() => resolveArtifactPaths('/repo', 'has space')).toThrow();
   });
+
+  test('accepts SAMPLE-001 (web) and SAMPLE-HTTP-001 (http) sample keys', () => {
+    expect(resolveArtifactPaths('/repo', 'SAMPLE-001').ticketDir).toBe('/repo/.xera/SAMPLE-001');
+    expect(resolveArtifactPaths('/repo', 'SAMPLE-HTTP-001').ticketDir).toBe(
+      '/repo/.xera/SAMPLE-HTTP-001',
+    );
+    expect(resolveArtifactPaths('/repo', 'SAMPLE-MIXED-42').ticketDir).toBe(
+      '/repo/.xera/SAMPLE-MIXED-42',
+    );
+  });
+
+  test('rejects malformed sample keys', () => {
+    // No digits at all
+    expect(() => resolveArtifactPaths('/repo', 'SAMPLE-HTTP')).toThrow();
+    // Empty middle segment (double dash)
+    expect(() => resolveArtifactPaths('/repo', 'SAMPLE--001')).toThrow();
+    // Non-uppercase middle segment
+    expect(() => resolveArtifactPaths('/repo', 'SAMPLE-http-001')).toThrow();
+    // Multiple middle segments (intentionally not supported — keep regex tight)
+    expect(() => resolveArtifactPaths('/repo', 'SAMPLE-HTTP-AUTH-001')).toThrow();
+  });
 });
