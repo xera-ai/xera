@@ -104,7 +104,7 @@ scripts/
   skills/                       vendored superpowers skills (use via Skill tool)
   commands/                     vendored superpowers commands (brainstorm,
                                 write-plan, execute-plan)
-.github/workflows/              ci.yml (+ graph-viewer job), nightly-e2e.yml,
+.github/workflows/              ci.yml, nightly-e2e.yml,
                                 release.yml (changesets-driven, primary release path),
                                 auto-changeset.yml (PR-title → changeset bot),
                                 publish.yml (manual fallback only)

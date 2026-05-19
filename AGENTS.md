@@ -43,7 +43,7 @@ fixtures/
   golden-graph/ # snapshot/dedup/corrupt + TEST_OUTDATED scenarios (v0.6)
   golden-impact/ # impact-prepare BFS scenarios (depth-1/2/empty) (v0.6)
 docs/
-.github/workflows/  # ci.yml (incl. graph-viewer job), nightly-e2e.yml, publish.yml
+.github/workflows/  # ci.yml, nightly-e2e.yml, publish.yml
 ```
 
 ## Running things
