@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { CoverageReport } from '../coverage/report';
-import type { CoverageSnapshotPayload, EdgeRecord, Snapshot } from './types';
+import type { CoverageSnapshotPayload, EdgeRecord, FailureNode, Snapshot } from './types';
 
 export interface VisNode {
   id: string;
@@ -13,6 +13,18 @@ export interface VisNode {
   size?: number;
   title?: string;
   borderWidth?: number;
+  // Structured failure data for the click-panel — only set on Failure nodes.
+  // vis-network ignores unknown fields, so this travels through to the client
+  // alongside the rendered visual props.
+  meta?: {
+    scenarioName?: string;
+    classification?: string;
+    confidence?: string;
+    runId?: string;
+    disputed?: boolean;
+    traceId?: string;
+    ts?: string;
+  };
 }
 
 export interface VisEdge {
@@ -125,18 +137,40 @@ function buildAreaNode(snap: Snapshot, areaId: string): VisNode {
   return node;
 }
 
-function buildFailureNode(
-  _snap: Snapshot,
-  failure: { id: string; scenarioId: string; runId: string; ts: string },
-): VisNode {
+function buildFailureNode(snap: Snapshot, failure: FailureNode): VisNode {
+  // scenarioId is a content hash; surface the human-readable scenario name
+  // instead so QA sees "Successful login redirects to dashboard" rather than
+  // "bd911645a4a5d5…" in the tooltip + click panel.
+  const scenarioName = snap.scenarios[failure.scenarioId]?.name ?? failure.scenarioId;
+
+  const titleParts: string[] = [`failure on "${scenarioName}" @ ${failure.ts}`];
+  if (failure.classification) {
+    const conf = failure.confidence ? ` (${failure.confidence})` : '';
+    titleParts.push(`classification: ${failure.classification}${conf}`);
+  }
+  titleParts.push(`runId: ${failure.runId}`);
+  if (failure.disputed) titleParts.push('disputed by QA');
+  if (failure.traceId) titleParts.push(`trace: ${failure.traceId}`);
+
+  const meta: NonNullable<VisNode['meta']> = {
+    scenarioName,
+    runId: failure.runId,
+    ts: failure.ts,
+  };
+  if (failure.classification) meta.classification = failure.classification;
+  if (failure.confidence) meta.confidence = failure.confidence;
+  if (failure.disputed) meta.disputed = true;
+  if (failure.traceId) meta.traceId = failure.traceId;
+
   const node: VisNode = {
     id: failure.id,
-    label: 'fail',
+    label: failure.classification ?? 'fail',
     group: 'Failure',
     color: COLORS.failure,
     shape: 'triangle',
     size: 10,
-    title: `failure on ${failure.scenarioId} @ ${failure.ts}`,
+    title: titleParts.join(' · '),
+    meta,
   };
   return node;
 }
@@ -262,9 +296,26 @@ export function transformForVisNetwork(
   for (const id of includePoms) nodes.push(buildPomNode(snap, id));
   for (const id of includeAreas) nodes.push(buildAreaNode(snap, id));
 
+  // Failure → Scenario edges are not persisted in snap.edges (store only emits
+  // tests/uses/covers/modifies/jira-linked/similar/satisfies); synthesize them
+  // here so vis-network has an anchor and triangles don't drift off-canvas.
+  // Spec §2 (data model) defines `ran: Failure → Scenario` for exactly this.
+  let syntheticEdgeIdx = snap.edges.length;
   for (const failure of Object.values(snap.latest_failures)) {
     if (includeScenarios.has(failure.scenarioId)) {
       nodes.push(buildFailureNode(snap, failure));
+      edges.push(
+        buildEdge(
+          {
+            kind: 'ran',
+            from: failure.id,
+            to: failure.scenarioId,
+            source: 'synthetic',
+            discoveredAt: failure.ts,
+          },
+          syntheticEdgeIdx++,
+        ),
+      );
     }
   }
 

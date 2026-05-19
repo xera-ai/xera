@@ -24,6 +24,7 @@
         <label id="label-p0"><input type="checkbox" id="filter-p0" checked /><span class="indicator" style="background:#e3b341"></span>P0</label>
       </div>
       <button id="reset-btn">fit</button>
+      <button id="legend-btn" title="Show legend">legend</button>
     </div>
   </header>
   <div id="progress-wrap"><div id="progress-bar"></div></div>
@@ -39,6 +40,54 @@
     </aside>
   </section>
   {{COVERAGE_TAB_PANEL}}
+  <div id="legend-modal" class="hidden" role="dialog" aria-modal="true" aria-labelledby="legend-title" aria-hidden="true">
+    <div class="legend-backdrop"></div>
+    <div class="legend-content">
+      <header class="legend-header">
+        <h2 id="legend-title">Legend</h2>
+        <button id="legend-close" aria-label="Close legend">×</button>
+      </header>
+      <div class="legend-body">
+        <section>
+          <h3>Nodes</h3>
+          <ul class="legend-nodes">
+            <li><span class="lg-shape" style="color:#60a5fa">●</span><span class="lg-name">Ticket</span><span class="lg-desc">Jira/GitHub issue</span></li>
+            <li><span class="lg-shape" style="color:#34d399">■</span><span class="lg-name">Scenario · pass</span><span class="lg-desc">Gherkin test passing on last run</span></li>
+            <li><span class="lg-shape" style="color:#f87171">■</span><span class="lg-name">Scenario · fail</span><span class="lg-desc">Gherkin test failing on last run</span></li>
+            <li><span class="lg-shape" style="color:#fbbf24">◆</span><span class="lg-name">POM</span><span class="lg-desc">Page Object Model (locator container)</span></li>
+            <li><span class="lg-shape" style="color:#9ca3af">⬢</span><span class="lg-name">SUT area</span><span class="lg-desc">Feature / module / route in the app</span></li>
+            <li><span class="lg-shape" style="color:#f87171">▲</span><span class="lg-name">Failure</span><span class="lg-desc">Last failed run; label = classification</span></li>
+          </ul>
+        </section>
+        <section>
+          <h3>Failure classifications</h3>
+          <table class="legend-table">
+            <tr><td><code>REAL_BUG</code></td><td>App defect — fix the app</td></tr>
+            <tr><td><code>TEST_BUG</code></td><td>Test code is wrong — fix the test</td></tr>
+            <tr><td><code>SELECTOR_DRIFT</code></td><td>Locator no longer matches — run <code>/xera-heal</code></td></tr>
+            <tr><td><code>FLAKY</code></td><td>Non-deterministic — retry / stabilize</td></tr>
+            <tr><td><code>TEST_OUTDATED</code></td><td>Asserts old behaviour — run <code>/xera-impact</code></td></tr>
+            <tr><td><code>CONTRACT_DRIFT</code></td><td>API schema changed — sync OpenAPI</td></tr>
+            <tr><td><code>RATE_LIMITED</code></td><td>Server returned 429 — add backoff</td></tr>
+            <tr><td><code>AUTH_EXPIRED</code></td><td>401 / session expired — refresh auth</td></tr>
+          </table>
+        </section>
+        <section>
+          <h3>Edges</h3>
+          <ul class="legend-edges">
+            <li><code>tests</code> Ticket → Scenario</li>
+            <li><code>uses</code> Scenario → POM</li>
+            <li><code>covers</code> POM → SUT area</li>
+            <li><code>modifies</code> Ticket → SUT area</li>
+            <li><code>satisfies</code> Scenario → AC</li>
+            <li><code>ran</code> Failure → Scenario</li>
+            <li><code>jira-linked</code> Ticket → Ticket</li>
+            <li><code>similar</code> Ticket → Ticket (semantic)</li>
+          </ul>
+        </section>
+      </div>
+    </div>
+  </div>
   <footer id="footer">
     generated {{GENERATED_AT}}
     <span>· scroll to zoom · drag to pan · click to inspect</span>

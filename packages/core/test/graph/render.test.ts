@@ -131,6 +131,83 @@ describe('transformForVisNetwork', () => {
     expect(scenario?.color).toBe('#EF4444'); // red
   });
 
+  test('Failure node is anchored to its scenario via a synthetic ran edge', () => {
+    const snap = mkSnapshot();
+    snap.latest_failures['sc-100'] = {
+      id: 'fail-1',
+      scenarioId: 'sc-100',
+      runId: 'r1',
+      ts: '2026-05-15T00:00:00Z',
+    };
+    const { nodes, edges } = transformForVisNetwork(snap, {});
+    const failure = nodes.find((n) => n.id === 'fail-1');
+    expect(failure?.group).toBe('Failure');
+    const ran = edges.find((e) => e.from === 'fail-1' && e.to === 'sc-100');
+    expect(ran).toBeDefined();
+    expect(ran?.label).toBe('ran');
+  });
+
+  test('Failure label uses classification + tooltip carries confidence/runId/disputed', () => {
+    const snap = mkSnapshot();
+    snap.latest_failures['sc-100'] = {
+      id: 'fail-1',
+      scenarioId: 'sc-100',
+      runId: 'r-abc-123',
+      ts: '2026-05-15T00:00:00Z',
+      classification: 'REAL_BUG',
+      confidence: 'high',
+      disputed: true,
+      traceId: 'trace-xyz',
+    };
+    const { nodes } = transformForVisNetwork(snap, {});
+    const failure = nodes.find((n) => n.id === 'fail-1');
+    expect(failure?.label).toBe('REAL_BUG');
+    expect(failure?.title).toContain('classification: REAL_BUG');
+    expect(failure?.title).toContain('(high)');
+    expect(failure?.title).toContain('r-abc-123');
+    expect(failure?.title).toContain('disputed');
+    expect(failure?.title).toContain('trace-xyz');
+  });
+
+  test('Failure tooltip + meta surface human-readable scenario name, not the hash id', () => {
+    const snap = mkSnapshot();
+    // sc-100's snapshot name is "user signs in" — that is what QA should see,
+    // not the scenarioId (which in real snapshots is a SHA1 content hash).
+    snap.latest_failures['sc-100'] = {
+      id: 'fail-named',
+      scenarioId: 'sc-100',
+      runId: 'r1',
+      ts: '2026-05-15T00:00:00Z',
+      classification: 'SELECTOR_DRIFT',
+      confidence: 'medium',
+    };
+    const { nodes } = transformForVisNetwork(snap, {});
+    const failure = nodes.find((n) => n.id === 'fail-named');
+    expect(failure?.title).toContain('user signs in');
+    expect(failure?.title).not.toContain('sc-100 @');
+    expect(failure?.meta?.scenarioName).toBe('user signs in');
+    expect(failure?.meta?.classification).toBe('SELECTOR_DRIFT');
+    expect(failure?.meta?.confidence).toBe('medium');
+    expect(failure?.meta?.runId).toBe('r1');
+    expect(failure?.meta?.disputed).toBeUndefined();
+  });
+
+  test('Failure label falls back to "fail" when classification missing', () => {
+    const snap = mkSnapshot();
+    snap.latest_failures['sc-100'] = {
+      id: 'fail-2',
+      scenarioId: 'sc-100',
+      runId: 'r-xyz',
+      ts: '2026-05-15T00:00:00Z',
+    };
+    const { nodes } = transformForVisNetwork(snap, {});
+    const failure = nodes.find((n) => n.id === 'fail-2');
+    expect(failure?.label).toBe('fail');
+    expect(failure?.title).not.toContain('classification:');
+    expect(failure?.title).not.toContain('disputed');
+    expect(failure?.meta?.classification).toBeUndefined();
+  });
+
   test('Modifies edges are red dashed', () => {
     const snap = mkSnapshot();
     const { edges } = transformForVisNetwork(snap, {});
@@ -216,6 +293,18 @@ describe('renderHtml', () => {
     const data = transformForVisNetwork(snap, {});
     const html = renderHtml({ data, generatedAt: '2026-05-16T08:00:00Z', stats: data.stats });
     expect(html.length).toBeLessThan(1_500_000);
+  });
+
+  test('embeds Legend modal with classifier glossary', () => {
+    const snap = mkSnapshot();
+    const data = transformForVisNetwork(snap, {});
+    const html = renderHtml({ data, generatedAt: '2026-05-16T08:00:00Z', stats: data.stats });
+    expect(html).toContain('id="legend-btn"');
+    expect(html).toContain('id="legend-modal"');
+    expect(html).toContain('REAL_BUG');
+    expect(html).toContain('SELECTOR_DRIFT');
+    expect(html).toContain('CONTRACT_DRIFT');
+    expect(html).toContain('AUTH_EXPIRED');
   });
 });
 

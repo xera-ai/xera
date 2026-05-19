@@ -241,29 +241,66 @@
   var spDesc = document.getElementById('sp-desc');
   var spActions = document.getElementById('sp-actions');
 
+  function spRow(key, value, modifier) {
+    var row = document.createElement('div');
+    row.className = 'sp-row';
+    var k = document.createElement('span');
+    k.className = 'sp-key';
+    k.textContent = key;
+    var v = document.createElement('span');
+    v.className = `sp-val${modifier ? ` sp-val-${modifier}` : ''}`;
+    v.textContent = value;
+    row.appendChild(k);
+    row.appendChild(v);
+    return row;
+  }
+
   function showPanel(nodeId) {
     var orig = data.nodes.find((n) => n.id === nodeId);
     if (!orig) return;
 
-    var isFail = orig.group === 'Scenario' && orig.color === '#EF4444';
+    var isScenarioFail = orig.group === 'Scenario' && orig.color === '#EF4444';
+    var isFailure = orig.group === 'Failure';
     var badgeClass =
       orig.group === 'Ticket'
         ? 'ticket'
         : orig.group === 'POM'
           ? 'pom'
-          : isFail
-            ? 'scenario-fail'
-            : 'scenario';
+          : isFailure
+            ? 'failure'
+            : orig.group === 'SUTArea'
+              ? 'area'
+              : isScenarioFail
+                ? 'scenario-fail'
+                : 'scenario';
 
     spGroup.className = `sp-group-badge ${badgeClass}`;
-    spGroup.textContent = isFail ? 'Scenario · fail' : orig.group;
-    spTitle.textContent = orig.title
-      ? orig.title.replace(/^[A-Z]+-\d+\s*[—–-]\s*/, '')
-      : orig.label;
-    spDesc.textContent = orig.title || '';
     spActions.innerHTML = '';
-    var btn = null;
 
+    if (isFailure) {
+      const m = orig.meta || {};
+      spGroup.textContent = 'Failure';
+      spTitle.textContent = m.scenarioName || orig.label || nodeId;
+      spDesc.textContent = '';
+      if (m.classification) {
+        const classVal = `${m.classification}${m.confidence ? ` (${m.confidence} confidence)` : ''}`;
+        spDesc.appendChild(spRow('class', classVal));
+      } else {
+        spDesc.appendChild(spRow('class', 'not yet classified', 'muted'));
+      }
+      if (m.disputed) spDesc.appendChild(spRow('status', 'disputed by QA', 'warn'));
+      if (m.ts) spDesc.appendChild(spRow('when', m.ts));
+      if (m.runId) spDesc.appendChild(spRow('run', m.runId));
+      if (m.traceId) spDesc.appendChild(spRow('trace', m.traceId));
+    } else {
+      spGroup.textContent = isScenarioFail ? 'Scenario · fail' : orig.group;
+      spTitle.textContent = orig.title
+        ? orig.title.replace(/^[A-Z]+-\d+\s*[—–-]\s*/, '')
+        : orig.label;
+      spDesc.textContent = orig.title || '';
+    }
+
+    var btn = null;
     if (orig.group === 'Ticket') {
       btn = document.createElement('button');
       btn.textContent = `Copy /xera-impact ${nodeId}`;
@@ -408,6 +445,28 @@
   ['filter-pass', 'filter-fail', 'filter-p0'].forEach((id) => {
     document.getElementById(id).onchange = applyFilters;
   });
+
+  // ── Legend modal ─────────────────────────────────────
+  var legendBtn = document.getElementById('legend-btn');
+  var legendModal = document.getElementById('legend-modal');
+  if (legendBtn && legendModal) {
+    const legendClose = document.getElementById('legend-close');
+    const legendBackdrop = legendModal.querySelector('.legend-backdrop');
+    const openLegend = () => {
+      legendModal.classList.remove('hidden');
+      legendModal.setAttribute('aria-hidden', 'false');
+    };
+    const closeLegend = () => {
+      legendModal.classList.add('hidden');
+      legendModal.setAttribute('aria-hidden', 'true');
+    };
+    legendBtn.addEventListener('click', openLegend);
+    if (legendClose) legendClose.addEventListener('click', closeLegend);
+    if (legendBackdrop) legendBackdrop.addEventListener('click', closeLegend);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !legendModal.classList.contains('hidden')) closeLegend();
+    });
+  }
 
   // ── Cross-tab navigation hook (used by Coverage drawer) ───
   window.__xeraFocus = (id) => {
