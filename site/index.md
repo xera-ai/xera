@@ -49,6 +49,8 @@ features:
     details: >-
       Tickets ↔ scenarios ↔ POMs ↔ SUT areas ↔ ACs, with an HTML viewer you
       can attach to any PR. Pre-flight impact analysis before merge.
+    link: https://xera-ai.github.io/xera-sample-app-tests/
+    linkText: See a live one →
   - icon: 📈
     title: Coverage gap & AC matrix
     details: >-
@@ -99,15 +101,34 @@ Then in your AI coding agent (Claude Code, Cursor, or Codex CLI):
 
 ## Try it on a real app
 
-Don't have an app to point xera at yet? **[FlowBoard](https://github.com/xera-ai/xera-sample-app)** is the official sample target — a full-stack project-management app (Fastify + React + SQLite, JWT auth, REST API with Swagger, intentional security surfaces). It covers both `web` and `api` shapes, so the same FlowBoard checkout exercises the entire `/xera-run` pipeline end-to-end:
+<a href="https://xera-ai.github.io/xera-sample-app-tests/" target="_blank" rel="noopener noreferrer">
+  <img src="/img/graph-viewer-hero.png" alt="xera knowledge graph viewer — three FlowBoard tickets, their POMs, passing and failing scenarios, and failure classes around the periphery" />
+</a>
+
+There's a complete demo loop you can poke at without writing a single line of code or hosting an app:
+
+| Repo | Role |
+|---|---|
+| [`xera-ai/xera-sample-app`](https://github.com/xera-ai/xera-sample-app) | **FlowBoard** — the SUT. Full-stack project-management app (Fastify + React + SQLite, JWT auth, Swagger REST API, intentional security surfaces). |
+| [`xera-ai/xera-sample-app-tests`](https://github.com/xera-ai/xera-sample-app-tests) | **Reference tests** — a working xera consumer project pointed at FlowBoard. Look here for a real `xera.config.ts`, `.xera/<TICKET>/` artifacts, shared POMs, and `openapi.json`. |
+| [xera-ai.github.io/xera-sample-app-tests](https://xera-ai.github.io/xera-sample-app-tests/) | **Live knowledge graph** — the actual `.xera/graph.html` viewer produced from the reference tests above. Click around: tickets ↔ scenarios ↔ POMs ↔ areas, Coverage tab (Map / List / Trend), failure classes. |
+
+Spin FlowBoard + the tests up locally:
 
 ```bash
+# 1. Bring FlowBoard up
 git clone https://github.com/xera-ai/xera-sample-app
 cd xera-sample-app && npm install && npm run dev:backend & npm run dev:frontend
 # UI on http://localhost:5173, API on http://localhost:3000
+
+# 2. Clone the reference tests in a sibling directory and run a ticket
+cd .. && git clone https://github.com/xera-ai/xera-sample-app-tests
+cd xera-sample-app-tests
+cp .env.example .env && bun install && bunx playwright install chromium
+bun run xera:fetch XFB-6 && bun run xera:exec XFB-6
 ```
 
-Then in a sibling directory point a new xera project at it:
+Or start from scratch with your own xera project pointed at the same FlowBoard:
 
 ```bash
 mkdir flowboard-tests && cd flowboard-tests

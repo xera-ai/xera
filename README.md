@@ -28,7 +28,7 @@ Backed by a **project knowledge graph** (v0.6+) that links every ticket ↔ scen
 
 Prereqs: Bun ≥1.1.0, a supported AI coding agent (Claude Code, Cursor ≥1.6, or OpenAI Codex CLI), an issue tracker (Atlassian-connected MCP / Jira API token **or** GitHub MCP / `gh` CLI), and a web app and/or HTTP API to test.
 
-> No app handy? Use **[FlowBoard](https://github.com/xera-ai/xera-sample-app)** — the official sample target (Fastify + React, both `web` and `api` shapes). See the [getting-started guide](https://xera-ai.github.io/xera/guide/getting-started#try-it-on-the-sample-app) for the full clone-and-scaffold flow.
+> **Try it without writing tests of your own:** [FlowBoard](https://github.com/xera-ai/xera-sample-app) is the official sample target (Fastify + React, both `web` and `api` shapes). [xera-sample-app-tests](https://github.com/xera-ai/xera-sample-app-tests) is a worked xera consumer project pointed at it — and its graph is published live at **[xera-ai.github.io/xera-sample-app-tests](https://xera-ai.github.io/xera-sample-app-tests/)**. See the [getting-started guide](https://xera-ai.github.io/xera/guide/getting-started#try-it-on-the-sample-app) for the full clone-and-scaffold flow.
 
 ```bash
 bun add -g @xera-ai/cli         # install once globally; or use bunx to run without installing

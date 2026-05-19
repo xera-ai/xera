@@ -32,6 +32,10 @@ export default defineConfig({
       { text: 'Configuration', link: '/guide/configuration' },
       { text: 'Troubleshooting', link: '/guide/troubleshooting' },
       {
+        text: 'Live demo',
+        link: 'https://xera-ai.github.io/xera-sample-app-tests/',
+      },
+      {
         text: 'Roadmap',
         link: 'https://github.com/xera-ai/xera#roadmap',
       },

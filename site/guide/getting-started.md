@@ -54,6 +54,10 @@ Run `xera init --help` for the full flag reference.
 
 If you don't have a real app to test yet, point xera at **[FlowBoard](https://github.com/xera-ai/xera-sample-app)** — the official sample target. It's a Fastify + React + SQLite project-management app with JWT auth, a Swagger-documented REST API, and intentional security surfaces, so it exercises the full classifier (`REAL_BUG`, `CONTRACT_DRIFT`, `AUTH_EXPIRED`, …) on a realistic SUT.
 
+::: tip Reference implementation
+Looking for a worked example before you scaffold your own? **[`xera-ai/xera-sample-app-tests`](https://github.com/xera-ai/xera-sample-app-tests)** is a real xera consumer project pointed at FlowBoard — concrete `xera.config.ts`, `.xera/<TICKET>/` artifacts, shared POMs, `openapi.json`. The graph it produces is published live at [xera-ai.github.io/xera-sample-app-tests](https://xera-ai.github.io/xera-sample-app-tests/).
+:::
+
 Bring FlowBoard up locally:
 
 ```bash
