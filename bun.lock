@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "xera-monorepo",
@@ -36,28 +37,29 @@
     },
     "packages/cli": {
       "name": "@xera-ai/cli",
-      "version": "0.9.6",
+      "version": "0.15.3",
       "bin": {
         "xera": "./bin/xera",
       },
       "dependencies": {
         "@clack/prompts": "1.4.0",
-        "@xera-ai/core": "^0.4.0",
-        "@xera-ai/skills": "^0.3.1",
+        "@xera-ai/core": "^0.15.3",
+        "@xera-ai/skills": "^0.15.3",
         "cac": "7.0.0",
         "picocolors": "1.1.1",
+        "yaml": "2.9.0",
       },
     },
     "packages/core": {
       "name": "@xera-ai/core",
-      "version": "0.9.6",
+      "version": "0.15.3",
       "bin": {
         "xera-internal": "./dist/bin/internal.js",
       },
       "dependencies": {
         "@playwright/test": "1.60.0",
-        "@xera-ai/http": "^0.9.6",
-        "@xera-ai/web": "^0.9.6",
+        "@xera-ai/http": "^0.15.3",
+        "@xera-ai/web": "^0.15.3",
         "dotenv": "^16.0.0",
         "fflate": "0.8.3",
         "yaml": "2.9.0",
@@ -66,31 +68,31 @@
     },
     "packages/http": {
       "name": "@xera-ai/http",
-      "version": "0.9.6",
+      "version": "0.15.3",
       "dependencies": {
         "@apidevtools/json-schema-ref-parser": "11.7.0",
         "@playwright/test": "1.60.0",
-        "@xera-ai/core": "^0.9.6",
+        "@xera-ai/core": "^0.15.3",
         "yaml": "2.9.0",
         "zod": "4.4.3",
       },
     },
     "packages/prompts": {
       "name": "@xera-ai/prompts",
-      "version": "0.9.6",
+      "version": "0.15.3",
     },
     "packages/skills": {
       "name": "@xera-ai/skills",
-      "version": "0.9.6",
+      "version": "0.15.3",
     },
     "packages/web": {
       "name": "@xera-ai/web",
-      "version": "0.9.6",
+      "version": "0.15.3",
       "dependencies": {
         "@cucumber/gherkin": "39.1.0",
         "@cucumber/messages": "32.3.1",
         "@playwright/test": "1.60.0",
-        "@xera-ai/core": "^0.9.6",
+        "@xera-ai/core": "^0.15.3",
         "fflate": "0.8.3",
       },
     },
