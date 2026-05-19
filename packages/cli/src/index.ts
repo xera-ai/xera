@@ -69,15 +69,18 @@ export default async function main(): Promise<void> {
     .option('--update', 'Non-destructive refresh of an existing project')
     .option('-y, --yes', 'Accept all defaults (non-interactive)')
     .option('--shape <shape>', 'Project shape: web | api | mixed')
+    .option('--tracker <tracker>', 'Issue tracker: jira | github (default: jira)')
     .option(
       '--editor <list>',
       'Editor(s) to scaffold: claude,cursor,codex or "all" (default: auto-detect or all)',
     )
-    // Jira flags
+    // Jira flags (used when --tracker jira, the default)
     .option('--ju, --jira-base-url <url>', 'Jira workspace URL')
     .option('--pk, --project-keys <keys>', 'Jira project key(s), comma-separated')
     .option('--sf, --story-field <field>', 'Jira field id for user story (default: description)')
     .option('--ac, --ac-field <field>', 'Jira field id for acceptance criteria')
+    // GitHub flags (used when --tracker github)
+    .option('--gr, --github-repo <owner/repo>', 'GitHub repository for the github tracker')
     // Web flags
     .option('--su, --staging-url <url>', 'Web app staging URL')
     .option('--auth-enabled', 'App requires login to test most pages')
@@ -110,11 +113,13 @@ export default async function main(): Promise<void> {
         update?: boolean;
         yes?: boolean;
         shape?: string;
+        tracker?: string;
         editor?: string;
         jiraBaseUrl?: string;
         projectKeys?: string;
         storyField?: string;
         acField?: string;
+        githubRepo?: string;
         stagingUrl?: string;
         authEnabled?: boolean;
         roles?: string;
@@ -177,10 +182,18 @@ export default async function main(): Promise<void> {
           }
           initOpts.authStrategy = opts.authStrategy as HttpAuthStrategy;
         }
+        if (opts.tracker !== undefined) {
+          if (opts.tracker !== 'jira' && opts.tracker !== 'github') {
+            console.error(pc.red('\n  error: --tracker must be "jira" or "github"\n'));
+            process.exit(1);
+          }
+          initOpts.tracker = opts.tracker as 'jira' | 'github';
+        }
         if (opts.jiraBaseUrl !== undefined) initOpts.jiraBaseUrl = opts.jiraBaseUrl;
         if (opts.projectKeys !== undefined) initOpts.projectKeys = opts.projectKeys;
         if (opts.storyField !== undefined) initOpts.storyField = opts.storyField;
         if (opts.acField !== undefined) initOpts.acField = opts.acField;
+        if (opts.githubRepo !== undefined) initOpts.githubRepo = opts.githubRepo;
         if (opts.stagingUrl !== undefined) initOpts.stagingUrl = opts.stagingUrl;
         if (opts.authEnabled !== undefined) initOpts.authEnabled = opts.authEnabled;
         if (opts.roles !== undefined) initOpts.roles = opts.roles;

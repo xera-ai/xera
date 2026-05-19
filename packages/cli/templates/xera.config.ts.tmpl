@@ -1,6 +1,7 @@
 import { defineConfig } from '@xera-ai/core';
 
 export default defineConfig({
+  {{#if useJiraTracker}}
   jira: {
     baseUrl: '{{jiraBaseUrl}}',
     projectKeys: [{{projectKeys}}],
@@ -11,6 +12,14 @@ export default defineConfig({
       {{/if}}
     },
   },
+  {{/if}}
+  {{#if useGithubTracker}}
+  // Tickets live in GitHub Issues. The skill picks up issues by the configured
+  // MCP first (mcp__github__get_issue) and falls back to the `gh` CLI — both
+  // use your existing GitHub auth, so no token env var is required here.
+  // Ticket keys used in /xera-fetch are of the form `GH-<number>`.
+  github: { repo: '{{githubRepo}}' },
+  {{/if}}
   web: {
     baseUrl: {
       staging: '{{stagingUrl}}',

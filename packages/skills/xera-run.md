@@ -1,6 +1,6 @@
 ---
 name: xera-run
-description: Run the full xera pipeline for a Jira ticket end-to-end — fetch story, generate Gherkin, generate Playwright spec, execute, diagnose, post to Jira. Use when QA wants to test a ticket from scratch.
+description: Run the full xera pipeline for a ticket end-to-end — fetch story, generate Gherkin, generate Playwright spec, execute, diagnose, post a comment to the configured issue tracker (Jira or GitHub). Use when QA wants to test a ticket from scratch.
 ---
 
 The user invoked `/xera-run <TICKET>`. If no key, ask.
@@ -16,7 +16,7 @@ If non-zero exit → STOP. Show the output verbatim. Suggest the user fix env an
 
 Follow the same instructions as `xera-fetch.md`, but never prompt the user about re-fetching here.
 
-**Sub-steps 1–3 of xera-fetch (Jira call → write `story.md` + `meta.json`)**: skip if `story.md` exists AND `meta.json` shows a `story_hash` < 24 hours old. Otherwise refresh.
+**Sub-steps 1–3 of xera-fetch (tracker call → write `story.md` + `meta.json`)**: skip if `story.md` exists AND `meta.json` shows a `story_hash` < 24 hours old. Otherwise refresh.
 
 **Sub-step 4 of xera-fetch (cognitive AC body-extraction)**: re-run whenever `story.md` frontmatter shows `acceptanceCriteriaSource: none` AND `acceptanceCriteria:` block is empty — even when sub-steps 1–3 were skipped. The extraction is cheap and idempotent (writes back to the same frontmatter). Skipping it permanently is what causes projects with AC-in-body workflow to have empty AC across the graph.
 
@@ -69,8 +69,8 @@ Run `bun run xera:normalize {{TICKET}}`. This writes `normalized.json` AND emits
 
 ## Step 6 — Diagnose + report + post
 
-Follow `xera-report.md` from step 3 onwards. If the user is the SAMPLE-001 ticket (meta.source === "local"), do NOT post to Jira and do NOT prompt about posting — only print the drafted comment.
+Follow `xera-report.md` from step 3 onwards. If the user is the SAMPLE-001 ticket (meta.source === "local"), do NOT post a comment and do NOT prompt about posting — only print the drafted comment.
 
 ## Step 7 — Summary
 
-Print a single-paragraph summary covering: overall result, classification, per-scenario counts, link to Jira comment (if posted), and the reproduce command (`bunx xera-internal exec {{TICKET}} --replay=<runId>`).
+Print a single-paragraph summary covering: overall result, classification, per-scenario counts, link to the posted comment (if posted — Jira link or GitHub issue-comment anchor), and the reproduce command (`bunx xera-internal exec {{TICKET}} --replay=<runId>`).

@@ -1,6 +1,11 @@
+{{#if useJiraTracker}}
 # Jira credentials (existing)
 JIRA_EMAIL=
 JIRA_API_TOKEN=
+{{/if}}
+{{#if useGithubTracker}}
+# GitHub tracker — no env vars needed. Auth via `gh auth login` or GitHub MCP.
+{{/if}}
 
 # Auth tokens for HTTP roles - set in .env (gitignored)
 {{#each httpRoles}}{{upper this}}_BEARER_TOKEN=

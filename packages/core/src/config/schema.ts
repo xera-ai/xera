@@ -72,6 +72,10 @@ const JiraSchema = z.object({
   }),
 });
 
+const GithubSchema = z.object({
+  repo: z.string().regex(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/, 'github.repo must be "owner/repo"'),
+});
+
 const AISchema = z
   .object({
     livePageSnapshot: z.boolean().default(true),
@@ -89,6 +93,8 @@ const AISchema = z
 const ReportingSchema = z
   .object({
     language: z.enum(['en', 'vi']).default('en'),
+    // Despite the legacy name, this also gates posting to GitHub when
+    // `github` is configured instead of `jira`.
     postToJira: z.boolean().default(true),
     transition: z
       .object({
@@ -121,7 +127,8 @@ const CoverageSchema = z
 
 export const XeraConfigSchema = z
   .strictObject({
-    jira: JiraSchema,
+    jira: JiraSchema.optional(),
+    github: GithubSchema.optional(),
     web: WebSchema.optional(),
     http: HttpSchema.optional(),
     ai: AISchema,
@@ -139,6 +146,14 @@ export const XeraConfigSchema = z
   .refine((c) => c.adapters.every((a) => (a === 'web' ? c.web : c.http) !== undefined), {
     message: 'Every adapter in `adapters` must have a corresponding config block',
     path: ['adapters'],
+  })
+  .refine((c) => c.jira !== undefined || c.github !== undefined, {
+    message: 'Exactly one issue provider must be configured: `jira` or `github`',
+    path: ['jira'],
+  })
+  .refine((c) => !(c.jira !== undefined && c.github !== undefined), {
+    message: 'Only one issue provider may be configured: set `jira` OR `github`, not both',
+    path: ['github'],
   });
 
 export type XeraConfig = z.infer<typeof XeraConfigSchema>;

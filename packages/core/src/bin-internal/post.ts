@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { resolveArtifactPaths } from '../artifact/paths';
 import { readStatus, writeStatus } from '../artifact/status';
 import { loadConfig } from '../config/load';
-import { createJiraClient } from '../jira/client';
+import { createIssueProvider } from '../providers/factory';
 
 export async function postCmd(argv: string[]): Promise<number> {
   const ticket = argv[0];
@@ -25,14 +25,8 @@ export async function postCmd(argv: string[]): Promise<number> {
   }
   const body = readFileSync(draftPath, 'utf8');
 
-  const client = await createJiraClient({
-    baseUrl: config.jira.baseUrl,
-    preferMcp: true,
-    ...(process.env.JIRA_EMAIL && process.env.JIRA_API_TOKEN
-      ? { rest: { email: process.env.JIRA_EMAIL, apiToken: process.env.JIRA_API_TOKEN } }
-      : {}),
-  });
-  const r = await client.postComment(ticket, body);
+  const provider = await createIssueProvider(config);
+  const r = await provider.postComment(ticket, body);
   console.log(`[xera:post] posted comment id=${r.id}`);
 
   const s = readStatus(paths.statusPath);

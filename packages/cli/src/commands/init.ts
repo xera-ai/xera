@@ -14,11 +14,14 @@ const require = createRequire(import.meta.url);
 const CLI_VERSION = (require('../package.json') as { version: string }).version;
 
 export type ProjectShape = 'web' | 'api' | 'mixed';
+export type IssueTracker = 'jira' | 'github';
 export type HttpAuthStrategy = 'bearer' | 'apiKey' | 'basic' | 'oauth-cc' | 'none';
 
 export interface InitOptions {
   yes: boolean;
   shape?: ProjectShape;
+  /** Issue tracker to bind to. Defaults to 'jira'. */
+  tracker?: IssueTracker;
   /** Comma-separated editor names or "all"; defaults follow resolveEditors() */
   editor?: string;
   // Jira flags
@@ -26,6 +29,8 @@ export interface InitOptions {
   projectKeys?: string;
   storyField?: string;
   acField?: string;
+  // GitHub flags
+  githubRepo?: string;
   // Web flags
   stagingUrl?: string;
   authEnabled?: boolean;
@@ -89,24 +94,55 @@ export async function initCommand(opts: InitOptions): Promise<void> {
   const wantsWeb = shape === 'web' || shape === 'mixed';
   const wantsHttp = shape === 'api' || shape === 'mixed';
 
-  // Base (Jira) questions — all shapes
-  const jiraBaseUrl = await prompt(
-    opts.jiraBaseUrl,
-    opts.yes ? 'https://example.atlassian.net' : undefined,
-    () => p.text({ message: 'Jira workspace URL', placeholder: 'https://x.atlassian.net' }),
+  // Issue tracker — Jira (default) or GitHub Issues
+  const tracker: IssueTracker = await prompt<IssueTracker>(
+    opts.tracker,
+    opts.yes ? 'jira' : undefined,
+    () =>
+      p.select({
+        message: 'Where do you track tickets?',
+        initialValue: 'jira' as IssueTracker,
+        options: [
+          { value: 'jira', label: 'Jira (Atlassian MCP or REST API)' },
+          { value: 'github', label: 'GitHub Issues (GitHub MCP or `gh` CLI — no token required)' },
+        ],
+      }) as Promise<IssueTracker | symbol>,
   );
-  const projectKeys = await prompt(opts.projectKeys, opts.yes ? 'JIRA' : undefined, () =>
-    p.text({ message: 'Jira project key(s) (comma-separated)', placeholder: 'JIRA' }),
-  );
-  const storyField = await prompt(opts.storyField, opts.yes ? 'description' : undefined, () =>
-    p.text({ message: 'Jira field id for user story', initialValue: 'description' }),
-  );
-  const acceptanceCriteriaField = await prompt(opts.acField, opts.yes ? '' : undefined, () =>
-    p.text({
-      message: 'Jira field id for AC (leave empty if same as story)',
-      initialValue: '',
-    }),
-  );
+
+  // Jira-specific questions (skipped when tracker === 'github')
+  let jiraBaseUrl = '';
+  let projectKeys = '';
+  let storyField = 'description';
+  let acceptanceCriteriaField = '';
+  let githubRepo = '';
+  if (tracker === 'jira') {
+    jiraBaseUrl = await prompt(
+      opts.jiraBaseUrl,
+      opts.yes ? 'https://example.atlassian.net' : undefined,
+      () => p.text({ message: 'Jira workspace URL', placeholder: 'https://x.atlassian.net' }),
+    );
+    projectKeys = await prompt(opts.projectKeys, opts.yes ? 'JIRA' : undefined, () =>
+      p.text({ message: 'Jira project key(s) (comma-separated)', placeholder: 'JIRA' }),
+    );
+    storyField = await prompt(opts.storyField, opts.yes ? 'description' : undefined, () =>
+      p.text({ message: 'Jira field id for user story', initialValue: 'description' }),
+    );
+    acceptanceCriteriaField = await prompt(opts.acField, opts.yes ? '' : undefined, () =>
+      p.text({
+        message: 'Jira field id for AC (leave empty if same as story)',
+        initialValue: '',
+      }),
+    );
+  } else {
+    githubRepo = await prompt(opts.githubRepo, opts.yes ? 'owner/repo' : undefined, () =>
+      p.text({
+        message: 'GitHub repo (owner/name)',
+        placeholder: 'octocat/hello-world',
+        validate: (v) =>
+          /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(v ?? '') ? undefined : 'must be owner/repo',
+      }),
+    );
+  }
 
   // Web questions — only when wantsWeb
   let stagingUrl = '';
@@ -167,13 +203,19 @@ export async function initCommand(opts: InitOptions): Promise<void> {
     shape,
     wantsWeb,
     wantsHttp,
+    tracker,
+    useJiraTracker: tracker === 'jira',
+    useGithubTracker: tracker === 'github',
     jiraBaseUrl,
     projectKeys: projectKeys
-      .split(',')
-      .map((s: string) => s.trim())
-      .filter(Boolean),
+      ? projectKeys
+          .split(',')
+          .map((s: string) => s.trim())
+          .filter(Boolean)
+      : [],
     storyField,
     acceptanceCriteriaField,
+    githubRepo,
     stagingUrl,
     authEnabled,
     roles: roles
@@ -365,10 +407,16 @@ export async function initCommand(opts: InitOptions): Promise<void> {
     })
     .join('\n');
 
+  const trackerLine =
+    tracker === 'github'
+      ? `  0) GitHub tracker: make sure \`gh auth login\` has been run (or the GitHub MCP is connected in this editor).`
+      : `  0) Set your Jira credentials in .env (JIRA_EMAIL, JIRA_API_TOKEN) unless the Atlassian MCP is connected.`;
+
   const nextSteps =
     shape === 'api'
       ? `
 Next:
+${trackerLine}
   1) Copy .env.example to .env and set your auth credentials:
        cp .env.example .env
        # then edit .env to set USER_BEARER_TOKEN=...
@@ -380,6 +428,7 @@ ${editorLines}
       : shape === 'mixed'
         ? `
 Next:
+${trackerLine}
   1) Copy .env.example to .env and set credentials (both web logins and API tokens):
        cp .env.example .env
   2) Run pre-authentication:
@@ -389,7 +438,8 @@ ${editorLines}
 `
         : `
 Next:
-  1) Copy .env.example to .env and set your Jira credentials:
+${trackerLine}
+  1) Copy .env.example to .env and set credentials:
        cp .env.example .env
   2) Run pre-authentication:
        bun run xera:auth-setup

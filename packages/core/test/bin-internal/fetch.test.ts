@@ -96,4 +96,38 @@ describe('xera-internal fetch', () => {
       rmSync(cwd, { recursive: true });
     }
   });
+
+  test('writes story.md for a GitHub ticket via XERA_TEST_ISSUE injection', async () => {
+    const cwd = mkdtempSync(join(tmpdir(), 'xera-fetch-gh-'));
+    writeFileSync(
+      join(cwd, 'xera.config.ts'),
+      `
+        import { defineConfig } from '${DEFINE_PATH}';
+        export default defineConfig({
+          github: { repo: 'octocat/hello-world' },
+          web: { baseUrl: { staging: 'https://x.com' }, defaultEnv: 'staging' },
+          adapters: ['web'],
+        });
+      `,
+    );
+    process.env.XERA_TEST_ISSUE = JSON.stringify({
+      key: 'GH-7',
+      summary: 'Login button mis-aligned on Safari',
+      story: 'Steps: 1. Open Safari\\n2. Try login',
+      attachments: [],
+    });
+    try {
+      const exit = await fetchCmd(['GH-7'], { cwd });
+      expect(exit).toBe(0);
+      const story = readFileSync(join(cwd, '.xera/GH-7/story.md'), 'utf8');
+      expect(story).toContain('ticketId: GH-7');
+      expect(story).toContain('Login button mis-aligned on Safari');
+      // GitHub tickets never have a separate AC field, so this is always none
+      // here — the skill's body-extraction step is what populates AC later.
+      expect(story).toContain('acceptanceCriteriaSource: none');
+    } finally {
+      delete process.env.XERA_TEST_ISSUE;
+      rmSync(cwd, { recursive: true });
+    }
+  });
 });

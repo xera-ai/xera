@@ -268,3 +268,49 @@ describe('XeraConfigSchema http block', () => {
     ).toThrow(/must have a corresponding/);
   });
 });
+
+describe('XeraConfigSchema github block', () => {
+  test('github alone (no jira) is a valid issue provider', () => {
+    const parsed = XeraConfigSchema.parse({
+      github: { repo: 'owner/repo' },
+      web: { baseUrl: { staging: 'https://x.com' }, defaultEnv: 'staging' },
+      adapters: ['web'],
+    });
+    expect(parsed.github?.repo).toBe('owner/repo');
+    expect(parsed.jira).toBeUndefined();
+  });
+
+  test('rejects config with neither jira nor github', () => {
+    expect(() =>
+      XeraConfigSchema.parse({
+        web: { baseUrl: { staging: 'https://x.com' }, defaultEnv: 'staging' },
+        adapters: ['web'],
+      }),
+    ).toThrow(/Exactly one issue provider/);
+  });
+
+  test('rejects config with both jira and github set', () => {
+    expect(() =>
+      XeraConfigSchema.parse({
+        jira: {
+          baseUrl: 'https://x.atlassian.net',
+          projectKeys: ['PROJ'],
+          fields: { story: 'description' },
+        },
+        github: { repo: 'owner/repo' },
+        web: { baseUrl: { staging: 'https://x.com' }, defaultEnv: 'staging' },
+        adapters: ['web'],
+      }),
+    ).toThrow(/Only one issue provider/);
+  });
+
+  test('rejects malformed github.repo', () => {
+    expect(() =>
+      XeraConfigSchema.parse({
+        github: { repo: 'no-slash' },
+        web: { baseUrl: { staging: 'https://x.com' }, defaultEnv: 'staging' },
+        adapters: ['web'],
+      }),
+    ).toThrow(/owner\/repo/);
+  });
+});

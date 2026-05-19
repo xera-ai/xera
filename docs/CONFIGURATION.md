@@ -10,13 +10,17 @@ Every project has a single root config: `xera.config.ts`. This file is committed
 Flags (all optional):
   -y, --yes                         Accept all defaults for any unflagged field
   --shape web|api|mixed             Project shape (default: web)
+  --tracker jira|github             Issue tracker (default: jira)
   --editor <list>                   Editor(s) to scaffold: claude,cursor,codex or "all" (default: auto-detect or all)
 
-  Jira:
+  Jira (used when --tracker jira):
   --ju, --jira-base-url <url>       Jira workspace URL
   --pk, --project-keys <keys>       Project key(s), comma-separated (e.g. PROJ,OPS)
   --sf, --story-field <field>       Jira field id for user story (default: description)
   --ac, --ac-field <field>          Jira field id for acceptance criteria
+
+  GitHub (used when --tracker github):
+  --gr, --github-repo <owner/repo>  GitHub repository (e.g. xera-ai/xera)
 
   Web (shape: web | mixed):
   --su, --staging-url <url>         Web app staging URL
@@ -48,7 +52,37 @@ xera init -y --shape api --pk MYPROJ --ju https://myco.atlassian.net --au https:
 xera init -y --shape mixed --pk MYPROJ --ju https://myco.atlassian.net \
   --su https://staging.example.com \
   --au https://api.staging.example.com --as bearer
+
+# GitHub Issues instead of Jira (uses gh CLI or the GitHub MCP — no token needed)
+xera init -y --shape web --tracker github --gr xera-ai/xera --su https://staging.example.com
 ```
+
+## Issue tracker: `jira` vs `github`
+
+Exactly one of `jira` or `github` must be configured in `xera.config.ts`.
+
+### Jira (default)
+
+```ts
+jira: {
+  baseUrl: 'https://myco.atlassian.net',
+  projectKeys: ['PROJ'],
+  fields: {
+    story: 'description',
+    acceptanceCriteria: 'customfield_10100',  // optional
+  },
+}
+```
+
+xera uses the Atlassian MCP when available in your editor session, and falls back to the REST API when `JIRA_EMAIL` + `JIRA_API_TOKEN` are set in `.env`. Ticket keys: `PROJ-123`.
+
+### GitHub Issues
+
+```ts
+github: { repo: 'xera-ai/xera' }
+```
+
+No token env vars needed. xera uses the GitHub MCP when available (the skill calls `mcp__github__get_issue` / `mcp__github__add_issue_comment`) and falls back to the [`gh` CLI](https://cli.github.com/), which carries your existing auth. Ticket keys: `GH-<number>` — e.g. `/xera-fetch GH-42` resolves issue 42 in the configured repo. Acceptance criteria are extracted from the issue body (no separate AC field exists on GitHub).
 
 ## Precedence (highest to lowest)
 

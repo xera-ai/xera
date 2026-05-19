@@ -1,26 +1,41 @@
 ---
 name: xera-fetch
-description: Fetch a Jira ticket and write its user story to .xera/<TICKET>/story.md. Use when QA wants to start working on a ticket without yet generating tests.
+description: Fetch a Jira or GitHub issue and write its user story to .xera/<TICKET>/story.md. Use when QA wants to start working on a ticket without yet generating tests.
 ---
 
 You are running inside a project repo configured for xera. The user has invoked `/xera-fetch <TICKET>`.
 
-If the user did not provide a ticket key, ask: "Which Jira ticket key?" and wait. The key must look like `PROJ-123`.
+Determine the configured issue provider by reading `xera.config.ts`:
+- If `github.repo` is set → GitHub provider. Ticket keys look like `GH-123` (the number maps to the configured `owner/repo` issue).
+- Else if `jira` is set → Jira provider. Ticket keys look like `PROJ-123`.
+
+If the user did not provide a ticket key, ask: "Which ticket key?" and wait. Show the expected shape for the configured provider.
 
 1. Check whether `.xera/{{TICKET}}/story.md` already exists.
    - If yes, read its first line to confirm the ticket key matches.
-   - If the file exists and the user did not explicitly ask to re-fetch, ask: "story.md exists for {{TICKET}}. Re-fetch from Jira and overwrite? (y/N)". Default to no.
+   - If the file exists and the user did not explicitly ask to re-fetch, ask: "story.md exists for {{TICKET}}. Re-fetch and overwrite? (y/N)". Default to no.
 
-2. Detect Jira backend:
+2. Detect the issue-provider backend:
+
+   **Jira provider:**
    - If an Atlassian MCP tool is available in this session (a tool whose name starts with `mcp__atlassian__` or `mcp__plugin_engineering_atlassian__`), use it:
      a. Call `getJiraIssue` (or equivalent) with the ticket key.
-     b. Map the response into the shape `xera-internal fetch` expects: `{ key, summary, story, acceptanceCriteria?, attachments, raw }`.
+     b. Map the response into the shape `xera-internal fetch` expects: `{ key, summary, story, acceptanceCriteria?, attachments }`.
         - `story` is the value of the field named in `xera.config.ts.jira.fields.story`.
         - `acceptanceCriteria` is the value of `jira.fields.acceptanceCriteria` if set.
         - `attachments` is the array of attachments, each mapped to `{ filename, url }`.
      c. Write that object as JSON to a temp file at `$TMPDIR/xera-mcp/{{TICKET}}.json` (create the dir if missing).
      d. Set the environment variable `XERA_MCP_JIRA=1` for the next subprocess call.
    - Else: use the REST backend implicitly via `JIRA_EMAIL` + `JIRA_API_TOKEN` from `.env`.
+
+   **GitHub provider:**
+   - The github issue number is the digits after `GH-` (e.g. `GH-42` → issue `42` in the repo named by `github.repo`).
+   - If a GitHub MCP tool is available in this session (a tool whose name starts with `mcp__github__`), use it:
+     a. Call `mcp__github__get_issue` (or equivalent) with `owner`, `repo` (from `github.repo`), and `issue_number`.
+     b. Map the response into the shape `xera-internal fetch` expects: `{ key, summary, story, attachments }`, where `key` is `GH-<number>`, `summary` is the issue title, and `story` is the issue body. GitHub issues have no separate AC field — leave `acceptanceCriteria` unset; step 4 below will body-extract.
+     c. Write that JSON to `$TMPDIR/xera-mcp-github/{{TICKET}}.json` (create the dir if missing).
+     d. Set `XERA_MCP_GITHUB=1` for the next subprocess call.
+   - Else: rely on the `gh` CLI. `xera-internal fetch` will invoke `gh issue view <number> --repo <owner/repo> --json …`. Confirm the user is authenticated by running `gh auth status` once if you have any doubt; surface a fix if not.
 
 3. Run: `bun run xera:fetch {{TICKET}}`
    - Exit 0 → continue.
