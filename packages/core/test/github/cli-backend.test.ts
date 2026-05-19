@@ -6,7 +6,8 @@ import { createGithubCliBackend } from '../../src/github/cli-backend';
 
 // Build a fake `gh` shim. The script inspects argv to decide which canned
 // response to emit. `issue view <n> --repo r/r --json …` returns issue JSON;
-// `issue comment <n> --repo r/r --body-file -` echoes the comment URL.
+// `issue comment <n> --repo r/r --body-file -` prints only the URL — matches
+// what real `gh` does (it does NOT echo the body back to stdout).
 const FAKE_GH = `#!/usr/bin/env bash
 set -e
 if [ "$1" = "issue" ] && [ "$2" = "view" ]; then
@@ -14,8 +15,8 @@ if [ "$1" = "issue" ] && [ "$2" = "view" ]; then
 {"number": 42, "title": "Login fails on Safari", "body": "Steps:\\n1. Open\\n2. Try login\\n\\n## Acceptance Criteria\\n- Login works on Safari", "labels": [{"name": "bug"}], "assignees": [], "url": "https://github.com/owner/repo/issues/42"}
 EOF
 elif [ "$1" = "issue" ] && [ "$2" = "comment" ]; then
-  cat -
-  echo
+  # Drain stdin so the parent's stdin.end() resolves cleanly.
+  cat - >/dev/null
   echo "https://github.com/owner/repo/issues/42#issuecomment-9999"
 else
   echo "unexpected args: $@" >&2
@@ -28,18 +29,28 @@ echo "gh: HTTP 404: Not Found" >&2
 exit 1
 `;
 
+const FAKE_GH_JUNK = `#!/usr/bin/env bash
+# Exit 0 but emit non-JSON (simulates auth prompt or interactive output bleed).
+echo "Hint: log in with gh auth login"
+exit 0
+`;
+
 let tmpDir: string;
 let ghOk: string;
 let ghFail: string;
+let ghJunk: string;
 
 beforeAll(() => {
   tmpDir = mkdtempSync(join(tmpdir(), 'xera-gh-shim-'));
   ghOk = join(tmpDir, 'gh-ok.sh');
   ghFail = join(tmpDir, 'gh-fail.sh');
+  ghJunk = join(tmpDir, 'gh-junk.sh');
   writeFileSync(ghOk, FAKE_GH);
   writeFileSync(ghFail, FAKE_GH_FAIL);
+  writeFileSync(ghJunk, FAKE_GH_JUNK);
   chmodSync(ghOk, 0o755);
   chmodSync(ghFail, 0o755);
+  chmodSync(ghJunk, 0o755);
 });
 
 afterAll(() => {
@@ -70,5 +81,15 @@ describe('github cli-backend', () => {
   test('fetchTicket surfaces gh failures with stderr', async () => {
     const c = createGithubCliBackend({ repo: 'owner/repo', ghBin: ghFail });
     await expect(c.fetchTicket('GH-1')).rejects.toThrow(/404/);
+  });
+
+  test('fetchTicket gives an actionable error when gh returns non-JSON', async () => {
+    const c = createGithubCliBackend({ repo: 'owner/repo', ghBin: ghJunk });
+    await expect(c.fetchTicket('GH-1')).rejects.toThrow(/non-JSON|gh auth status/);
+  });
+
+  test('fetchTicket rejects when gh is not on PATH', async () => {
+    const c = createGithubCliBackend({ repo: 'owner/repo', ghBin: '/nonexistent/gh-binary' });
+    await expect(c.fetchTicket('GH-1')).rejects.toThrow();
   });
 });

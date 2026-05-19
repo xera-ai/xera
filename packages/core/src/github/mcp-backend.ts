@@ -4,11 +4,14 @@ import { join } from 'node:path';
 import type { IssueProvider, IssueTicket } from '../providers/types';
 
 const MCP_ENV = 'XERA_MCP_GITHUB';
+const DIR_ENV = 'XERA_MCP_GITHUB_DIR';
 const TMP_SUBDIR = 'xera-mcp-github';
 
 export function createGithubMcpBackend(_repo: string): IssueProvider | null {
   if (process.env[MCP_ENV] !== '1') return null;
-  const tmpDir = join(tmpdir(), TMP_SUBDIR);
+  // XERA_MCP_GITHUB_DIR overrides the default cache dir — used by tests to avoid
+  // colliding with a live MCP session that's also using the shared tmpdir path.
+  const tmpDir = process.env[DIR_ENV] ?? join(tmpdir(), TMP_SUBDIR);
   mkdirSync(tmpDir, { recursive: true });
 
   return {

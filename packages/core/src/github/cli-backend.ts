@@ -15,10 +15,7 @@ interface GhIssueJson {
   url?: string;
 }
 
-interface GhCommentResult {
-  id?: string;
-  url?: string;
-}
+const COMMENT_URL_RE = /https:\/\/github\.com\/[^\s]+#issuecomment-\d+/;
 
 function toKey(number: number): string {
   return `GH-${number}`;
@@ -52,6 +49,8 @@ function run(
     });
     proc.on('error', (err) => reject(err));
     proc.on('close', (code) => resolve({ stdout, stderr, code: code ?? 0 }));
+    // Swallow EPIPE if the child exits before reading stdin (e.g. `gh` not authenticated).
+    proc.stdin.on('error', () => {});
     if (opts.stdin !== undefined) {
       proc.stdin.write(opts.stdin);
     }
@@ -81,7 +80,15 @@ export function createGithubCliBackend(opts: GithubCliOptions): IssueProvider {
           `gh issue view ${num} --repo ${repo} failed (exit ${r.code}): ${r.stderr.trim() || r.stdout.trim()}`,
         );
       }
-      const json = JSON.parse(r.stdout) as GhIssueJson;
+      let json: GhIssueJson;
+      try {
+        json = JSON.parse(r.stdout) as GhIssueJson;
+      } catch (e) {
+        const head = r.stdout.trim().slice(0, 200);
+        throw new Error(
+          `gh issue view ${num} --repo ${repo} returned non-JSON output (is gh installed and authenticated? \`gh auth status\`): ${head}`,
+        );
+      }
       return {
         key: toKey(json.number),
         summary: json.title,
@@ -101,11 +108,10 @@ export function createGithubCliBackend(opts: GithubCliOptions): IssueProvider {
           `gh issue comment ${num} --repo ${repo} failed (exit ${r.code}): ${r.stderr.trim() || r.stdout.trim()}`,
         );
       }
-      const out = r.stdout.trim();
-      // `gh issue comment` prints the comment URL on success; surface it as the id.
-      const tail = out.split('\n').pop() ?? out;
-      const result: GhCommentResult = { url: tail };
-      return { id: result.url ?? 'gh-pending' };
+      // `gh issue comment` prints the comment URL on success. Match it explicitly
+      // instead of relying on tail-of-stdout — stray warnings on stdout would break that.
+      const match = r.stdout.match(COMMENT_URL_RE);
+      return { id: match?.[0] ?? 'gh-pending' };
     },
   };
 }

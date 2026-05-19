@@ -1,19 +1,23 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createGithubMcpBackend } from '../../src/github/mcp-backend';
 
-const SHARED_DIR = join(tmpdir(), 'xera-mcp-github');
+let cacheDir: string;
 
 describe('github mcp-backend', () => {
   beforeEach(() => {
     process.env.XERA_MCP_GITHUB = '1';
-    mkdirSync(SHARED_DIR, { recursive: true });
+    // Per-test cache dir so we never touch the shared $TMPDIR/xera-mcp-github
+    // path that a real MCP session may be using.
+    cacheDir = mkdtempSync(join(tmpdir(), 'xera-mcp-github-test-'));
+    process.env.XERA_MCP_GITHUB_DIR = cacheDir;
   });
   afterEach(() => {
     delete process.env.XERA_MCP_GITHUB;
-    if (existsSync(SHARED_DIR)) rmSync(SHARED_DIR, { recursive: true });
+    delete process.env.XERA_MCP_GITHUB_DIR;
+    rmSync(cacheDir, { recursive: true, force: true });
   });
 
   test('returns null when XERA_MCP_GITHUB is unset', () => {
@@ -22,7 +26,7 @@ describe('github mcp-backend', () => {
   });
 
   test('fetchTicket reads the file handoff written by the skill', async () => {
-    const cachePath = join(SHARED_DIR, 'GH-7.json');
+    const cachePath = join(cacheDir, 'GH-7.json');
     writeFileSync(
       cachePath,
       JSON.stringify({
@@ -50,7 +54,7 @@ describe('github mcp-backend', () => {
     if (!c) throw new Error('expected non-null backend');
     const r = await c.postComment('GH-7', 'comment body');
     expect(r.id).toBe('mcp-pending');
-    const out = JSON.parse(readFileSync(join(SHARED_DIR, 'GH-7.comment.json'), 'utf8'));
+    const out = JSON.parse(readFileSync(join(cacheDir, 'GH-7.comment.json'), 'utf8'));
     expect(out.body).toBe('comment body');
   });
 });
