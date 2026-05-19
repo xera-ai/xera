@@ -1,13 +1,13 @@
 import type { ClassifyOutput } from '../classifier/types';
 
-export interface JiraCommentInput extends ClassifyOutput {
+export interface CommentInput extends ClassifyOutput {
   ticket: string;
   runId: string;
   xeraVersion: string;
   promptsVersion: string;
 }
 
-export function buildJiraComment(input: JiraCommentInput): string {
+export function buildComment(input: CommentInput): string {
   const passed = input.scenarios.filter((s) => s.outcome === 'PASS').length;
   const total = input.scenarios.length;
   const icon = input.overall === 'PASS' ? '🟢' : '🔴';

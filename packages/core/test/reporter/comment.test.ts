@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'bun:test';
-import { buildJiraComment } from '../../src/reporter/jira-comment';
+import { buildComment } from '../../src/reporter/comment';
 
-describe('buildJiraComment', () => {
+describe('buildComment', () => {
   test('PASS comment is short and green', () => {
-    const md = buildJiraComment({
+    const md = buildComment({
       ticket: 'JIRA-1',
       runId: '2026-05-14T10-30-00',
       overall: 'PASS',
@@ -18,7 +18,7 @@ describe('buildJiraComment', () => {
   });
 
   test('FAIL comment includes per-scenario diagnosis and reproduce command', () => {
-    const md = buildJiraComment({
+    const md = buildComment({
       ticket: 'JIRA-1',
       runId: '2026-05-14T10-30-00',
       overall: 'REAL_BUG',

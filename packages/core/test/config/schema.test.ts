@@ -314,3 +314,25 @@ describe('XeraConfigSchema github block', () => {
     ).toThrow(/owner\/repo/);
   });
 });
+
+describe('XeraConfigSchema.reporting (legacy postToJira alias)', () => {
+  test('postComment defaults to true', () => {
+    const parsed = XeraConfigSchema.parse(validBase());
+    expect(parsed.reporting.postComment).toBe(true);
+  });
+
+  test('legacy postToJira:false is mapped to postComment:false', () => {
+    const parsed = XeraConfigSchema.parse({ ...validBase(), reporting: { postToJira: false } });
+    expect(parsed.reporting.postComment).toBe(false);
+    // The legacy field is stripped from the parsed output.
+    expect('postToJira' in parsed.reporting).toBe(false);
+  });
+
+  test('explicit postComment wins over legacy postToJira when both are set', () => {
+    const parsed = XeraConfigSchema.parse({
+      ...validBase(),
+      reporting: { postToJira: true, postComment: false },
+    });
+    expect(parsed.reporting.postComment).toBe(false);
+  });
+});

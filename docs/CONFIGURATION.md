@@ -155,7 +155,7 @@ export default defineConfig({
   },
   reporting: {
     language: 'en',
-    postToJira: true,
+    postComment: true,
     transition: { onPass: null, onFail: null },
     artifactLinks: 'git',
   },
@@ -186,10 +186,10 @@ export default defineConfig({
 - `maxRetries`: per-gate retry caps in skills.
 
 ### `reporting`
-- `language`: Jira comment language. `en` or `vi`.
-- `postToJira`: master switch.
-- `transition`: optional Jira status transitions on pass/fail. Default disabled.
-- `artifactLinks`: where Jira links should point. `git` (committed paths in repo) or `local` (filesystem).
+- `language`: tracker comment language. `en` or `vi`.
+- `postComment`: master switch that gates publishing the comment to whichever tracker (`jira` or `github`) is configured. Legacy alias `postToJira` is accepted for backwards-compat.
+- `transition`: optional Jira status transitions on pass/fail. Default disabled. GitHub tracker ignores this — GitHub has no equivalent.
+- `artifactLinks`: where tracker links should point. `git` (committed paths in repo) or `local` (filesystem).
 
 ### `http` (v0.7+)
 - `baseUrl`: map of environment name → URL for the API target. Must include `defaultEnv`.

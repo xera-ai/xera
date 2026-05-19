@@ -12,7 +12,7 @@ import { loadConfig } from '../config/load';
 import type { OutdatedDecision } from '../graph/classify';
 import { enhanceClassification } from '../graph/classify';
 import { deriveSnapshot, loadAllEvents } from '../graph/store';
-import { buildJiraComment } from '../reporter/jira-comment';
+import { buildComment } from '../reporter/comment';
 import { writeStatusFromClassification } from '../reporter/status-writer';
 import { PROMPTS_VERSION, XERA_VERSION } from '../versions';
 
@@ -182,7 +182,7 @@ export async function reportCmd(argv: string[]): Promise<number> {
     scenarioCounts: input.scenarioCounts,
   });
 
-  const md = buildJiraComment({
+  const md = buildComment({
     ticket,
     runId: input.runId,
     overall: reAggregated.overall,
@@ -191,7 +191,7 @@ export async function reportCmd(argv: string[]): Promise<number> {
     xeraVersion: XERA_VERSION,
     promptsVersion: PROMPTS_VERSION,
   });
-  const draftPath = join(paths.ticketDir, 'jira-comment.draft.md');
+  const draftPath = join(paths.ticketDir, 'comment.draft.md');
   writeFileSync(draftPath, md);
   console.log(`[xera:report] wrote status.json and ${draftPath}`);
   return 0;
