@@ -194,9 +194,13 @@ export default async function main(): Promise<void> {
     );
 
   cli
-    .command('samples remove', 'Remove scaffolded sample tickets from .xera/')
+    .command('samples <action>', 'Manage scaffolded sample tickets (action: remove)')
     .option('-y, --yes', 'Skip confirmation; remove all installed samples')
-    .action(async (opts: { yes?: boolean }) => {
+    .action(async (action: string, opts: { yes?: boolean }) => {
+      if (action !== 'remove') {
+        console.error(pc.red(`\n  error: Unknown samples action '${action}'. Supported: remove\n`));
+        process.exit(1);
+      }
       const exit = await samplesRemoveCommand({ yes: !!opts.yes });
       process.exit(exit);
     });
