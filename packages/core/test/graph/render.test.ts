@@ -131,6 +131,59 @@ describe('transformForVisNetwork', () => {
     expect(scenario?.color).toBe('#EF4444'); // red
   });
 
+  test('Failure node is anchored to its scenario via a synthetic ran edge', () => {
+    const snap = mkSnapshot();
+    snap.latest_failures['sc-100'] = {
+      id: 'fail-1',
+      scenarioId: 'sc-100',
+      runId: 'r1',
+      ts: '2026-05-15T00:00:00Z',
+    };
+    const { nodes, edges } = transformForVisNetwork(snap, {});
+    const failure = nodes.find((n) => n.id === 'fail-1');
+    expect(failure?.group).toBe('Failure');
+    const ran = edges.find((e) => e.from === 'fail-1' && e.to === 'sc-100');
+    expect(ran).toBeDefined();
+    expect(ran?.label).toBe('ran');
+  });
+
+  test('Failure label uses classification + tooltip carries confidence/runId/disputed', () => {
+    const snap = mkSnapshot();
+    snap.latest_failures['sc-100'] = {
+      id: 'fail-1',
+      scenarioId: 'sc-100',
+      runId: 'r-abc-123',
+      ts: '2026-05-15T00:00:00Z',
+      classification: 'REAL_BUG',
+      confidence: 'high',
+      disputed: true,
+      traceId: 'trace-xyz',
+    };
+    const { nodes } = transformForVisNetwork(snap, {});
+    const failure = nodes.find((n) => n.id === 'fail-1');
+    expect(failure?.label).toBe('REAL_BUG');
+    expect(failure?.title).toContain('classification: REAL_BUG');
+    expect(failure?.title).toContain('(high)');
+    expect(failure?.title).toContain('r-abc-123');
+    expect(failure?.title).toContain('disputed');
+    expect(failure?.title).toContain('trace-xyz');
+  });
+
+  test('Failure label falls back to "fail" when classification missing', () => {
+    const snap = mkSnapshot();
+    snap.latest_failures['sc-100'] = {
+      id: 'fail-2',
+      scenarioId: 'sc-100',
+      runId: 'r-xyz',
+      ts: '2026-05-15T00:00:00Z',
+    };
+    const { nodes } = transformForVisNetwork(snap, {});
+    const failure = nodes.find((n) => n.id === 'fail-2');
+    expect(failure?.label).toBe('fail');
+    expect(failure?.title).not.toContain('classification:');
+    expect(failure?.title).not.toContain('disputed');
+  });
+
   test('Modifies edges are red dashed', () => {
     const snap = mkSnapshot();
     const { edges } = transformForVisNetwork(snap, {});
