@@ -24,10 +24,14 @@ function pushTicketChecks(
 ): void {
   const ticketDir = join(cwd, '.xera', ticket);
   if (!existsSync(ticketDir)) {
+    // Fresh ticket — never fetched. This is NOT an error: /xera-run's Step 0
+    // health gate calls `doctor --strict <TICKET>` before /xera-fetch runs,
+    // so demanding artifacts here would deadlock the very pipeline that
+    // creates them. Skip the remaining ticket-artifact checks.
     checks.push({
-      name: `${ticket}: .xera/${ticket}/ exists`,
-      ok: false,
-      message: `no artifact dir — run \`/xera-fetch ${ticket}\` first`,
+      name: `${ticket}: artifact state`,
+      ok: true,
+      message: 'fresh ticket — /xera-fetch will populate .xera/<TICKET>/',
     });
     return;
   }
