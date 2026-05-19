@@ -101,6 +101,10 @@ Then in your AI coding agent (Claude Code, Cursor, or Codex CLI):
 
 ## Try it on a real app
 
+<a href="https://xera-ai.github.io/xera-sample-app-tests/" target="_blank" rel="noopener noreferrer">
+  <img src="/img/graph-viewer-hero.png" alt="xera knowledge graph viewer — three FlowBoard tickets, their POMs, passing and failing scenarios, and failure classes around the periphery" />
+</a>
+
 There's a complete demo loop you can poke at without writing a single line of code or hosting an app:
 
 | Repo | Role |

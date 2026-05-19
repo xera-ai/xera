@@ -44,6 +44,10 @@ Playwright + the user's app / HTTP API under test
 A real graph rendered from the [xera-sample-app-tests](https://github.com/xera-ai/xera-sample-app-tests) project (xera testing FlowBoard) is hosted at **[xera-ai.github.io/xera-sample-app-tests](https://xera-ai.github.io/xera-sample-app-tests/)** — click the Map / List / Trend tabs and the Coverage view to see exactly what the binary output of `graph-render` looks like.
 :::
 
+<a href="https://xera-ai.github.io/xera-sample-app-tests/" target="_blank" rel="noopener noreferrer">
+  <img src="/img/graph-viewer-coverage.jpg" alt="Coverage tab — Need Action (uncovered areas), At Risk (recently changed), and Healthy (well-covered) buckets with risk scores and top-risk callout" />
+</a>
+
 A repo-local event-sourced data layer running parallel to the v0.1 artifact pipeline. Skills emit events on every fetch/script/exec/report/promote. The derived snapshot powers several read-only consumers — classify, impact, coverage (added in v0.8), render, and disputes:
 
 ```
