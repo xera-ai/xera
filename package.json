@@ -3,6 +3,15 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xera-ai/xera.git"
+  },
+  "homepage": "https://github.com/xera-ai/xera#readme",
+  "bugs": {
+    "url": "https://github.com/xera-ai/xera/issues"
+  },
   "engines": {
     "bun": ">=1.1.0"
   },

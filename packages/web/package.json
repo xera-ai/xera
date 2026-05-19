@@ -2,6 +2,16 @@
   "name": "@xera-ai/web",
   "version": "0.16.1",
   "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xera-ai/xera.git",
+    "directory": "packages/web"
+  },
+  "homepage": "https://github.com/xera-ai/xera/tree/main/packages/web#readme",
+  "bugs": {
+    "url": "https://github.com/xera-ai/xera/issues"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

@@ -1,6 +1,16 @@
 {
   "name": "@xera-ai/prompts",
   "version": "0.16.1",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xera-ai/xera.git",
+    "directory": "packages/prompts"
+  },
+  "homepage": "https://github.com/xera-ai/xera/tree/main/packages/prompts#readme",
+  "bugs": {
+    "url": "https://github.com/xera-ai/xera/issues"
+  },
   "files": [
     "*.md",
     "version.json"
