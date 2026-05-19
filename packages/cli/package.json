@@ -2,6 +2,16 @@
   "name": "@xera-ai/cli",
   "version": "0.16.1",
   "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xera-ai/xera.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/xera-ai/xera/tree/main/packages/cli#readme",
+  "bugs": {
+    "url": "https://github.com/xera-ai/xera/issues"
+  },
   "bin": {
     "xera": "./bin/xera"
   },

@@ -104,7 +104,7 @@ See [the design spec](docs/superpowers/specs/2026-05-14-xera-core-web-design.md)
 
 ## License
 
-MIT.
+Apache 2.0 — see [LICENSE](LICENSE).
 
 ## Contact
 
