@@ -40,6 +40,10 @@ Playwright + the user's app / HTTP API under test
 
 ## v0.6 addition: Project Knowledge Graph
 
+::: tip See it live
+A real graph rendered from the [xera-sample-app-tests](https://github.com/xera-ai/xera-sample-app-tests) project (xera testing FlowBoard) is hosted at **[xera-ai.github.io/xera-sample-app-tests](https://xera-ai.github.io/xera-sample-app-tests/)** — click the Map / List / Trend tabs and the Coverage view to see exactly what the binary output of `graph-render` looks like.
+:::
+
 A repo-local event-sourced data layer running parallel to the v0.1 artifact pipeline. Skills emit events on every fetch/script/exec/report/promote. The derived snapshot powers several read-only consumers — classify, impact, coverage (added in v0.8), render, and disputes:
 
 ```
