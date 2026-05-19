@@ -256,6 +256,14 @@ Weight constants are not user-configurable in v0.8 (see `packages/core/src/cover
 
 Validates everything above and prints what is missing. Run after any config change.
 
+**Arities (since v0.16.1, see [#149](https://github.com/xera-ai/xera/issues/149) / [#153](https://github.com/xera-ai/xera/issues/153)):**
+
+- `xera doctor` — warn-only; exits 0 even if checks fail.
+- `xera doctor --strict` — env + config + auth checks; exits non-zero on any failure. Used by `/xera-run` Step 0 before any ticket artifact exists.
+- `xera doctor --strict <TICKET>` — adds per-ticket checks (artifact dir, `graph-input.json`, story.md acceptanceCriteria). Used by `/xera-run` Step 1.6 after fetch materializes `.xera/<TICKET>/`.
+- `xera doctor --logs <TICKET>` — pretty-print `.xera/<TICKET>/xera.log`.
+- `xera doctor --auto-enrich` — cron-friendly: backfill graph data for unprocessed tickets without prompting.
+
 ## Graph (v0.6+)
 
 The project knowledge graph stores event-sourced records under `.xera/graph/events/`. Configuration:

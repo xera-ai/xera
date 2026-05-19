@@ -4,7 +4,7 @@ A single-page brief on **what xera is, who it is for, and where it is going**. R
 
 ## 1. One-paragraph vision
 
-xera is an **AI-native test framework** for QA teams. A QA opens their AI coding agent (Claude Code, Cursor, or OpenAI Codex CLI), types `/xera-run JIRA-123`, and the framework fetches the story from Jira, generates Gherkin scenarios, writes Playwright `spec.ts` + page objects, executes the run, classifies the outcome (real bug vs. test rot vs. flake vs. contract drift vs. auth/rate-limit issue), and posts a diagnosis back to Jira — all driven by AI coding-agent skills calling deterministic helpers in `xera-internal`. The same loop works for browser-driven web tests (`@xera-ai/web`) and HTTP API tests (`@xera-ai/http`).
+xera is an **AI-native test framework** for QA teams. A QA opens their AI coding agent (Claude Code, Cursor, or OpenAI Codex CLI), types `/xera-run JIRA-123` (or `/xera-run GH-42` against a GitHub issue), and the framework fetches the story from the configured tracker (Jira or GitHub Issues), generates Gherkin scenarios, writes Playwright `spec.ts` + page objects, executes the run, classifies the outcome (real bug vs. test rot vs. flake vs. contract drift vs. auth/rate-limit issue), and posts a diagnosis back to the tracker — all driven by AI coding-agent skills calling deterministic helpers in `xera-internal`. The same loop works for browser-driven web tests (`@xera-ai/web`) and HTTP API tests (`@xera-ai/http`).
 
 The non-obvious bet: keep the AI work inside the user's Claude Code session, and keep everything else in plain, deterministic, file-in/file-out binaries that any QA can read, debug, and trust.
 
@@ -12,7 +12,7 @@ The non-obvious bet: keep the AI work inside the user's Claude Code session, and
 
 QA teams in product orgs typically face three hand-offs:
 
-1. **Ticket → test idea.** PM/BA writes a Jira story with acceptance criteria; QA has to translate AC into scenarios. This is interpretive work and is often done twice (once by QA writing scenarios, once by a reviewer cross-checking AC).
+1. **Ticket → test idea.** PM/BA writes a Jira story or GitHub issue with acceptance criteria; QA has to translate AC into scenarios. This is interpretive work and is often done twice (once by QA writing scenarios, once by a reviewer cross-checking AC).
 2. **Test idea → executable.** Scenarios become Playwright/HTTP tests, page objects, fixtures. Hours of repetitive scaffolding.
 3. **Result → diagnosis.** When a test fails, was it a real bug, a stale selector, an auth issue, a flake, or an outdated assertion against a still-correct system? Today the answer is "QA reads the trace and guesses."
 
@@ -27,7 +27,7 @@ That is xera.
 | **QA engineer (primary)** | Runs `/xera-*` skills in their AI coding agent (Claude Code, Cursor, or Codex CLI); reviews + commits Gherkin and generated `spec.ts`; disputes classifications they disagree with. |
 | **PO / BA (secondary)** | Reviews `test.feature` as the contract between AC and tests; never needs to read `spec.ts`. |
 | **Eng manager / QA lead** | Opens the graph HTML viewer (built in CI, sticky-commented on PRs) to see coverage, impact, and disputes without cloning the repo. |
-| **Dev** | Sees Jira comments posted by xera; occasionally chases a `CONTRACT_DRIFT` finding against an OpenAPI change. |
+| **Dev** | Sees Jira / GitHub issue comments posted by xera; occasionally chases a `CONTRACT_DRIFT` finding against an OpenAPI change. |
 | **xera contributor (this repo)** | Edits skills, prompts, deterministic helpers, adapters — see `AGENTS.md` and `CLAUDE.md`. |
 
 End users **never** install xera via `npm install @xera-ai/core`. They use `bunx @xera-ai/cli init` once and from then on interact through `/xera-*` slash commands.
@@ -64,12 +64,12 @@ A skill is data the LLM reads to know the *workflow*. A prompt is data the LLM r
 
 ### 4.2 Packages
 
-Six packages, one fixed-group version (currently `0.8.x`; v0.9 in flight). All bump in lockstep via changesets.
+Six packages, one fixed-group version (currently `0.16.x`). All bump in lockstep via changesets.
 
 | Package | One-line role |
 |---|---|
-| `@xera-ai/core` | Config, paths, hashing, Jira client, classifier (9 classes), auth-state crypto, **graph module**, **coverage module**, and the `xera-internal` binary (deterministic helpers). |
-| `@xera-ai/cli` | Public CLI — only `init` and `doctor`. Everything else is via skills. |
+| `@xera-ai/core` | Config, paths, hashing, `IssueProvider` (Jira + GitHub Issues behind one interface, v0.16+), 9-class classifier, auth-state crypto, **graph module**, **coverage module**, and the `xera-internal` binary (deterministic helpers). |
+| `@xera-ai/cli` | Public CLI — `init` (`--tracker jira\|github`), `doctor` (`--strict [ticket]`), and `samples remove`. Everything else is via skills. |
 | `@xera-ai/web` | Browser adapter — Playwright + trace normalizer + POM-scan + Gherkin lint. |
 | `@xera-ai/http` | HTTP API adapter — Playwright `APIRequestContext`, OpenAPI loader, pre-auth helpers, `CONTRACT_DRIFT` detection. |
 | `@xera-ai/skills` | The 12 user-facing `.md` workflows that drive everything from an AI coding-agent session (Claude Code, Cursor, or Codex CLI). Scaffolded per editor by `xera init`. |
@@ -103,10 +103,10 @@ Commit-friendly text wins; everything derived is rebuildable from what is commit
 `/xera-run <TICKET>` orchestrates the full loop. Each arrow is a skill step that calls one or more `xera-internal` subcommands, often with an LLM-in-the-loop generation step in between.
 
 ```
-   Jira ticket
+   Jira ticket OR GitHub issue
        │
        ▼
-   fetch ──► story.md + meta.json     (deterministic; MCP or REST)
+   fetch ──► story.md + meta.json     (deterministic; MCP or REST/gh CLI)
        │
        ▼
    feature  ──► test.feature           (LLM via feature-from-story.md)
@@ -125,7 +125,8 @@ Commit-friendly text wins; everything derived is rebuildable from what is commit
        │                                diagnose-failure.md +
        │                                classify-outdated.md against graph)
        ▼
-   post     ──► Jira comment           (deterministic)
+   post     ──► tracker comment        (deterministic; Jira REST/MCP or
+                                        GitHub MCP/`gh issue comment`)
 ```
 
 Skill steps emit `graph-record` events at every relevant boundary, so the project knowledge graph stays current without any extra QA action.
@@ -158,7 +159,7 @@ These are the guardrails that decide design trade-offs. When in doubt, fall back
 
 - **Web E2E** via Playwright (browser-driven, with auth-state refresh).
 - **HTTP API** via Playwright `APIRequestContext` (no browser, OpenAPI-aware).
-- **Jira** as the ticket source of record (REST + MCP backends).
+- **Issue trackers (v0.16+)** — Jira (REST + MCP) and GitHub Issues (`gh` CLI + GitHub MCP) behind a unified `IssueProvider` interface. Exactly one is configured per project.
 - **AI coding agents** — Claude Code, Cursor ≥1.6, and OpenAI Codex CLI — as the supported skill runners (`/xera-*` skills are scaffolded per editor by `xera init --editor <list>`).
 - **Project knowledge graph** — ticket ↔ scenario ↔ POM ↔ SUT-area ↔ AC links, kept as committed event JSONL.
 - **Coverage & AC matrix** — three-state area model (UNCOVERED / STALE / COVERED) + AC-level gaps.
@@ -172,7 +173,7 @@ These are the guardrails that decide design trade-offs. When in doubt, fall back
 - **Cloud backend / multi-tenant SaaS.** Considered v2.0 only if multi-org demand emerges.
 - **Test data factories / cleanup automation.** Out of scope — QA's responsibility via fixtures and `auth-setup`.
 - **CI-side test authoring.** xera generates tests **in the QA's local session**; CI only renders the graph viewer and runs the tests QA has already committed.
-- **Sources other than Jira** (Linear, GitHub Issues, Notion). Possible via the same client interface but not committed.
+- **Issue trackers beyond Jira and GitHub Issues** (Linear, Notion, etc.). Possible via the same `IssueProvider` interface but not committed.
 
 ## 7. Version journey
 
@@ -188,6 +189,8 @@ xera releases under a single fixed-group version — all six packages bump in lo
 | v0.7 | ✅ | HTTP API adapter — second adapter validates the extension model; adds three classifier classes (`CONTRACT_DRIFT`, `RATE_LIMITED`, `AUTH_EXPIRED`). |
 | v0.8 | ✅ | Coverage gap & AC matrix — turn the graph into a coverage and AC-completeness consumer; AI-drafted gap fill. Release infra unified at fixed-group version. |
 | v0.9 | ✅ | Adversarial exploration (experimental, opt-in). Brainstorming partner for negative / boundary / race / security-smell scenarios — kept in a separate `explore.feature` so PO review of `test.feature` is undisturbed. |
+| v0.10–v0.15 | ✅ | Multi-editor support (`--editor claude\|cursor\|codex\|all`); CLI UX hardening (help-on-no-args, did-you-mean, non-TTY guard); cognitive AC extraction from Jira description body; `init --update --shape` upgrade path. |
+| v0.16 | ✅ | **GitHub Issues** as an alternative tracker (no token, `gh` CLI + GitHub MCP); `/xera-run` first-run unblocked (split env-only Step 0 + ticket-specific Step 1.6); `samples remove` public subcommand. |
 | v1.0 | planned | Cross-adapter graph linkage (endpoint as first-class graph node) · live dashboard. |
 | v1.x | planned | Messaging adapters (Kafka, AMQP, WebSocket) · GraphQL · gRPC. |
 | v2.0 | planned | Optional SaaS backend (only if multi-org demand). |
