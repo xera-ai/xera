@@ -1,5 +1,15 @@
 # @xera-ai/cli
 
+## 0.16.1
+
+### Patch Changes
+
+- [#154](https://github.com/xera-ai/xera/pull/154) [`f339604`](https://github.com/xera-ai/xera/commit/f339604b3a406b69316b269eebdd8eabbc574bc0) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - make doctor --strict accept optional ticket arg ([#153](https://github.com/xera-ai/xera/issues/153)) (auto-generated from [#154](https://github.com/xera-ai/xera/issues/154))
+
+- Updated dependencies []:
+  - @xera-ai/core@0.16.1
+  - @xera-ai/skills@0.16.1
+
 ## 0.16.0
 
 ### Minor Changes
