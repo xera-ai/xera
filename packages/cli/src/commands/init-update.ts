@@ -156,6 +156,9 @@ export async function initUpdateCommand(opts: InitUpdateOptions): Promise<void> 
   pkg.scripts['xera:impact-prepare'] = 'xera-internal impact-prepare';
   pkg.scripts['xera:heal-prepare'] = 'xera-internal heal-prepare';
   pkg.scripts['xera:disputes'] = 'xera-internal disputes';
+  if (pkg.dependencies['@xera-ai/http']) {
+    pkg.scripts['xera:openapi-resolve'] = 'xera-internal openapi-resolve';
+  }
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 
   // Scaffold GitHub Actions viewer workflow (v0.6.3+)

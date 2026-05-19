@@ -7,6 +7,7 @@ import pc from 'picocolors';
 import { type EditorName, editors } from '../editors';
 import { parseFrontmatter } from '../editors/frontmatter';
 import { resolveEditors } from '../editors/resolve';
+import { samplesForShape, scaffoldSample } from '../samples';
 import { scaffoldFile } from '../scaffold';
 
 const require = createRequire(import.meta.url);
@@ -34,6 +35,8 @@ export interface InitOptions {
   openapiPath?: string;
   authStrategy?: HttpAuthStrategy;
   httpRoles?: string;
+  // Opt-in sample tickets (.xera/SAMPLE-001 + .xera/SAMPLE-HTTP-001 by shape)
+  samples?: boolean;
 }
 
 function cancel(): never {
@@ -229,6 +232,21 @@ export async function initCommand(opts: InitOptions): Promise<void> {
     }
   }
 
+  // Opt-in sample tickets — `--samples` flag. Idempotent: scaffoldSample skips
+  // files that already exist so users don't lose hand edits on re-init.
+  if (opts.samples) {
+    const sampleVars = { ...vars, cliVersion: CLI_VERSION };
+    for (const sample of samplesForShape(shape)) {
+      const { written, skipped } = scaffoldSample(cwd, sample, sampleVars);
+      if (written.length > 0) {
+        p.log.success(`scaffolded sample ${sample.id} (${written.length} files)`);
+      }
+      if (skipped.length > 0) {
+        p.log.info(`sample ${sample.id}: skipped ${skipped.length} existing file(s)`);
+      }
+    }
+  }
+
   // .gitignore additions
   const gitignorePath = join(cwd, '.gitignore');
   const gitignoreAdditions = [
@@ -319,6 +337,7 @@ export async function initCommand(opts: InitOptions): Promise<void> {
   pkg.scripts['xera:impact-prepare'] = 'xera-internal impact-prepare';
   pkg.scripts['xera:heal-prepare'] = 'xera-internal heal-prepare';
   pkg.scripts['xera:disputes'] = 'xera-internal disputes';
+  if (wantsHttp) pkg.scripts['xera:openapi-resolve'] = 'xera-internal openapi-resolve';
   // Adversarial explore (v0.9+)
   pkg.scripts['xera:explore-prepare'] = 'xera-internal explore-prepare';
   pkg.scripts['xera:explore-finalize'] = 'xera-internal explore-finalize';
@@ -378,7 +397,15 @@ Next:
 ${editorLines}
 `;
 
-  p.note(nextSteps.trim(), 'Next steps');
+  const sampleIds = opts.samples ? samplesForShape(shape).map((s) => s.id) : [];
+  const sampleHint =
+    sampleIds.length > 0
+      ? `\n  Sample ticket(s) scaffolded — try it out:\n${sampleIds
+          .map((id) => `       /xera-run ${id}`)
+          .join('\n')}\n  Remove later with: xera samples remove`
+      : '';
+
+  p.note((nextSteps.trim() + sampleHint).trim(), 'Next steps');
 
   p.outro(pc.green('xera initialized!'));
 }
