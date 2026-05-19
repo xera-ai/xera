@@ -189,27 +189,47 @@ body:has([data-tab-panel="coverage"].active) .topbar-controls {
   white-space: nowrap;
 }
 
-#reset-btn:hover,
-#legend-btn:hover {
+#reset-btn:hover {
   background: #1a2035;
   color: #9ca3af;
   border-color: #2d3f5f;
 }
 
 #legend-btn {
-  background: transparent;
-  color: #4b5563;
-  border: 1px solid #1e2d45;
+  background: rgba(99, 102, 241, 0.12);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.4);
   border-radius: 6px;
-  padding: 4px 10px;
+  padding: 4px 10px 4px 8px;
   cursor: pointer;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   transition:
     background 0.15s,
     color 0.15s,
-    border-color 0.15s;
+    border-color 0.15s,
+    box-shadow 0.15s;
   white-space: nowrap;
+  box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+}
+#legend-btn::before {
+  content: 'ⓘ';
+  font-size: 13px;
+  line-height: 1;
+  color: #818cf8;
+}
+#legend-btn:hover {
+  background: rgba(99, 102, 241, 0.22);
+  color: #e0e7ff;
+  border-color: rgba(99, 102, 241, 0.7);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+#legend-btn:hover::before {
+  color: #c7d2fe;
 }
 
 /* ─── Canvas ──────────────────────────────────────── */
