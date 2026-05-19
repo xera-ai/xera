@@ -1,6 +1,6 @@
 # xera
 
-AI-native test framework for QA teams — fetch a Jira ticket, generate Gherkin + Playwright spec, run the test, diagnose the failure, and post results back to Jira. Driven by AI coding-agent skills (Claude Code, Cursor, OpenAI Codex CLI).
+AI-native test framework for QA teams — fetch a ticket from Jira **or GitHub Issues**, generate Gherkin + Playwright spec, run the test, diagnose the failure, and post results back to the tracker. Driven by AI coding-agent skills (Claude Code, Cursor, OpenAI Codex CLI).
 
 **v0.8:** [Release pipeline](AGENTS.md#workspace-deps) is now fully automated and unified. All six packages move in lockstep at a single version (currently `0.8.0`) via a [changesets](https://github.com/changesets/changesets) `fixed` group; PR titles in conventional-commits form auto-generate changesets; merging to `main` opens a "Version Packages" PR; merging that publishes every package to npm with per-package git tags — zero manual `bun publish`, zero manual tags.
 
@@ -10,15 +10,17 @@ Backed by a **project knowledge graph** that links every ticket ↔ scenario ↔
 
 ## Quickstart
 
-Prereqs: Bun ≥1.1.0, a supported AI coding agent (Claude Code, Cursor ≥1.6, or OpenAI Codex CLI), an Atlassian-connected MCP **or** a Jira API token, a web app and/or HTTP API to test.
+Prereqs: Bun ≥1.1.0, a supported AI coding agent (Claude Code, Cursor ≥1.6, or OpenAI Codex CLI), an issue tracker (Atlassian-connected MCP / Jira API token **or** GitHub MCP / `gh` CLI), and a web app and/or HTTP API to test.
 
 ```bash
 bun add -g @xera-ai/cli         # install once globally; or use bunx to run without installing
 
 mkdir my-tests && cd my-tests
-xera init                       # interactive: answers shape + ~5 prompts; scaffolds CI workflow
-# or fully non-interactive:
+xera init                       # interactive: answers shape + tracker + ~5 prompts; scaffolds CI workflow
+# or fully non-interactive (Jira):
 xera init -y --shape api --pk MYPROJ --ju https://myco.atlassian.net --au https://api.example.com --as bearer
+# or with GitHub Issues (no token required — uses `gh` CLI or the GitHub MCP):
+xera init -y --shape web --tracker github --gr xera-ai/xera --su https://staging.example.com
 cp .env.example .env            # fill in credentials
 bun install
 # Web shape only: bunx playwright install chromium
@@ -29,7 +31,8 @@ bun run xera:auth-setup         # pre-authenticate roles (writes encrypted .xera
 #   OpenAI Codex CLI:  `codex`
 > /xera-run SAMPLE-001          # web sample (if shape is web/mixed)
 > /xera-run SAMPLE-HTTP-001     # api sample (if shape is api/mixed)
-> /xera-run JIRA-123            # your first real ticket
+> /xera-run JIRA-123            # your first real ticket (Jira key shape)
+> /xera-run GH-42               # …or a GitHub issue when tracker: github
 ```
 
 ## What you get out of the box
@@ -37,11 +40,11 @@ bun run xera:auth-setup         # pre-authenticate roles (writes encrypted .xera
 | Skill | What it does |
 |---|---|
 | `/xera-run <TICKET>` | Full pipeline end-to-end (auto-checks impact after fetch) |
-| `/xera-fetch <TICKET>` | Pull story from Jira; extract modified SUT areas |
+| `/xera-fetch <TICKET>` | Pull story from the configured tracker (Jira or GitHub); extract modified SUT areas |
 | `/xera-feature <TICKET>` | Generate Gherkin |
 | `/xera-script <TICKET>` | Generate Playwright spec + page objects (auto-detects priority) |
 | `/xera-exec <TICKET>` | Run the test only (supports `--grep` for per-scenario filter) |
-| `/xera-report <TICKET>` | Classify (5 buckets incl. TEST_OUTDATED) + post diagnosis to Jira |
+| `/xera-report <TICKET>` | Classify (5 buckets incl. TEST_OUTDATED) + post diagnosis to the tracker (Jira comment or GitHub issue comment) |
 | `/xera-impact <TICKET>` | Pre-flight: which existing scenarios may break? Optional re-run. |
 | `/xera-promote <TICKET> <POM>` | Move a POM to `shared/` |
 | `/xera-coverage` | Area-level + AC-level coverage report (UNCOVERED/STALE/COVERED + AC GAPS), risk-weighted gap list, AC backfill auto-orchestration. `--viewer` opens the HTML Coverage tab (Map/List/Trend). |

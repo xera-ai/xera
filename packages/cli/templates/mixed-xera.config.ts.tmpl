@@ -2,6 +2,7 @@ import { defineConfig } from '@xera-ai/core';
 
 export default defineConfig({
   adapters: ['web', 'http'],
+  {{#if useJiraTracker}}
   jira: {
     baseUrl: '{{jiraBaseUrl}}',
     projectKeys: [{{#each projectKeys}}'{{this}}',{{/each}}],
@@ -10,6 +11,12 @@ export default defineConfig({
       {{#if acceptanceCriteriaField}}acceptanceCriteria: '{{acceptanceCriteriaField}}',{{/if}}
     },
   },
+  {{/if}}
+  {{#if useGithubTracker}}
+  // Ticket keys: GH-<number>. Skill resolves via mcp__github__get_issue when
+  // available, else falls back to `gh issue view`. No PAT needed.
+  github: { repo: '{{githubRepo}}' },
+  {{/if}}
   web: {
     baseUrl: { staging: '{{stagingUrl}}' },
     defaultEnv: 'staging',

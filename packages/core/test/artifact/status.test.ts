@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { appendHistory, readStatus, type StatusJson, writeStatus } from '../../src/artifact/status';
@@ -19,6 +19,28 @@ describe('status.json IO', () => {
     };
     writeStatus(path, s);
     expect(readStatus(path)).toEqual(s);
+    rmSync(dir, { recursive: true });
+  });
+
+  test('readStatus migrates legacy last_jira_comment_id → last_comment_id', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'xera-status-'));
+    const path = join(dir, 'status.json');
+    writeFileSync(
+      path,
+      JSON.stringify({
+        ticket: 'JIRA-1',
+        lastRun: '2026-05-14T10:30:00.000Z',
+        result: 'PASS',
+        classification: 'PASS',
+        confidence: 'high',
+        scenarios: { total: 1, passed: 1, failed: 0, skipped: 0 },
+        history: [],
+        last_jira_comment_id: '10042',
+      }),
+    );
+    const s = readStatus(path)!;
+    expect(s.last_comment_id).toBe('10042');
+    expect('last_jira_comment_id' in s).toBe(false);
     rmSync(dir, { recursive: true });
   });
 

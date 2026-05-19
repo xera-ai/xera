@@ -268,3 +268,71 @@ describe('XeraConfigSchema http block', () => {
     ).toThrow(/must have a corresponding/);
   });
 });
+
+describe('XeraConfigSchema github block', () => {
+  test('github alone (no jira) is a valid issue provider', () => {
+    const parsed = XeraConfigSchema.parse({
+      github: { repo: 'owner/repo' },
+      web: { baseUrl: { staging: 'https://x.com' }, defaultEnv: 'staging' },
+      adapters: ['web'],
+    });
+    expect(parsed.github?.repo).toBe('owner/repo');
+    expect(parsed.jira).toBeUndefined();
+  });
+
+  test('rejects config with neither jira nor github', () => {
+    expect(() =>
+      XeraConfigSchema.parse({
+        web: { baseUrl: { staging: 'https://x.com' }, defaultEnv: 'staging' },
+        adapters: ['web'],
+      }),
+    ).toThrow(/Exactly one issue provider/);
+  });
+
+  test('rejects config with both jira and github set', () => {
+    expect(() =>
+      XeraConfigSchema.parse({
+        jira: {
+          baseUrl: 'https://x.atlassian.net',
+          projectKeys: ['PROJ'],
+          fields: { story: 'description' },
+        },
+        github: { repo: 'owner/repo' },
+        web: { baseUrl: { staging: 'https://x.com' }, defaultEnv: 'staging' },
+        adapters: ['web'],
+      }),
+    ).toThrow(/Only one issue provider/);
+  });
+
+  test('rejects malformed github.repo', () => {
+    expect(() =>
+      XeraConfigSchema.parse({
+        github: { repo: 'no-slash' },
+        web: { baseUrl: { staging: 'https://x.com' }, defaultEnv: 'staging' },
+        adapters: ['web'],
+      }),
+    ).toThrow(/owner\/repo/);
+  });
+});
+
+describe('XeraConfigSchema.reporting (legacy postToJira alias)', () => {
+  test('postComment defaults to true', () => {
+    const parsed = XeraConfigSchema.parse(validBase());
+    expect(parsed.reporting.postComment).toBe(true);
+  });
+
+  test('legacy postToJira:false is mapped to postComment:false', () => {
+    const parsed = XeraConfigSchema.parse({ ...validBase(), reporting: { postToJira: false } });
+    expect(parsed.reporting.postComment).toBe(false);
+    // The legacy field is stripped from the parsed output.
+    expect('postToJira' in parsed.reporting).toBe(false);
+  });
+
+  test('explicit postComment wins over legacy postToJira when both are set', () => {
+    const parsed = XeraConfigSchema.parse({
+      ...validBase(),
+      reporting: { postToJira: true, postComment: false },
+    });
+    expect(parsed.reporting.postComment).toBe(false);
+  });
+});

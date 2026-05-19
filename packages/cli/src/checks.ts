@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { loadConfig, readAuthState } from '@xera-ai/core';
@@ -330,6 +331,32 @@ export async function runChecks(cwd: string, opts: RunChecksOptions = {}): Promi
         }
       } catch {
         /* malformed snapshot */
+      }
+    }
+
+    // Issue-tracker reachability. Jira reachability is exercised indirectly via
+    // `xera:fetch`, but for github we can check upfront that the gh CLI is on
+    // PATH and authenticated — surfacing the fix before the user hits a runtime
+    // error mid-pipeline. We never call `gh` if the github MCP env hint is set,
+    // because in that mode the CLI isn't used at all.
+    if (cfg.github && process.env.XERA_MCP_GITHUB !== '1') {
+      const which = spawnSync('gh', ['--version'], { encoding: 'utf8' });
+      if (which.status !== 0) {
+        checks.push({
+          name: 'github tracker: `gh` CLI on PATH',
+          ok: false,
+          message: 'install GitHub CLI from https://cli.github.com/ or connect the GitHub MCP',
+        });
+      } else {
+        const auth = spawnSync('gh', ['auth', 'status'], { encoding: 'utf8' });
+        checks.push({
+          name: 'github tracker: `gh auth status` authenticated',
+          ok: auth.status === 0,
+          message:
+            auth.status === 0
+              ? `repo: ${cfg.github.repo}`
+              : 'run: gh auth login (or connect the GitHub MCP)',
+        });
       }
     }
 

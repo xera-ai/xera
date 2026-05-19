@@ -23,21 +23,35 @@ export const HistoryEntrySchema = z.object({
   class: ClassificationEnum,
 });
 
-export const StatusJsonSchema = z.object({
-  ticket: z.string(),
-  lastRun: z.string(),
-  result: ResultEnum,
-  classification: ClassificationEnum,
-  confidence: ConfidenceEnum,
-  scenarios: z.object({
-    total: z.number().int().nonnegative(),
-    passed: z.number().int().nonnegative(),
-    failed: z.number().int().nonnegative(),
-    skipped: z.number().int().nonnegative(),
+export const StatusJsonSchema = z.preprocess(
+  (val) => {
+    // Backwards-compat: migrate legacy `last_jira_comment_id` from on-disk
+    // status.json files written by xera <=v0.15.x. New name is tracker-agnostic.
+    if (val && typeof val === 'object' && !Array.isArray(val)) {
+      const obj = val as Record<string, unknown>;
+      if ('last_jira_comment_id' in obj && !('last_comment_id' in obj)) {
+        obj.last_comment_id = obj.last_jira_comment_id;
+      }
+      delete obj.last_jira_comment_id;
+    }
+    return val;
+  },
+  z.object({
+    ticket: z.string(),
+    lastRun: z.string(),
+    result: ResultEnum,
+    classification: ClassificationEnum,
+    confidence: ConfidenceEnum,
+    scenarios: z.object({
+      total: z.number().int().nonnegative(),
+      passed: z.number().int().nonnegative(),
+      failed: z.number().int().nonnegative(),
+      skipped: z.number().int().nonnegative(),
+    }),
+    history: z.array(HistoryEntrySchema).default([]),
+    last_comment_id: z.string().optional(),
   }),
-  history: z.array(HistoryEntrySchema).default([]),
-  last_jira_comment_id: z.string().optional(),
-});
+);
 
 export type StatusJson = z.infer<typeof StatusJsonSchema>;
 export type HistoryEntry = z.infer<typeof HistoryEntrySchema>;

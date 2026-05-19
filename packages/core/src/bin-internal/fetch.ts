@@ -4,8 +4,8 @@ import { hashString } from '../artifact/hash';
 import { readMeta, writeMeta } from '../artifact/meta';
 import { resolveArtifactPaths } from '../artifact/paths';
 import { loadConfig } from '../config/load';
-import { createJiraClient } from '../jira/client';
-import type { JiraTicket } from '../jira/types';
+import { createIssueProvider } from '../providers/factory';
+import type { IssueTicket } from '../providers/types';
 import { PROMPTS_VERSION, XERA_VERSION } from '../versions';
 
 export interface FetchCmdOpts {
@@ -43,26 +43,15 @@ export async function fetchCmd(argv: string[], opts: FetchCmdOpts = {}): Promise
     return 0;
   }
 
-  // Test injection: skip real Jira when XERA_TEST_JIRA env is set.
-  let t: JiraTicket;
-  if (process.env.XERA_TEST_JIRA) {
-    t = JSON.parse(process.env.XERA_TEST_JIRA) as JiraTicket;
+  // Test injection: skip real fetch when XERA_TEST_ISSUE (preferred) or the
+  // legacy XERA_TEST_JIRA env is set. Both accept the same JSON shape.
+  let t: IssueTicket;
+  const injected = process.env.XERA_TEST_ISSUE ?? process.env.XERA_TEST_JIRA;
+  if (injected) {
+    t = JSON.parse(injected) as IssueTicket;
   } else {
-    const client = await createJiraClient({
-      baseUrl: config.jira.baseUrl,
-      preferMcp: true,
-      ...(process.env.JIRA_EMAIL && process.env.JIRA_API_TOKEN
-        ? { rest: { email: process.env.JIRA_EMAIL, apiToken: process.env.JIRA_API_TOKEN } }
-        : {}),
-    });
-    const fieldMap =
-      config.jira.fields.acceptanceCriteria !== undefined
-        ? {
-            story: config.jira.fields.story,
-            acceptanceCriteria: config.jira.fields.acceptanceCriteria,
-          }
-        : { story: config.jira.fields.story };
-    t = await client.fetchTicket(ticket, fieldMap);
+    const provider = await createIssueProvider(config);
+    t = await provider.fetchTicket(ticket);
   }
 
   const body = renderStoryBody(t);
@@ -101,7 +90,7 @@ function parseAcLines(raw: string | undefined): string[] {
     .filter(Boolean);
 }
 
-function renderStoryBody(t: JiraTicket): string {
+function renderStoryBody(t: IssueTicket): string {
   const lines: string[] = [];
   lines.push(`# ${t.key}: ${t.summary}`, '');
 

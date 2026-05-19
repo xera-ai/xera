@@ -11,11 +11,14 @@ export type { OpenAPIDocument, OpenAPISchema } from './classifier/contract-drift
 export * from './config/define';
 export * from './config/load';
 export * from './config/schema';
+export * from './github/client';
 export * from './jira/client';
 export * from './jira/fields';
 export * from './jira/retry';
 export * from './jira/types';
 export * from './lock/file-lock';
 export * from './logging/ndjson-logger';
+export * from './providers/factory';
+export type * from './providers/types';
 export * from './scrub';
 export { XERA_VERSION as VERSION } from './versions';

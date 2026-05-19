@@ -72,6 +72,10 @@ const JiraSchema = z.object({
   }),
 });
 
+const GithubSchema = z.object({
+  repo: z.string().regex(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/, 'github.repo must be "owner/repo"'),
+});
+
 const AISchema = z
   .object({
     livePageSnapshot: z.boolean().default(true),
@@ -86,10 +90,24 @@ const AISchema = z
   })
   .prefault({});
 
-const ReportingSchema = z
-  .object({
+const ReportingSchema = z.preprocess(
+  (val) => {
+    // Backwards-compat: map legacy `postToJira` → `postComment` when only the
+    // legacy name is provided. Both keys live in user configs from <=v0.15.x.
+    if (val && typeof val === 'object' && !Array.isArray(val)) {
+      const obj = val as Record<string, unknown>;
+      if ('postToJira' in obj && !('postComment' in obj)) {
+        obj.postComment = obj.postToJira;
+      }
+      delete obj.postToJira;
+    }
+    return val ?? {};
+  },
+  z.object({
     language: z.enum(['en', 'vi']).default('en'),
-    postToJira: z.boolean().default(true),
+    // Canonical name — gates posting a comment to whichever tracker is configured
+    // (jira or github). Legacy alias `postToJira` is accepted and mapped above.
+    postComment: z.boolean().default(true),
     transition: z
       .object({
         onPass: z.string().nullable().default(null),
@@ -97,8 +115,8 @@ const ReportingSchema = z
       })
       .prefault({}),
     artifactLinks: z.enum(['git', 'local']).default('git'),
-  })
-  .prefault({});
+  }),
+);
 
 const RunSchema = z
   .object({
@@ -121,7 +139,8 @@ const CoverageSchema = z
 
 export const XeraConfigSchema = z
   .strictObject({
-    jira: JiraSchema,
+    jira: JiraSchema.optional(),
+    github: GithubSchema.optional(),
     web: WebSchema.optional(),
     http: HttpSchema.optional(),
     ai: AISchema,
@@ -139,6 +158,14 @@ export const XeraConfigSchema = z
   .refine((c) => c.adapters.every((a) => (a === 'web' ? c.web : c.http) !== undefined), {
     message: 'Every adapter in `adapters` must have a corresponding config block',
     path: ['adapters'],
+  })
+  .refine((c) => c.jira !== undefined || c.github !== undefined, {
+    message: 'Exactly one issue provider must be configured: `jira` or `github`',
+    path: ['jira'],
+  })
+  .refine((c) => !(c.jira !== undefined && c.github !== undefined), {
+    message: 'Only one issue provider may be configured: set `jira` OR `github`, not both',
+    path: ['github'],
   });
 
 export type XeraConfig = z.infer<typeof XeraConfigSchema>;

@@ -1,6 +1,6 @@
 ---
 name: xera-report
-description: Classify the latest run, draft a Jira comment, and post it. Use after `/xera-exec` when QA wants the diagnosis and Jira update.
+description: Classify the latest run, draft a comment for the configured issue tracker (Jira or GitHub), and post it. Use after `/xera-exec` when QA wants the diagnosis and the tracker update.
 ---
 
 You are running `/xera-report <TICKET>` (or `/xera-report --no-heal <TICKET>` to skip the heal sub-flow described in step 4a; or you were dispatched to this step by `/xera-run`). If no ticket key is provided, ask the user.
@@ -158,15 +158,16 @@ After the heal sub-flow finishes (whether it applied, refused, or errored), cont
    bun run xera:report {{TICKET}} --input=.xera/{{TICKET}}/classifier-input.json
    ```
 
-   The `xera:report` subcommand reads `outdated-decisions.json` (if present) and may upgrade scenario classifications to `TEST_OUTDATED`. It aggregates per-scenario classifications into an overall verdict, updates `status.json` with history, and writes `jira-comment.draft.md`. If exit code is non-zero, surface the error to the user; do not proceed to post.
+   The `xera:report` subcommand reads `outdated-decisions.json` (if present) and may upgrade scenario classifications to `TEST_OUTDATED`. It aggregates per-scenario classifications into an overall verdict, updates `status.json` with history, and writes `comment.draft.md`. If exit code is non-zero, surface the error to the user; do not proceed to post.
 
-6. **Show the draft.** Read `.xera/{{TICKET}}/jira-comment.draft.md`. Display its content to the user verbatim. Ask: "Post to Jira? (Y/n)" (default: Y, unless `meta.json.source === "local"` for SAMPLE tickets — then never post).
+6. **Show the draft.** Read `.xera/{{TICKET}}/comment.draft.md`. Display its content to the user verbatim. Ask: "Post to the tracker? (Y/n)" (default: Y, unless `meta.json.source === "local"` for SAMPLE tickets — then never post).
 
-7. **Post.** If user says yes (or `xera-run` is in auto mode with `postToJira: true`):
-   - If an Atlassian MCP tool is available in this session (e.g., `mcp__atlassian__addCommentToJiraIssue` or `mcp__plugin_engineering_atlassian__addCommentToJiraIssue`), call it with `{{TICKET}}` and the draft contents. Capture the comment id.
-   - Else run `bun run xera:post {{TICKET}}` (uses REST credentials from `.env`).
+7. **Post.** If user says yes (or `xera-run` is in auto mode with `reporting.postComment: true` — also accepts the legacy alias `postToJira`):
+   - Determine the configured tracker from `xera.config.ts` (`jira:` vs `github:`).
+   - **Jira tracker:** if an Atlassian MCP tool is available in this session (e.g., `mcp__atlassian__addCommentToJiraIssue` or `mcp__plugin_engineering_atlassian__addCommentToJiraIssue`), call it with `{{TICKET}}` and the draft contents. Capture the comment id. Otherwise run `bun run xera:post {{TICKET}}` (uses REST credentials from `.env`).
+   - **GitHub tracker:** if a GitHub MCP tool such as `mcp__github__add_issue_comment` is available, call it with `owner`/`repo` from `xera.config.ts.github.repo` and the issue number (the digits after `GH-`). Otherwise run `bun run xera:post {{TICKET}}` — the helper shells out to `gh issue comment` and surfaces the resulting comment URL.
 
-8. **Summarize** to the user: overall classification, scenario pass/fail counts, the reproduce command (`bunx xera-internal exec {{TICKET}} --replay=<runId>`), and the Jira comment URL if available.
+8. **Summarize** to the user: overall classification, scenario pass/fail counts, the reproduce command (`bunx xera-internal exec {{TICKET}} --replay=<runId>`), and the posted comment URL if available (Jira link or GitHub issue-comment anchor depending on the tracker).
 
 ## Step 9 — Record graph classification events (v0.6)
 
@@ -178,7 +179,10 @@ Non-fatal. Note: TEST_OUTDATED detection ships in v0.6.1 — for v0.6.0 this jus
 
 ## Step 10 — Notify ticket owner when TEST_OUTDATED detected (v0.6.1)
 
-For every scenario classified as `TEST_OUTDATED` in `outdated-decisions.json`, find the **original ticket** that owns the scenario (from graph: `xera:graph-query --ticket <SCENARIO_OWNER_TICKET> --format json`). Then post a Jira sub-task on that ticket via the existing Jira backend (the same code path `/xera-fetch` uses to read tickets — re-use the configured backend per `xera.config.ts.jira`):
+For every scenario classified as `TEST_OUTDATED` in `outdated-decisions.json`, find the **original ticket** that owns the scenario (from graph: `xera:graph-query --ticket <SCENARIO_OWNER_TICKET> --format json`). Then notify the original ticket's owner via the configured issue tracker:
+
+- **Jira tracker:** post a sub-task on the original ticket (re-use the same backend `/xera-fetch` uses — `xera.config.ts.jira`).
+- **GitHub tracker:** GitHub has no sub-tasks. Post a comment on the original issue and `@`-mention the assignee instead (use `mcp__github__add_issue_comment` if available, else `bun run xera:post <ORIGINAL_TICKET>` after writing the comment body into `.xera/<ORIGINAL_TICKET>/comment.draft.md`).
 
 Body template:
 

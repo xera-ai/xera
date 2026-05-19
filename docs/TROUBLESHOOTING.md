@@ -23,6 +23,10 @@ The MCP server isn't running in your Claude Code session. Either:
 - Install/enable the Atlassian connector for Claude Code, or
 - Fall back to REST: set `JIRA_EMAIL` + `JIRA_API_TOKEN` in `.env` and re-run.
 
+## 2b. GitHub tracker: `gh issue view … failed` / `not authenticated`
+
+This project is configured with `github: { repo: 'owner/repo' }` and the `gh` CLI is the fallback when the GitHub MCP isn't connected. Run `gh auth status` to confirm authentication, then `gh auth login` if needed. Alternatively, connect the GitHub MCP server in your editor session and set `XERA_MCP_GITHUB=1` for the subprocess that runs `xera-internal fetch`. `xera doctor` validates both paths.
+
 ## 3. `Playwright browser not installed`
 
 ```bash
