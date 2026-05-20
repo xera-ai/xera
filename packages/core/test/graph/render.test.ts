@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { buildCoverageReport } from '../../src/coverage/report';
 import { DEFAULT_COVERAGE_CONFIG } from '../../src/coverage/types';
-import { renderHtml, transformForVisNetwork } from '../../src/graph/render';
+import { computeTicketMeta, renderHtml, transformForVisNetwork } from '../../src/graph/render';
 import type { Snapshot } from '../../src/graph/types';
 
 function mkSnapshot(): Snapshot {
@@ -340,5 +340,272 @@ describe('renderHtml with coverage data', () => {
     expect(html).toContain('data-subtab="map"');
     expect(html).toContain('data-subtab="list"');
     expect(html).toContain('data-subtab="trend"');
+  });
+});
+
+describe('computeTicketMeta', () => {
+  function mkRichSnapshot(): Snapshot {
+    return {
+      schema_version: 1,
+      generated_at: '2026-05-20T00:00:00Z',
+      event_count: 0,
+      events_hash: 'sha256:test',
+      tickets: {
+        'XFB-7': {
+          id: 'XFB-7',
+          summary: 'Log in',
+          ac: ['form has fields', 'redirect to dashboard', 'rate limit'],
+          storyHash: 'h1',
+          modifiesAreas: ['login', 'dashboard'],
+          fetchedAt: '2026-05-19T14:28:17Z',
+        },
+        'XFB-8': {
+          id: 'XFB-8',
+          summary: 'Sign out',
+          ac: [],
+          storyHash: 'h2',
+          modifiesAreas: ['nav'],
+          fetchedAt: '2026-05-19T14:28:17Z',
+        },
+      },
+      scenarios: {
+        s1: {
+          id: 's1',
+          ticketId: 'XFB-7',
+          name: 'sc1',
+          gherkin: '',
+          priority: 'p0',
+          featureHash: 'f1',
+          generatedAt: '2026-05-19T14:33:00Z',
+        },
+        s2: {
+          id: 's2',
+          ticketId: 'XFB-7',
+          name: 'sc2',
+          gherkin: '',
+          priority: 'p1',
+          featureHash: 'f1',
+          generatedAt: '2026-05-19T14:33:01Z',
+        },
+        s3: {
+          id: 's3',
+          ticketId: 'XFB-7',
+          name: 'sc3',
+          gherkin: '',
+          priority: 'p2',
+          featureHash: 'f1',
+          generatedAt: '2026-05-19T14:33:02Z',
+        },
+        s4: {
+          id: 's4',
+          ticketId: 'XFB-8',
+          name: 'sc4',
+          gherkin: '',
+          priority: 'p1',
+          featureHash: 'f2',
+          generatedAt: '2026-05-19T15:00:00Z',
+        },
+      },
+      poms: {
+        'pom-login': {
+          id: 'pom-login',
+          ticketId: 'XFB-7',
+          filePath: '.xera/XFB-7/page-objects/LoginPage.ts',
+          route: '/login',
+          locators: [],
+          scope: 'local',
+        },
+        'pom-dash': {
+          id: 'pom-dash',
+          ticketId: 'XFB-7',
+          filePath: '.xera/XFB-7/page-objects/DashboardPage.ts',
+          route: '/',
+          locators: [],
+          scope: 'local',
+        },
+      },
+      areas: { login: { id: 'login' }, dashboard: { id: 'dashboard' }, nav: { id: 'nav' } },
+      edges: [
+        {
+          kind: 'tests',
+          from: 'XFB-7',
+          to: 's1',
+          source: 'xera-script',
+          discoveredAt: '2026-05-19T14:33:00Z',
+        },
+        {
+          kind: 'tests',
+          from: 'XFB-7',
+          to: 's2',
+          source: 'xera-script',
+          discoveredAt: '2026-05-19T14:33:01Z',
+        },
+        {
+          kind: 'tests',
+          from: 'XFB-7',
+          to: 's3',
+          source: 'xera-script',
+          discoveredAt: '2026-05-19T14:33:02Z',
+        },
+        {
+          kind: 'uses',
+          from: 's1',
+          to: 'pom-login',
+          source: 'xera-script',
+          discoveredAt: '2026-05-19T14:33:00Z',
+        },
+        {
+          kind: 'uses',
+          from: 's2',
+          to: 'pom-dash',
+          source: 'xera-script',
+          discoveredAt: '2026-05-19T14:33:01Z',
+        },
+        {
+          kind: 'satisfies',
+          from: 's1',
+          to: 'XFB-7#ac-0',
+          source: 'xera-script',
+          confidence: 0.95,
+          discoveredAt: '2026-05-19T14:33:00Z',
+        },
+        {
+          kind: 'satisfies',
+          from: 's2',
+          to: 'XFB-7#ac-1',
+          source: 'ac-coverage',
+          confidence: 0.9,
+          discoveredAt: '2026-05-19T14:33:01Z',
+        },
+        {
+          kind: 'jira-linked',
+          from: 'XFB-7',
+          to: 'XFB-8',
+          source: 'jira',
+          discoveredAt: '2026-05-19T14:28:17Z',
+        },
+      ],
+      latest_failures: {
+        s1: {
+          id: 'f-s1',
+          scenarioId: 's1',
+          runId: 'r1',
+          ts: '2026-05-19T14:35:00Z',
+          classification: 'REAL_BUG',
+          confidence: 'low',
+        },
+        s2: {
+          id: 'f-s2',
+          scenarioId: 's2',
+          runId: 'r1',
+          ts: '2026-05-19T14:35:01Z',
+          classification: 'TEST_BUG',
+          confidence: 'medium',
+        },
+      },
+      acNodes: {
+        'XFB-7#ac-0': { id: 'XFB-7#ac-0', ticketId: 'XFB-7', index: 0, text: 'form has fields' },
+        'XFB-7#ac-1': {
+          id: 'XFB-7#ac-1',
+          ticketId: 'XFB-7',
+          index: 1,
+          text: 'redirect to dashboard',
+        },
+        'XFB-7#ac-2': { id: 'XFB-7#ac-2', ticketId: 'XFB-7', index: 2, text: 'rate limit' },
+      },
+      classifications: [
+        { scenarioId: 's1', classification: 'REAL_BUG', ts: '2026-05-19T14:35:00Z' },
+        { scenarioId: 's2', classification: 'TEST_BUG', ts: '2026-05-19T14:35:01Z' },
+        { scenarioId: 's3', classification: 'PASS', ts: '2026-05-19T14:35:02Z' },
+      ],
+    };
+  }
+
+  test('aggregates pass/fail/total from latest_failures + scenarios', () => {
+    const m = computeTicketMeta(mkRichSnapshot(), 'XFB-7');
+    expect(m.runStats.total).toBe(3);
+    expect(m.runStats.fail).toBe(2);
+    expect(m.runStats.pass).toBe(1);
+    expect(m.runStats.lastRunTs).toBe('2026-05-19T14:35:02Z');
+  });
+
+  test('counts failure mix from latest classification per scenario', () => {
+    const m = computeTicketMeta(mkRichSnapshot(), 'XFB-7');
+    expect(m.failureMix).toEqual({ REAL_BUG: 1, TEST_BUG: 1, PASS: 1 });
+  });
+
+  test('picks top classification from most-recent failure', () => {
+    const m = computeTicketMeta(mkRichSnapshot(), 'XFB-7');
+    expect(m.topClassification).toBe('TEST_BUG');
+    expect(m.topConfidence).toBe('medium');
+  });
+
+  test('picks highest priority across scenarios', () => {
+    const m = computeTicketMeta(mkRichSnapshot(), 'XFB-7');
+    expect(m.topPriority).toBe('p0');
+  });
+
+  test('splits AC indices into covered/uncovered by satisfies edges', () => {
+    const m = computeTicketMeta(mkRichSnapshot(), 'XFB-7');
+    expect(m.acTotal).toBe(3);
+    expect(m.acCoveredIdx).toEqual([0, 1]);
+    expect(m.acUncoveredIdx).toEqual([2]);
+  });
+
+  test('lists POMs used by ticket scenarios with fileName + route', () => {
+    const m = computeTicketMeta(mkRichSnapshot(), 'XFB-7');
+    expect(m.poms).toHaveLength(2);
+    const names = m.poms.map((p) => p.fileName).sort();
+    expect(names).toEqual(['DashboardPage.ts', 'LoginPage.ts']);
+  });
+
+  test('lists areas from modifiesAreas; decorates with coverage status when present', () => {
+    const snap = mkRichSnapshot();
+    const report = buildCoverageReport(
+      snap,
+      DEFAULT_COVERAGE_CONFIG,
+      new Date('2026-05-20T10:00:00Z'),
+    );
+    const m = computeTicketMeta(snap, 'XFB-7', { report, snapshots: [] });
+    expect(m.areas.map((a) => a.id).sort()).toEqual(['dashboard', 'login']);
+    // status is present because coverage report was provided
+    for (const a of m.areas) expect(a.status).toBeDefined();
+  });
+
+  test('areas are bare when coverage is not provided', () => {
+    const m = computeTicketMeta(mkRichSnapshot(), 'XFB-7');
+    expect(m.areas.find((a) => a.id === 'login')?.status).toBeUndefined();
+  });
+
+  test('collects jira-linked tickets from incident edges', () => {
+    const m = computeTicketMeta(mkRichSnapshot(), 'XFB-7');
+    expect(m.linkedTickets).toHaveLength(1);
+    expect(m.linkedTickets[0]?.id).toBe('XFB-8');
+  });
+
+  test('records fetchedAt + latestScenarioAt + scenarioCount', () => {
+    const m = computeTicketMeta(mkRichSnapshot(), 'XFB-7');
+    expect(m.fetchedAt).toBe('2026-05-19T14:28:17Z');
+    expect(m.latestScenarioAt).toBe('2026-05-19T14:33:02Z');
+    expect(m.scenarioCount).toBe(3);
+  });
+
+  test('handles ticket with no scenarios cleanly', () => {
+    const snap = mkRichSnapshot();
+    // Remove XFB-8's scenario
+    delete snap.scenarios.s4;
+    const m = computeTicketMeta(snap, 'XFB-8');
+    expect(m.runStats.total).toBe(0);
+    expect(m.runStats.pass).toBe(0);
+    expect(m.runStats.fail).toBe(0);
+    expect(m.failureMix).toEqual({});
+    expect(m.topPriority).toBeUndefined();
+  });
+
+  test('embeds ticket meta into Ticket VisNode', () => {
+    const { nodes } = transformForVisNetwork(mkRichSnapshot(), {});
+    const ticket = nodes.find((n) => n.id === 'XFB-7');
+    expect(ticket?.meta?.ticket).toBeDefined();
+    expect(ticket?.meta?.ticket?.runStats.fail).toBe(2);
   });
 });
