@@ -478,6 +478,15 @@ describe('computeTicketMeta', () => {
           discoveredAt: '2026-05-19T14:33:01Z',
         },
         {
+          // s3 satisfies AC-2 and is PASS → AC-2 should be VERIFIED
+          kind: 'satisfies',
+          from: 's3',
+          to: 'XFB-7#ac-2',
+          source: 'ac-coverage',
+          confidence: 0.95,
+          discoveredAt: '2026-05-19T14:33:02Z',
+        },
+        {
           kind: 'jira-linked',
           from: 'XFB-7',
           to: 'XFB-8',
@@ -512,6 +521,7 @@ describe('computeTicketMeta', () => {
           text: 'redirect to dashboard',
         },
         'XFB-7#ac-2': { id: 'XFB-7#ac-2', ticketId: 'XFB-7', index: 2, text: 'rate limit' },
+        'XFB-7#ac-3': { id: 'XFB-7#ac-3', ticketId: 'XFB-7', index: 3, text: 'no satisfier' },
       },
       classifications: [
         { scenarioId: 's1', classification: 'REAL_BUG', ts: '2026-05-19T14:35:00Z' },
@@ -545,11 +555,46 @@ describe('computeTicketMeta', () => {
     expect(m.topPriority).toBe('p0');
   });
 
-  test('splits AC indices into covered/uncovered by satisfies edges', () => {
-    const m = computeTicketMeta(mkRichSnapshot(), 'XFB-7');
-    expect(m.acTotal).toBe(3);
-    expect(m.acCoveredIdx).toEqual([0, 1]);
-    expect(m.acUncoveredIdx).toEqual([2]);
+  test('3-state AC coverage: verified / broken / gap', () => {
+    // Fixture timestamps are 2026-05-19; pin `now` to one day later so the
+    // PASS classification stays within the 30-day staleness window regardless
+    // of when the test actually runs.
+    const m = computeTicketMeta(
+      mkRichSnapshot(),
+      'XFB-7',
+      undefined,
+      new Date('2026-05-20T00:00:00Z'),
+    );
+    expect(m.acTotal).toBe(4);
+    expect(m.acStates).toEqual([
+      { index: 0, state: 'broken' }, // s1 satisfies but REAL_BUG
+      { index: 1, state: 'broken' }, // s2 satisfies but TEST_BUG
+      { index: 2, state: 'verified' }, // s3 satisfies and PASS
+      { index: 3, state: 'gap' }, // no satisfies edge
+    ]);
+  });
+
+  test('AC marked broken (not verified) when its only satisfying scenario is failing', () => {
+    // Concrete failure mode from xera-sample-app-tests: every AC had a
+    // satisfies edge from the ac-coverage backfill, but the satisfying
+    // scenarios were SELECTOR_DRIFT failures. Side panel must NOT report
+    // those ACs as verified.
+    const snap = mkRichSnapshot();
+    const m = computeTicketMeta(snap, 'XFB-7', undefined, new Date('2026-05-20T00:00:00Z'));
+    const verified = m.acStates.filter((a) => a.state === 'verified').length;
+    const broken = m.acStates.filter((a) => a.state === 'broken').length;
+    const gap = m.acStates.filter((a) => a.state === 'gap').length;
+    expect(verified).toBe(1);
+    expect(broken).toBe(2);
+    expect(gap).toBe(1);
+  });
+
+  test('AC becomes broken when its only PASS classification is older than the staleness window', () => {
+    const snap = mkRichSnapshot();
+    // Pin `now` to 60 days after the fixture's PASS classification (windowDays=30)
+    const m = computeTicketMeta(snap, 'XFB-7', undefined, new Date('2026-07-19T00:00:00Z'));
+    const ac2 = m.acStates.find((a) => a.index === 2);
+    expect(ac2?.state).toBe('broken');
   });
 
   test('lists POMs used by ticket scenarios with fileName + route', () => {

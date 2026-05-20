@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { CoverageReport } from '../coverage/report';
+import { computeAcStatus3 } from '../coverage/status';
+import { DEFAULT_COVERAGE_CONFIG } from '../coverage/types';
 import type { CoverageSnapshotPayload, EdgeRecord, FailureNode, Snapshot } from './types';
 
 export interface TicketMeta {
@@ -17,10 +19,13 @@ export interface TicketMeta {
   topConfidence?: string;
   // Priority — max of incident scenarios (p0 > p1 > p2)
   topPriority?: 'p0' | 'p1' | 'p2';
-  // AC coverage (from acNodes + satisfies edges)
+  // AC coverage — 3-state, since "covered by a failing scenario" is materially
+  // different from "covered by a passing scenario" for QA decision-making:
+  //   verified — at least one satisfying scenario currently passes
+  //   broken  — has satisfies edges but every satisfying scenario is failing
+  //   gap     — no satisfying scenarios at all
   acTotal: number;
-  acCoveredIdx: number[];
-  acUncoveredIdx: number[];
+  acStates: Array<{ index: number; state: 'verified' | 'broken' | 'gap' }>;
   // Linked entities (from adjacency)
   poms: Array<{ id: string; fileName: string; route: string }>;
   areas: Array<{ id: string; status?: 'COVERED' | 'UNCOVERED' | 'STALE'; risk?: number }>;
@@ -134,6 +139,9 @@ export function computeTicketMeta(
   snap: Snapshot,
   ticketId: string,
   coverage?: CoverageInput,
+  // Optional injection for deterministic tests — defaults to `new Date()`
+  // so production callers get the real wall-clock window for staleness.
+  nowOverride?: Date,
 ): TicketMeta {
   const t = snap.tickets[ticketId]!;
 
@@ -204,18 +212,25 @@ export function computeTicketMeta(
     }
   }
 
-  // AC coverage
+  // AC coverage — 3-state aligned with Coverage tab logic:
+  //   verified — at least one satisfying scenario is currently PASS
+  //   broken  — has satisfies edges, but every satisfying scenario is failing
+  //              or stale (≥ staleAfterDays since last classification)
+  //   gap     — no satisfies edges at all
+  // Reuses `computeAcStatus3` so the side panel and Coverage tab can't
+  // disagree about what "covered" means.
   const acsForTicket = Object.values(acNodesAll)
     .filter((a) => a.ticketId === ticketId)
     .sort((a, b) => a.index - b.index);
-  const satisfiedByAcId = new Set(
-    snap.edges.filter((e) => e.kind === 'satisfies' && scenarioIds.has(e.from)).map((e) => e.to),
-  );
-  const acCoveredIdx: number[] = [];
-  const acUncoveredIdx: number[] = [];
+  const now = nowOverride ?? new Date();
+  const windowDays = DEFAULT_COVERAGE_CONFIG.staleAfterDays;
+  const acStates: Array<{ index: number; state: 'verified' | 'broken' | 'gap' }> = [];
   for (const a of acsForTicket) {
-    if (satisfiedByAcId.has(a.id)) acCoveredIdx.push(a.index);
-    else acUncoveredIdx.push(a.index);
+    const s3 = computeAcStatus3(a.id, snap, windowDays, now);
+    acStates.push({
+      index: a.index,
+      state: s3 === 'VERIFIED' ? 'verified' : s3 === 'BROKEN' ? 'broken' : 'gap',
+    });
   }
 
   // Linked entities — POMs used by this ticket's scenarios
@@ -266,8 +281,7 @@ export function computeTicketMeta(
     runStats: { total: ticketScenarios.length, pass, fail },
     failureMix,
     acTotal: acsForTicket.length,
-    acCoveredIdx,
-    acUncoveredIdx,
+    acStates,
     poms,
     areas,
     linkedTickets,

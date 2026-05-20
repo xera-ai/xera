@@ -3,6 +3,11 @@ import type { Snapshot } from '../graph/types';
 export type ScenarioStatus = 'PASSING' | 'NOT_PASSING';
 export type AreaStatus = 'UNCOVERED' | 'STALE' | 'COVERED';
 export type AcStatus = 'SATISFIED' | 'UNSATISFIED';
+// 3-state AC status for the graph viewer side panel — distinguishes
+// "covered by a failing scenario" (BROKEN, write a fix) from "no
+// satisfying scenario" (GAP, write a new test). Coverage tab uses the
+// coarser 2-state AcStatus where both BROKEN and GAP collapse to UNSATISFIED.
+export type AcStatus3 = 'VERIFIED' | 'BROKEN' | 'GAP';
 export type TicketStatus = 'COMPLETE' | 'INCOMPLETE';
 
 function daysBetween(a: Date, b: Date): number {
@@ -57,6 +62,20 @@ export function computeAcStatus(
     (e) => computeScenarioStatus(e.from, snap, windowDays, now) === 'PASSING',
   );
   return anyPassing ? 'SATISFIED' : 'UNSATISFIED';
+}
+
+export function computeAcStatus3(
+  acId: string,
+  snap: Snapshot,
+  windowDays: number,
+  now: Date,
+): AcStatus3 {
+  const edges = snap.edges.filter((e) => e.kind === 'satisfies' && e.to === acId);
+  if (edges.length === 0) return 'GAP';
+  const anyPassing = edges.some(
+    (e) => computeScenarioStatus(e.from, snap, windowDays, now) === 'PASSING',
+  );
+  return anyPassing ? 'VERIFIED' : 'BROKEN';
 }
 
 export function computeTicketStatus(
