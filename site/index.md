@@ -3,11 +3,13 @@ layout: home
 
 hero:
   name: xera
-  text: AI-native test framework for QA teams
+  text: From ticket to passing test — in one prompt.
   tagline: >-
-    Fetch a ticket from Jira or GitHub Issues, generate Gherkin + Playwright
-    spec, run the test, diagnose the failure, and post results back — driven
-    by AI coding-agent skills (Claude Code, Cursor, OpenAI Codex CLI).
+    /xera-run reads the acceptance criteria, generates Gherkin + Playwright,
+    runs the test, classifies the failure across 9 classes (real bug vs.
+    flaky vs. selector drift vs. 6 more), and posts the diagnosis back to
+    the tracker. Web flows and HTTP APIs. Jira and GitHub. Claude, Cursor,
+    and Codex.
   image:
     src: /hero.svg
     alt: xera knowledge graph
@@ -16,61 +18,90 @@ hero:
       text: Get started
       link: /guide/getting-started
     - theme: alt
-      text: Try the sample app
+      text: Try /xera-run on a sample
       link: '#try-it-on-a-real-app'
     - theme: alt
       text: View on GitHub
       link: https://github.com/xera-ai/xera
 
 features:
-  - icon: 🎫
-    title: Two trackers, one workflow
-    details: >-
-      Jira (REST or MCP) and GitHub Issues (gh CLI or GitHub MCP) behind a
-      single IssueProvider interface. Pick at `xera init --tracker`.
-  - icon: 🌐
-    title: Web and HTTP API
-    details: >-
-      Playwright adapter for browser flows, dedicated HTTP adapter for API
-      testing — no browser required. Mix both in the same project.
-  - icon: 🔍
-    title: 9-class failure classifier
-    details: >-
-      REAL_BUG, TEST_BUG, FLAKY, SELECTOR_DRIFT, TEST_OUTDATED, CONTRACT_DRIFT,
-      RATE_LIMITED, AUTH_EXPIRED, PASS — diagnoses are posted back to the
-      tracker automatically.
-  - icon: 🩹
-    title: Self-healing selectors
-    details: >-
-      When the UI shifts, xera proposes locator fixes from the Playwright trace
-      instead of just marking the test broken.
   - icon: 🕸️
     title: Project knowledge graph
     details: >-
       Tickets ↔ scenarios ↔ POMs ↔ SUT areas ↔ ACs, with an HTML viewer you
-      can attach to any PR. Pre-flight impact analysis before merge.
+      can attach to any PR. Pre-flight impact analysis before merge — the
+      moat no other QA tool has.
     link: https://xera-ai.github.io/xera-sample-app-tests/
     linkText: See a live one →
+  - icon: 🔍
+    title: Diagnoses failures, fixes selectors
+    details: >-
+      A 9-class classifier (REAL_BUG, TEST_BUG, FLAKY, SELECTOR_DRIFT,
+      TEST_OUTDATED, CONTRACT_DRIFT, RATE_LIMITED, AUTH_EXPIRED, PASS) decides
+      what broke — then proposes locator fixes from the Playwright trace
+      instead of just marking the test red.
   - icon: 📈
     title: Coverage gap & AC matrix
     details: >-
       Area-level (UNCOVERED / STALE / COVERED) and AC-level gap reports with
-      risk weighting, plus AI-drafted Gherkin to fill the holes.
-  - icon: 🤖
-    title: Editor-agnostic
+      risk weighting — plus AI-drafted Gherkin from `/xera-fill-gap` to close
+      the holes.
+  - icon: 🌐
+    title: Web and HTTP API, one workflow
     details: >-
-      `xera init --editor claude|cursor|codex|all` scaffolds the same skills
-      under `.claude/`, `.cursor/`, and `.agents/`.
-  - icon: 🔐
-    title: Encrypted auth state
+      Playwright adapter for browser flows, dedicated HTTP adapter for API
+      testing — no browser required. Mix both in the same project with
+      `xera init --shape mixed`.
+  - icon: 🔌
+    title: Plugs into your stack
     details: >-
-      AES-256-GCM at-rest encryption for `storageState`; pre-auth via
-      `xera:auth-setup` keeps secrets out of test fixtures.
+      Jira (REST or MCP) and GitHub Issues (gh CLI or GitHub MCP) behind one
+      IssueProvider interface. Scaffolds for Claude Code, Cursor, and Codex
+      CLI from a single `xera init`.
 ---
 
 <style>
 .VPHero .name { background-image: linear-gradient(120deg, #646cff 30%, #41d1ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+.graph-embed {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  max-height: 640px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  background: #0d1117 url('/xera/img/graph-viewer-hero.png') center/cover no-repeat;
+  margin: 1.5rem 0 0.5rem;
+}
+.graph-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: var(--vp-c-bg); }
+.graph-embed-fullscreen { display: inline-block; margin: 0 0 1.5rem; font-size: 0.875rem; color: var(--vp-c-text-2); }
+.graph-embed-fullscreen:hover { color: var(--vp-c-brand-1); }
+.graph-embed-mobile { display: none; }
+@media (max-width: 768px) {
+  .graph-embed, .graph-embed-fullscreen { display: none; }
+  .graph-embed-mobile {
+    display: block; margin: 1.5rem 0; border-radius: 12px; overflow: hidden;
+    text-decoration: none; border: 1px solid var(--vp-c-divider);
+  }
+  .graph-embed-mobile img { width: 100%; display: block; }
+  .graph-embed-mobile span {
+    display: block; padding: 0.75rem 1rem; text-align: center;
+    font-size: 0.875rem; color: var(--vp-c-brand-1); background: var(--vp-c-bg-soft);
+  }
+}
 </style>
+
+## See it in one line
+
+```bash
+> /xera-run SAMPLE-001
+# Reads the acceptance criteria → writes Gherkin + Playwright → runs the test
+# → classifies the failure → posts the diagnosis back to Jira or GitHub.
+```
+
+That's the whole loop. Swap `SAMPLE-001` for `JIRA-123` or `GH-42` and Xera works against your real tracker. [See it run on FlowBoard →](#try-it-on-a-real-app)
 
 ## Quickstart
 
@@ -101,8 +132,19 @@ Then in your AI coding agent (Claude Code, Cursor, or Codex CLI):
 
 ## Try it on a real app
 
-<a href="https://xera-ai.github.io/xera-sample-app-tests/" target="_blank" rel="noopener noreferrer">
+<div class="graph-embed">
+  <iframe
+    src="https://xera-ai.github.io/xera-sample-app-tests/"
+    title="xera knowledge graph — interactive demo"
+    loading="lazy"
+    referrerpolicy="no-referrer-when-downgrade"
+  ></iframe>
+</div>
+<a class="graph-embed-fullscreen" href="https://xera-ai.github.io/xera-sample-app-tests/" target="_blank" rel="noopener noreferrer">Open in full screen ↗</a>
+
+<a class="graph-embed-mobile" href="https://xera-ai.github.io/xera-sample-app-tests/" target="_blank" rel="noopener noreferrer">
   <img src="/img/graph-viewer-hero.png" alt="xera knowledge graph viewer — three FlowBoard tickets, their POMs, passing and failing scenarios, and failure classes around the periphery" />
+  <span>Tap to open the live knowledge graph ↗</span>
 </a>
 
 There's a complete demo loop you can poke at without writing a single line of code or hosting an app:
