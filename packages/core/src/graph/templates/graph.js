@@ -372,33 +372,39 @@
     }
     spDesc.appendChild(th.details);
 
-    // 2. AC coverage
+    // 2. AC coverage — 3-state (verified / broken / gap)
     if (m.acTotal > 0) {
-      const cov = ticketSection('AC coverage', `${m.acCoveredIdx.length}/${m.acTotal} covered`, {
-        open: true,
-      });
+      const states = m.acStates || [];
+      const verified = states.filter((a) => a.state === 'verified').length;
+      const broken = states.filter((a) => a.state === 'broken').length;
+      const gap = states.filter((a) => a.state === 'gap').length;
+      const headerParts = [];
+      if (verified > 0) headerParts.push(`${verified} verified`);
+      if (broken > 0) headerParts.push(`${broken} broken`);
+      if (gap > 0) headerParts.push(`${gap} gap`);
+      const cov = ticketSection(
+        'AC coverage',
+        headerParts.length > 0 ? headerParts.join(' · ') : `${verified}/${m.acTotal}`,
+        { open: true },
+      );
+      // Bar reflects ONLY verified (passing) — broken counts as not-yet-verified
       const cbar = el('div', 'sp-cov-bar');
       const fill = el('div');
-      fill.style.width = `${((m.acCoveredIdx.length / m.acTotal) * 100).toFixed(1)}%`;
+      fill.style.width = `${((verified / m.acTotal) * 100).toFixed(1)}%`;
       cbar.appendChild(fill);
       cov.body.appendChild(cbar);
       const acList = el('ul', 'sp-ac-list');
-      const allAcs = (orig.acTexts || []).slice(); // optional: full AC text (not embedded yet)
-      // Render covered first, then uncovered (mark as gap)
-      const ordered = [];
-      m.acCoveredIdx.forEach((i) => {
-        ordered.push({ i: i, covered: true });
-      });
-      m.acUncoveredIdx.forEach((i) => {
-        ordered.push({ i: i, covered: false });
-      });
-      ordered.sort((a, b) => a.i - b.i);
+      const allAcs = (orig.acTexts || []).slice();
+      // Render in original AC order so QA can scan against the ticket
+      const ordered = states.slice().sort((a, b) => a.index - b.index);
+      const marks = { verified: ['ok', '✓'], broken: ['broken', '⚠'], gap: ['gap', '!'] };
       ordered.forEach((e) => {
         const li = el('li');
-        li.appendChild(el('span', `sp-ac-mark ${e.covered ? 'ok' : 'gap'}`, e.covered ? '✓' : '!'));
+        const [cls, glyph] = marks[e.state];
+        li.appendChild(el('span', `sp-ac-mark ${cls}`, glyph));
         const txt = el('span', 'sp-ac-text');
-        txt.appendChild(el('span', 'sp-ac-num', `AC-${e.i}`));
-        const detail = allAcs[e.i];
+        txt.appendChild(el('span', 'sp-ac-num', `AC-${e.index}`));
+        const detail = allAcs[e.index];
         if (detail) txt.appendChild(document.createTextNode(` ${detail}`));
         li.appendChild(txt);
         acList.appendChild(li);

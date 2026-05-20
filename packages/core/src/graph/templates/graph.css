@@ -610,6 +610,10 @@ body:has([data-tab-panel="coverage"].active) .topbar-controls {
   background: rgba(16, 185, 129, 0.18);
   color: #34d399;
 }
+.sp-ac-mark.broken {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+}
 .sp-ac-mark.gap {
   background: rgba(245, 158, 11, 0.2);
   color: #fbbf24;
