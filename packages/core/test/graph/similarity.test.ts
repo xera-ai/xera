@@ -46,14 +46,24 @@ describe('buildSimilarityPrompt', () => {
     expect(prompt).toMatch(/0.7|threshold/i);
   });
 
-  test('truncates candidates to rolling window of 50', () => {
-    const candidates = Array.from({ length: 100 }, (_, i) =>
+  test('truncates candidates to default rolling window of 100', () => {
+    const candidates = Array.from({ length: 150 }, (_, i) =>
       mkTicket(`ABC-${100 + i}`, `summary ${i}`),
     );
     const prompt = buildSimilarityPrompt(mkTicket('ABC-1000', 'target'), candidates);
-    // Should include first 50 candidates by ULID/fetchedAt order
+    // Should include first 100 candidates by ULID/fetchedAt order
     expect(prompt).toContain('ABC-100');
-    expect(prompt).toContain('ABC-149');
-    expect(prompt).not.toContain('ABC-150');
+    expect(prompt).toContain('ABC-199');
+    expect(prompt).not.toContain('ABC-200');
+  });
+
+  test('honors a caller-provided candidate limit override', () => {
+    const candidates = Array.from({ length: 50 }, (_, i) =>
+      mkTicket(`ABC-${100 + i}`, `summary ${i}`),
+    );
+    const prompt = buildSimilarityPrompt(mkTicket('ABC-1000', 'target'), candidates, 20);
+    expect(prompt).toContain('ABC-100');
+    expect(prompt).toContain('ABC-119');
+    expect(prompt).not.toContain('ABC-120');
   });
 });
