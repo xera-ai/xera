@@ -1,5 +1,15 @@
 # @xera-ai/core
 
+## 0.16.3
+
+### Patch Changes
+
+- [#169](https://github.com/xera-ai/xera/pull/169) [`6c311c7`](https://github.com/xera-ai/xera/commit/6c311c7f27728552efb5dd75344734cdb0116556) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - emit uses edges for POM classes without "Page" suffix (auto-generated from [#169](https://github.com/xera-ai/xera/issues/169))
+
+- Updated dependencies []:
+  - @xera-ai/web@0.16.3
+  - @xera-ai/http@0.16.3
+
 ## 0.16.2
 
 ### Patch Changes
