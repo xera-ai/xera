@@ -1,5 +1,15 @@
 # @xera-ai/core
 
+## 0.17.1
+
+### Patch Changes
+
+- [#174](https://github.com/xera-ai/xera/pull/174) [`11bbbac`](https://github.com/xera-ai/xera/commit/11bbbac873bd7eb1362c51eb936dd7e3f759433b) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - side panel shows 3-state AC coverage (verified / broken / gap) (auto-generated from [#174](https://github.com/xera-ai/xera/issues/174))
+
+- Updated dependencies []:
+  - @xera-ai/web@0.17.1
+  - @xera-ai/http@0.17.1
+
 ## 0.17.0
 
 ### Minor Changes
