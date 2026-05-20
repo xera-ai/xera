@@ -122,7 +122,9 @@ function extractLocators(pomContent: string): string[] {
 
 function extractPomUsage(specContent: string): string[] {
   const names = new Set<string>();
-  const re = /new\s+([A-Z][A-Za-z0-9]*Page)\s*\(/g;
+  // Any PascalCase constructor — non-POM matches (Date, Map, URL, ...) are
+  // filtered out downstream by lookup against pomNameToId.
+  const re = /new\s+([A-Z][A-Za-z0-9_]*)\s*\(/g;
   let m = re.exec(specContent);
   while (m !== null) {
     names.add(m[1]!);
@@ -174,7 +176,7 @@ export async function recordScriptImpl(repoRoot: string, ticket: string): Promis
   for (const pomFile of pomFiles) {
     const content = readFileSync(pomFile, 'utf8');
     const id = pId(pomFile);
-    const className = content.match(/export\s+class\s+([A-Z][A-Za-z0-9]*Page)/)?.[1] ?? '';
+    const className = content.match(/export\s+class\s+([A-Z][A-Za-z0-9_]*)/)?.[1] ?? '';
     pomNameToId.set(className, id);
     const pg: PomGeneratedPayload = {
       pomId: id,

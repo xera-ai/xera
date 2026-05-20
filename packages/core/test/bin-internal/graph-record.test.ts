@@ -346,3 +346,96 @@ Scenario: User changes background color
     expect(payload.priority).toBe('p1');
   });
 });
+
+describe('graph-record script — uses edges for route-less POMs', () => {
+  test('emits uses edges for a POM class without "Page" suffix and empty route', async () => {
+    const ticket = 'NAV-1';
+    const dir = join(root, '.xera', ticket);
+    mkdirSync(join(dir, 'page-objects'), { recursive: true });
+    writeFileSync(
+      join(dir, 'test.feature'),
+      `Feature: Logout
+Scenario: User signs out from the dashboard
+  Given a signed-in user
+  When they click Sign out
+  Then they land on the login page
+
+Scenario: User signs out from settings
+  Given a signed-in user on settings
+  When they click Sign out
+  Then they land on the login page
+`,
+    );
+    writeFileSync(
+      join(dir, 'page-objects', 'NavigationBar.ts'),
+      `export class NavigationBar {
+  constructor(private page: import('@playwright/test').Page) {}
+  signOut() { return this.page.getByRole('button', { name: 'Sign out' }).click(); }
+}
+`,
+    );
+    writeFileSync(
+      join(dir, 'spec.ts'),
+      `import { NavigationBar } from './page-objects/NavigationBar';
+test('signs out from dashboard', async ({ page }) => {
+  const nav = new NavigationBar(page);
+  await nav.signOut();
+});
+test('signs out from settings', async ({ page }) => {
+  const nav = new NavigationBar(page);
+  await nav.signOut();
+});
+`,
+    );
+    const exit = await graphRecordCmd(['script', ticket]);
+    expect(exit).toBe(0);
+    const events = loadAllEvents(root);
+    const usesEdges = events.filter(
+      (e) => e.type === 'edge.discovered' && (e.payload as { kind: string }).kind === 'uses',
+    );
+    expect(usesEdges.length).toBe(2);
+    const poms = events.filter((e) => e.type === 'pom.generated');
+    expect(poms.length).toBe(1);
+    const pomId = (poms[0]!.payload as { pomId: string }).pomId;
+    for (const edge of usesEdges) {
+      expect((edge.payload as { to: string }).to).toBe(pomId);
+    }
+  });
+
+  test('still emits uses edges for conventional *Page POMs (regression guard)', async () => {
+    const ticket = 'NAV-2';
+    const dir = join(root, '.xera', ticket);
+    mkdirSync(join(dir, 'page-objects'), { recursive: true });
+    writeFileSync(
+      join(dir, 'test.feature'),
+      `Feature: Login
+Scenario: User logs in
+  Given x
+`,
+    );
+    writeFileSync(
+      join(dir, 'page-objects', 'LoginPage.ts'),
+      `export class LoginPage {
+  constructor(private page: import('@playwright/test').Page) {}
+  async goto() { return this.page.goto('/login'); }
+}
+`,
+    );
+    writeFileSync(
+      join(dir, 'spec.ts'),
+      `import { LoginPage } from './page-objects/LoginPage';
+test('logs in', async ({ page }) => {
+  const login = new LoginPage(page);
+  await login.goto();
+});
+`,
+    );
+    const exit = await graphRecordCmd(['script', ticket]);
+    expect(exit).toBe(0);
+    const events = loadAllEvents(root);
+    const usesEdges = events.filter(
+      (e) => e.type === 'edge.discovered' && (e.payload as { kind: string }).kind === 'uses',
+    );
+    expect(usesEdges.length).toBe(1);
+  });
+});
