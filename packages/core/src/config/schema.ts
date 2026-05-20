@@ -137,6 +137,12 @@ const CoverageSchema = z
   })
   .prefault({});
 
+const GraphSchema = z
+  .object({
+    similarityCandidateLimit: z.number().int().positive().max(500).default(100),
+  })
+  .prefault({});
+
 export const XeraConfigSchema = z
   .strictObject({
     jira: JiraSchema.optional(),
@@ -147,6 +153,7 @@ export const XeraConfigSchema = z
     reporting: ReportingSchema,
     run: RunSchema.prefault({}),
     coverage: CoverageSchema,
+    graph: GraphSchema,
     adapters: z
       .array(z.enum(['web', 'http']))
       .min(1)

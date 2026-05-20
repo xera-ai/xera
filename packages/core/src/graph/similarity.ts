@@ -1,9 +1,13 @@
 import type { TicketNode } from './types';
 
-const MAX_CANDIDATES = 50;
+export const DEFAULT_SIMILARITY_CANDIDATE_LIMIT = 100;
 
-export function buildSimilarityPrompt(target: TicketNode, candidates: TicketNode[]): string {
-  const window = candidates.slice(0, MAX_CANDIDATES);
+export function buildSimilarityPrompt(
+  target: TicketNode,
+  candidates: TicketNode[],
+  limit: number = DEFAULT_SIMILARITY_CANDIDATE_LIMIT,
+): string {
+  const window = candidates.slice(0, limit);
   const candidateBlock = window
     .map((t, i) => {
       const ac = t.ac.length > 0 ? `\n   AC: ${t.ac.slice(0, 3).join(' | ')}` : '';

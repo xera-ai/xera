@@ -272,13 +272,20 @@ The project knowledge graph stores event-sourced records under `.xera/graph/even
 // xera.config.ts
 export default defineConfig({
   graph: {
-    redactionRules: 'default',  // 'default' | 'strict' | 'off' — applies to ticket text in events
-  },
-  cost: {
-    dailyCapUsd: 5,  // soft warning threshold; doctor flags when exceeded
+    similarityCandidateLimit: 100,  // integer 1–500; window of prior tickets the LLM ranks when enriching `similar` edges
   },
 });
 ```
+
+### `graph.similarityCandidateLimit`
+
+Caps how many prior tickets are fed to the `similarity-match` prompt when `/xera-fetch` or `/xera-report` enriches a new ticket. The LLM still caps its own output at 10 high-confidence matches, so this knob trades **recall vs. token cost**:
+
+- **Default 100** suits projects with up to ~1000 tickets — covers a useful recency window without burning tokens.
+- **Bump to 200–500** for larger projects where related tickets sit deeper in history. Watch `\`/xera-eval\`` precision/recall before committing the change.
+- **Lower to 30–50** for tiny projects or cost-sensitive teams; the LLM still recalls the recent window well at low N.
+
+Candidates are passed to the prompt in recency order, so widening the window only helps when relevant tickets sit beyond the current cutoff. If recall is bottlenecked by *semantic distance* rather than *window size*, widening will not help — that's the regime where a smarter pre-filter (or an embedding index) becomes the right next step.
 
 ### Files
 

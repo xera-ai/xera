@@ -59,6 +59,45 @@ describe('XeraConfigSchema.coverage', () => {
   });
 });
 
+describe('XeraConfigSchema.graph', () => {
+  test('graph block is optional; similarityCandidateLimit defaults to 100', () => {
+    const parsed = XeraConfigSchema.parse(validBase());
+    expect(parsed.graph).toEqual({ similarityCandidateLimit: 100 });
+  });
+
+  test('user-supplied similarityCandidateLimit overrides the default', () => {
+    const parsed = XeraConfigSchema.parse({
+      ...validBase(),
+      graph: { similarityCandidateLimit: 200 },
+    });
+    expect(parsed.graph.similarityCandidateLimit).toBe(200);
+  });
+
+  test('rejects non-positive or non-integer similarityCandidateLimit', () => {
+    expect(() =>
+      XeraConfigSchema.parse({
+        ...validBase(),
+        graph: { similarityCandidateLimit: 0 },
+      }),
+    ).toThrow();
+    expect(() =>
+      XeraConfigSchema.parse({
+        ...validBase(),
+        graph: { similarityCandidateLimit: 12.5 },
+      }),
+    ).toThrow();
+  });
+
+  test('rejects similarityCandidateLimit above the 500 ceiling', () => {
+    expect(() =>
+      XeraConfigSchema.parse({
+        ...validBase(),
+        graph: { similarityCandidateLimit: 501 },
+      }),
+    ).toThrow();
+  });
+});
+
 const MIN_VALID = {
   jira: {
     baseUrl: 'https://x.atlassian.net',
