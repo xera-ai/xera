@@ -3,13 +3,13 @@ layout: home
 
 hero:
   name: xera
-  text: From ticket to passing test — in one prompt.
+  text: You write the ticket. Xera writes the test.
   tagline: >-
-    /xera-run reads the acceptance criteria, generates Gherkin + Playwright,
-    runs the test, classifies the failure across 9 classes (real bug vs.
-    flaky vs. selector drift vs. 6 more), and posts the diagnosis back to
-    the tracker. Web flows and HTTP APIs. Jira and GitHub. Claude, Cursor,
-    and Codex.
+    Yesterday that was your job — now it's one prompt. Hand a Jira or
+    GitHub ticket to Claude, Cursor, or Codex; Xera writes the spec,
+    runs it, classifies the failure, and posts the verdict back. A live
+    knowledge graph catches breaking changes and surfaces coverage gaps
+    before they ship.
   image:
     src: /hero.svg
     alt: xera knowledge graph
