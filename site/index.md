@@ -58,10 +58,53 @@ features:
       Jira (REST or MCP) and GitHub Issues (gh CLI or GitHub MCP) behind one
       IssueProvider interface. Scaffolds for Claude Code, Cursor, and Codex
       CLI from a single `xera init`.
+  - icon: ⭐
+    title: 100% open source
+    details: >-
+      Apache 2.0, no SaaS lock-in. Artifacts live in your repo, your CI runs
+      the loop. Star us, file an issue, ship a PR — issues marked
+      "good first issue" are a fast on-ramp.
+    link: https://github.com/xera-ai/xera
+    linkText: Star on GitHub →
 ---
+
+<div class="oss-badges">
+  <a href="https://github.com/xera-ai/xera" target="_blank" rel="noopener">
+    <img alt="GitHub stars" src="https://img.shields.io/github/stars/xera-ai/xera?style=for-the-badge&logo=github&color=646cff&labelColor=0d1117" />
+  </a>
+  <a href="https://github.com/xera-ai/xera/blob/main/LICENSE" target="_blank" rel="noopener">
+    <img alt="License: Apache 2.0" src="https://img.shields.io/badge/License-Apache_2.0-41d1ff?style=for-the-badge&labelColor=0d1117" />
+  </a>
+  <a href="https://www.npmjs.com/package/@xera-ai/cli" target="_blank" rel="noopener">
+    <img alt="@xera-ai/cli on npm" src="https://img.shields.io/npm/v/@xera-ai/cli?style=for-the-badge&logo=npm&color=cb3837&labelColor=0d1117&label=cli" />
+  </a>
+  <a href="https://github.com/xera-ai/xera/actions/workflows/ci.yml?query=branch%3Amain" target="_blank" rel="noopener">
+    <img alt="CI status" src="https://img.shields.io/github/actions/workflow/status/xera-ai/xera/ci.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&labelColor=0d1117" />
+  </a>
+  <a href="https://github.com/xera-ai/xera/issues?q=is%3Aopen+label%3A%22good+first+issue%22" target="_blank" rel="noopener">
+    <img alt="Good first issues" src="https://img.shields.io/github/issues/xera-ai/xera/good%20first%20issue?style=for-the-badge&color=7e57c2&labelColor=0d1117&label=good%20first%20issue" />
+  </a>
+</div>
 
 <style>
 .VPHero .name { background-image: linear-gradient(120deg, #646cff 30%, #41d1ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+.oss-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto 2rem;
+  padding: 0 1.5rem;
+  max-width: 920px;
+}
+.oss-badges a { line-height: 0; }
+.oss-badges img { height: 28px; display: block; }
+@media (max-width: 768px) {
+  .oss-badges { gap: 6px; margin-bottom: 1.5rem; }
+  .oss-badges img { height: 24px; }
+}
 
 .graph-embed {
   position: relative;
