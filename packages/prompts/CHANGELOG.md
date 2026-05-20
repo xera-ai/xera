@@ -1,5 +1,11 @@
 # @xera-ai/prompts
 
+## 0.17.0
+
+### Minor Changes
+
+- [#173](https://github.com/xera-ai/xera/pull/173) [`1a47775`](https://github.com/xera-ai/xera/commit/1a4777555a87a0d35f028ee549d56d8c4aab1c04) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - make similarity candidate window configurable (default 100) (auto-generated from [#173](https://github.com/xera-ai/xera/issues/173))
+
 ## 0.16.3
 
 ## 0.16.2
