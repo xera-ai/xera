@@ -1,5 +1,19 @@
 # @xera-ai/core
 
+## 0.17.0
+
+### Minor Changes
+
+- [#171](https://github.com/xera-ai/xera/pull/171) [`0dd3339`](https://github.com/xera-ai/xera/commit/0dd3339e246705697ce25e1e57019d8298d15665) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - enrich ticket side panel with health / coverage / linked / freshness (auto-generated from [#171](https://github.com/xera-ai/xera/issues/171))
+
+- [#173](https://github.com/xera-ai/xera/pull/173) [`1a47775`](https://github.com/xera-ai/xera/commit/1a4777555a87a0d35f028ee549d56d8c4aab1c04) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - make similarity candidate window configurable (default 100) (auto-generated from [#173](https://github.com/xera-ai/xera/issues/173))
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xera-ai/http@0.17.0
+  - @xera-ai/web@0.17.0
+
 ## 0.16.3
 
 ### Patch Changes
