@@ -172,7 +172,7 @@
       interaction: {
         hover: true,
         navigationButtons: false,
-        keyboard: { enabled: true, speed: { x: 10, y: 10, zoom: 0.05 } },
+        keyboard: { enabled: true, speed: { x: 10, y: 10, zoom: 0.05 }, bindToWindow: false },
         tooltipDelay: 200,
         zoomSpeed: 0.8,
       },
