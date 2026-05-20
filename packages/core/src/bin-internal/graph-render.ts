@@ -77,7 +77,7 @@ export async function graphRenderCmd(argv: string[]): Promise<number> {
     }
   }
 
-  const data = transformForVisNetwork(snap, opts);
+  const data = transformForVisNetwork(snap, opts, coverage);
   const renderInput: Parameters<typeof renderHtml>[0] = {
     data,
     stats: data.stats,

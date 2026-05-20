@@ -186,6 +186,10 @@
       },
     },
   );
+  // Debug hook: expose for E2E test automation (e.g. PR validation screenshots).
+  // vis-network's click events fire via internal pointer handling, so external
+  // scripts need access to .selectNodes()/.emit(). Stable name; small surface.
+  window.__xeraNetwork__ = network;
 
   container.style.opacity = '0';
 
@@ -255,6 +259,239 @@
     return row;
   }
 
+  // ── Ticket panel helpers ────────────────────────────────
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function chip(text, cls) {
+    return el('span', `sp-chip${cls ? ` sp-chip-${cls}` : ''}`, text);
+  }
+  function relTime(iso) {
+    if (!iso) return '';
+    var t = Date.parse(iso);
+    if (!Number.isFinite(t)) return iso;
+    var s = Math.floor((Date.now() - t) / 1000);
+    if (s < 60) return `${s}s ago`;
+    if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+    if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+    return `${Math.floor(s / 86400)}d ago`;
+  }
+  function ticketSection(title, meta, opts) {
+    var d = el('details', 'sp-section');
+    if (opts?.open) d.open = true;
+    var s = el('summary');
+    s.appendChild(el('span', 'sp-sec-title', title));
+    if (meta) s.appendChild(el('span', 'sp-sec-meta', meta));
+    d.appendChild(s);
+    var body = el('div', 'sp-sec-body');
+    d.appendChild(body);
+    return { details: d, body: body };
+  }
+  function copyButton(label, payload, opts) {
+    var b = document.createElement('button');
+    if (opts?.secondary) b.className = 'sp-btn-sec';
+    b.textContent = label;
+    b.onclick = () => {
+      try {
+        navigator.clipboard?.writeText(payload);
+      } catch (_) {}
+      var prev = b.textContent;
+      b.textContent = '✓ Copied';
+      b.classList.add('copied');
+      setTimeout(() => {
+        b.textContent = prev;
+        b.classList.remove('copied');
+      }, 1500);
+    };
+    return b;
+  }
+
+  function renderTicketPanel(orig, ticketId) {
+    const m = orig.meta?.ticket || null;
+    spDesc.innerHTML = '';
+    spActions.innerHTML = '';
+    if (!m) {
+      // Fallback for older snapshots without computed meta
+      spDesc.textContent = orig.title || '';
+      const btn = copyButton(`Copy /xera-impact ${ticketId}`, `/xera-impact ${ticketId}`);
+      spActions.appendChild(btn);
+      return;
+    }
+
+    // Chip row (priority · result · top class · last run ago)
+    const chips = el('div', 'sp-chip-row');
+    if (m.topPriority) chips.appendChild(chip(m.topPriority.toUpperCase(), m.topPriority));
+    const hasFail = m.runStats.fail > 0;
+    chips.appendChild(chip(hasFail ? 'FAIL' : 'PASS', hasFail ? 'fail' : 'pass'));
+    if (m.topClassification) {
+      const label = m.topClassification + (m.topConfidence ? ` · ${m.topConfidence}` : '');
+      chips.appendChild(chip(label, 'cls'));
+    }
+    if (m.runStats.lastRunTs) {
+      chips.appendChild(chip(`last run ${relTime(m.runStats.lastRunTs)}`, 'ago'));
+    }
+    spDesc.appendChild(chips);
+
+    // 1. Test health
+    const th = ticketSection('Test health', `${m.runStats.pass}/${m.runStats.total} pass`, {
+      open: true,
+    });
+    const bar = el('div', 'sp-health-bar');
+    const total = Math.max(1, m.runStats.total);
+    if (m.runStats.pass > 0) {
+      const p = el('div', 'sp-bar-pass');
+      p.style.width = `${((m.runStats.pass / total) * 100).toFixed(1)}%`;
+      bar.appendChild(p);
+    }
+    if (m.runStats.fail > 0) {
+      const f = el('div', 'sp-bar-fail');
+      f.style.width = `${((m.runStats.fail / total) * 100).toFixed(1)}%`;
+      bar.appendChild(f);
+    }
+    th.body.appendChild(bar);
+    const counts = el('div', 'sp-health-counts');
+    counts.appendChild(el('span', null, `${m.runStats.pass} pass`));
+    counts.appendChild(el('span', null, `${m.runStats.fail} fail`));
+    th.body.appendChild(counts);
+    const mixKeys = Object.keys(m.failureMix);
+    if (mixKeys.length > 0) {
+      const mixBox = el('div', 'sp-mix');
+      mixBox.appendChild(el('div', 'sp-mix-title', 'Failure mix (latest classifications)'));
+      mixKeys
+        .sort((a, b) => m.failureMix[b] - m.failureMix[a])
+        .forEach((k) => {
+          const row = el('div', `sp-mix-row ${k === 'PASS' ? 'p' : k === 'TEST_BUG' ? 't' : 'b'}`);
+          row.appendChild(el('span', 'label', k));
+          row.appendChild(el('span', 'n', String(m.failureMix[k])));
+          mixBox.appendChild(row);
+        });
+      th.body.appendChild(mixBox);
+    }
+    spDesc.appendChild(th.details);
+
+    // 2. AC coverage
+    if (m.acTotal > 0) {
+      const cov = ticketSection('AC coverage', `${m.acCoveredIdx.length}/${m.acTotal} covered`, {
+        open: true,
+      });
+      const cbar = el('div', 'sp-cov-bar');
+      const fill = el('div');
+      fill.style.width = `${((m.acCoveredIdx.length / m.acTotal) * 100).toFixed(1)}%`;
+      cbar.appendChild(fill);
+      cov.body.appendChild(cbar);
+      const acList = el('ul', 'sp-ac-list');
+      const allAcs = (orig.acTexts || []).slice(); // optional: full AC text (not embedded yet)
+      // Render covered first, then uncovered (mark as gap)
+      const ordered = [];
+      m.acCoveredIdx.forEach((i) => {
+        ordered.push({ i: i, covered: true });
+      });
+      m.acUncoveredIdx.forEach((i) => {
+        ordered.push({ i: i, covered: false });
+      });
+      ordered.sort((a, b) => a.i - b.i);
+      ordered.forEach((e) => {
+        const li = el('li');
+        li.appendChild(el('span', `sp-ac-mark ${e.covered ? 'ok' : 'gap'}`, e.covered ? '✓' : '!'));
+        const txt = el('span', 'sp-ac-text');
+        txt.appendChild(el('span', 'sp-ac-num', `AC-${e.i}`));
+        const detail = allAcs[e.i];
+        if (detail) txt.appendChild(document.createTextNode(` ${detail}`));
+        li.appendChild(txt);
+        acList.appendChild(li);
+      });
+      cov.body.appendChild(acList);
+      spDesc.appendChild(cov.details);
+    }
+
+    // 3. Linked entities
+    const linkedMeta = `${m.poms.length} POM${m.poms.length === 1 ? '' : 's'} · ${m.areas.length} areas`;
+    const linked = ticketSection('Linked', linkedMeta);
+    if (m.poms.length > 0) {
+      const rPoms = el('div', 'sp-link-row');
+      rPoms.appendChild(el('div', 'sp-link-key', 'POMs'));
+      const pomBox = el('div', 'sp-link-val');
+      m.poms.forEach((p) => {
+        pomBox.appendChild(el('span', 'sp-pom-pill', p.fileName));
+      });
+      rPoms.appendChild(pomBox);
+      linked.body.appendChild(rPoms);
+    }
+    if (m.areas.length > 0) {
+      const rAreas = el('div', 'sp-link-row');
+      rAreas.appendChild(el('div', 'sp-link-key', 'Areas'));
+      const areaBox = el('div', 'sp-link-val');
+      m.areas.forEach((a, idx) => {
+        if (idx > 0) areaBox.appendChild(document.createElement('br'));
+        areaBox.appendChild(document.createTextNode(`${a.id} `));
+        if (a.status) {
+          const tag = el(
+            'span',
+            `sp-area-risk ${a.status.toLowerCase()}`,
+            a.status + (typeof a.risk === 'number' ? ` · risk ${a.risk}` : ''),
+          );
+          areaBox.appendChild(tag);
+        }
+      });
+      rAreas.appendChild(areaBox);
+      linked.body.appendChild(rAreas);
+    }
+    if (m.linkedTickets.length > 0) {
+      const rLT = el('div', 'sp-link-row');
+      rLT.appendChild(el('div', 'sp-link-key', 'Tickets'));
+      const ltBox = el('div', 'sp-link-val');
+      m.linkedTickets.forEach((lt, idx) => {
+        if (idx > 0) ltBox.appendChild(document.createTextNode(', '));
+        const span = el('span', 'sp-linked-ticket', lt.id);
+        ltBox.appendChild(span);
+      });
+      rLT.appendChild(ltBox);
+      linked.body.appendChild(rLT);
+    }
+    spDesc.appendChild(linked.details);
+
+    // 4. Freshness
+    const fr = ticketSection('Freshness', `fetched ${relTime(m.fetchedAt)}`);
+    const fRow = (ok, label, detail) => {
+      const r = el('div', 'sp-fresh-row');
+      r.appendChild(el('span', `sp-fresh-ico ${ok ? 'ok' : 'warn'}`, ok ? '✓' : '!'));
+      const col = el('div');
+      col.appendChild(el('div', 'sp-fresh-label', label));
+      if (detail) col.appendChild(el('div', 'sp-fresh-detail', detail));
+      r.appendChild(col);
+      return r;
+    };
+    fr.body.appendChild(fRow(true, `Fetched ${relTime(m.fetchedAt)}`, m.fetchedAt));
+    if (m.latestScenarioAt) {
+      fr.body.appendChild(
+        fRow(
+          true,
+          `${m.scenarioCount} scenarios generated`,
+          `latest at ${relTime(m.latestScenarioAt)}`,
+        ),
+      );
+    } else {
+      fr.body.appendChild(fRow(false, 'No scenarios generated yet', '/xera-script never ran'));
+    }
+    spDesc.appendChild(fr.details);
+
+    // 5. Actions footer
+    spActions.appendChild(copyButton(`Copy /xera-impact ${ticketId}`, `/xera-impact ${ticketId}`));
+    const grid = el('div', 'sp-action-grid');
+    grid.appendChild(copyButton('/xera-run', `/xera-run ${ticketId}`, { secondary: true }));
+    grid.appendChild(
+      copyButton('/xera-coverage', `/xera-coverage --ticket ${ticketId}`, { secondary: true }),
+    );
+    spActions.appendChild(grid);
+  }
+
+  // Exposed for E2E test automation alongside __xeraNetwork__ — pairs with
+  // the network handle so external scripts can trigger the side-panel render
+  // without relying on programmatic vis-network select events.
+  window.__xeraShowPanel__ = showPanel;
   function showPanel(nodeId) {
     var orig = data.nodes.find((n) => n.id === nodeId);
     if (!orig) return;
@@ -281,6 +518,7 @@
       const m = orig.meta || {};
       spGroup.textContent = 'Failure';
       spTitle.textContent = m.scenarioName || orig.label || nodeId;
+      spDesc.innerHTML = '';
       spDesc.textContent = '';
       if (m.classification) {
         const classVal = `${m.classification}${m.confidence ? ` (${m.confidence} confidence)` : ''}`;
@@ -292,28 +530,19 @@
       if (m.ts) spDesc.appendChild(spRow('when', m.ts));
       if (m.runId) spDesc.appendChild(spRow('run', m.runId));
       if (m.traceId) spDesc.appendChild(spRow('trace', m.traceId));
+    } else if (orig.group === 'Ticket') {
+      spGroup.textContent = 'Ticket';
+      spTitle.textContent = orig.title
+        ? orig.title.replace(/^[A-Z]+-\d+\s*[—–-]\s*/, '')
+        : orig.label;
+      renderTicketPanel(orig, nodeId);
     } else {
       spGroup.textContent = isScenarioFail ? 'Scenario · fail' : orig.group;
       spTitle.textContent = orig.title
         ? orig.title.replace(/^[A-Z]+-\d+\s*[—–-]\s*/, '')
         : orig.label;
+      spDesc.innerHTML = '';
       spDesc.textContent = orig.title || '';
-    }
-
-    var btn = null;
-    if (orig.group === 'Ticket') {
-      btn = document.createElement('button');
-      btn.textContent = `Copy /xera-impact ${nodeId}`;
-      btn.onclick = () => {
-        navigator.clipboard?.writeText(`/xera-impact ${nodeId}`);
-        btn.textContent = '✓ Copied!';
-        btn.classList.add('copied');
-        setTimeout(() => {
-          btn.textContent = `Copy /xera-impact ${nodeId}`;
-          btn.classList.remove('copied');
-        }, 1800);
-      };
-      spActions.appendChild(btn);
     }
 
     sidepanel.classList.remove('hidden');

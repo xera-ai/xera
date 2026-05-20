@@ -4,6 +4,33 @@ import { fileURLToPath } from 'node:url';
 import type { CoverageReport } from '../coverage/report';
 import type { CoverageSnapshotPayload, EdgeRecord, FailureNode, Snapshot } from './types';
 
+export interface TicketMeta {
+  // Test health (from latest_failures + classifications)
+  runStats: {
+    total: number;
+    pass: number;
+    fail: number;
+    lastRunTs?: string;
+  };
+  failureMix: Record<string, number>; // classification → count, latest per scenario
+  topClassification?: string;
+  topConfidence?: string;
+  // Priority — max of incident scenarios (p0 > p1 > p2)
+  topPriority?: 'p0' | 'p1' | 'p2';
+  // AC coverage (from acNodes + satisfies edges)
+  acTotal: number;
+  acCoveredIdx: number[];
+  acUncoveredIdx: number[];
+  // Linked entities (from adjacency)
+  poms: Array<{ id: string; fileName: string; route: string }>;
+  areas: Array<{ id: string; status?: 'COVERED' | 'UNCOVERED' | 'STALE'; risk?: number }>;
+  linkedTickets: Array<{ id: string; source: string }>;
+  // Freshness
+  fetchedAt: string;
+  latestScenarioAt?: string;
+  scenarioCount: number;
+}
+
 export interface VisNode {
   id: string;
   label: string;
@@ -13,10 +40,11 @@ export interface VisNode {
   size?: number;
   title?: string;
   borderWidth?: number;
-  // Structured failure data for the click-panel — only set on Failure nodes.
-  // vis-network ignores unknown fields, so this travels through to the client
-  // alongside the rendered visual props.
+  // Structured data for the click-panel — `failure` populated on Failure nodes,
+  // `ticket` populated on Ticket nodes. vis-network ignores unknown fields, so
+  // this travels through to the client alongside the rendered visual props.
   meta?: {
+    // Failure node fields
     scenarioName?: string;
     classification?: string;
     confidence?: string;
@@ -24,6 +52,8 @@ export interface VisNode {
     disputed?: boolean;
     traceId?: string;
     ts?: string;
+    // Ticket node fields
+    ticket?: TicketMeta;
   };
 }
 
@@ -77,7 +107,7 @@ function scenariosAfter(since: string | undefined, generatedAt: string): boolean
   return Date.parse(generatedAt) >= Date.parse(since);
 }
 
-function buildTicketNode(snap: Snapshot, ticketId: string): VisNode {
+function buildTicketNode(snap: Snapshot, ticketId: string, coverage?: CoverageInput): VisNode {
   const t = snap.tickets[ticketId]!;
   const usageCount = snap.edges.filter((e) => e.kind === 'tests' && e.from === ticketId).length;
   const node: VisNode = {
@@ -88,8 +118,168 @@ function buildTicketNode(snap: Snapshot, ticketId: string): VisNode {
     shape: 'dot',
     size: 10 + Math.min(usageCount * 2, 20),
     title: `${t.id} — ${t.summary}`,
+    meta: { ticket: computeTicketMeta(snap, ticketId, coverage) },
   };
   return node;
+}
+
+const PRIORITY_RANK: Record<string, number> = { p0: 3, p1: 2, p2: 1 };
+
+/**
+ * Compute per-ticket derived data (test health, AC coverage, linked entities,
+ * freshness) from a snapshot. Embedded into the Ticket VisNode's `meta` so the
+ * client renders the rich side-panel without re-walking events.
+ */
+export function computeTicketMeta(
+  snap: Snapshot,
+  ticketId: string,
+  coverage?: CoverageInput,
+): TicketMeta {
+  const t = snap.tickets[ticketId]!;
+
+  // Scenarios for this ticket
+  const ticketScenarios = Object.values(snap.scenarios).filter((s) => s.ticketId === ticketId);
+  const scenarioIds = new Set(ticketScenarios.map((s) => s.id));
+
+  // Test health — latest classification per scenario, then aggregate.
+  // Defensive: treat missing `classifications`/`acNodes` (older fixtures or
+  // partial test snapshots) as empty rather than throwing.
+  const classifications = snap.classifications ?? [];
+  const acNodesAll = snap.acNodes ?? {};
+  // Walk classifications once, keep most-recent per scenarioId
+  const latestByScenario = new Map<string, { classification: string; ts: string }>();
+  for (const c of classifications) {
+    if (!scenarioIds.has(c.scenarioId)) continue;
+    const prev = latestByScenario.get(c.scenarioId);
+    if (!prev || Date.parse(c.ts) > Date.parse(prev.ts)) {
+      latestByScenario.set(c.scenarioId, { classification: c.classification, ts: c.ts });
+    }
+  }
+  const failureMix: Record<string, number> = {};
+  for (const v of latestByScenario.values()) {
+    failureMix[v.classification] = (failureMix[v.classification] ?? 0) + 1;
+  }
+
+  // Pass/fail counts derived from latest_failures (authoritative for fail) and
+  // classifications (authoritative for pass). Scenarios not in either bucket
+  // are counted as "not classified" — surfaced in failureMix only if present.
+  const failScenarios = new Set(
+    Object.values(snap.latest_failures)
+      .filter((f) => scenarioIds.has(f.scenarioId))
+      .map((f) => f.scenarioId),
+  );
+  let lastRunTs: string | undefined;
+  for (const f of Object.values(snap.latest_failures)) {
+    if (!scenarioIds.has(f.scenarioId)) continue;
+    if (!lastRunTs || Date.parse(f.ts) > Date.parse(lastRunTs)) lastRunTs = f.ts;
+  }
+  for (const v of latestByScenario.values()) {
+    if (!lastRunTs || Date.parse(v.ts) > Date.parse(lastRunTs)) lastRunTs = v.ts;
+  }
+  const fail = failScenarios.size;
+  const pass = Math.max(0, ticketScenarios.length - fail);
+
+  // Top classification (most-recent failure's class wins for the chip)
+  let topClassification: string | undefined;
+  let topConfidence: string | undefined;
+  let topTs = 0;
+  for (const f of Object.values(snap.latest_failures)) {
+    if (!scenarioIds.has(f.scenarioId)) continue;
+    const t2 = Date.parse(f.ts);
+    if (t2 > topTs && f.classification) {
+      topTs = t2;
+      topClassification = f.classification;
+      topConfidence = f.confidence;
+    }
+  }
+
+  // Priority — max over scenarios
+  let topPriority: 'p0' | 'p1' | 'p2' | undefined;
+  let topRank = 0;
+  for (const s of ticketScenarios) {
+    const r = PRIORITY_RANK[s.priority] ?? 0;
+    if (r > topRank) {
+      topRank = r;
+      topPriority = s.priority;
+    }
+  }
+
+  // AC coverage
+  const acsForTicket = Object.values(acNodesAll)
+    .filter((a) => a.ticketId === ticketId)
+    .sort((a, b) => a.index - b.index);
+  const satisfiedByAcId = new Set(
+    snap.edges.filter((e) => e.kind === 'satisfies' && scenarioIds.has(e.from)).map((e) => e.to),
+  );
+  const acCoveredIdx: number[] = [];
+  const acUncoveredIdx: number[] = [];
+  for (const a of acsForTicket) {
+    if (satisfiedByAcId.has(a.id)) acCoveredIdx.push(a.index);
+    else acUncoveredIdx.push(a.index);
+  }
+
+  // Linked entities — POMs used by this ticket's scenarios
+  const pomIds = new Set<string>();
+  for (const e of snap.edges) {
+    if (e.kind === 'uses' && scenarioIds.has(e.from) && snap.poms[e.to]) {
+      pomIds.add(e.to);
+    }
+  }
+  const poms = Array.from(pomIds).map((id) => {
+    const p = snap.poms[id]!;
+    return { id, fileName: p.filePath.split('/').pop() ?? id, route: p.route };
+  });
+
+  // Areas — from ticket.modifiesAreas, decorated with coverage status if available
+  const areaCovById = new Map<
+    string,
+    { status: 'COVERED' | 'UNCOVERED' | 'STALE'; risk: number }
+  >();
+  if (coverage?.report?.areas) {
+    for (const a of coverage.report.areas) {
+      areaCovById.set(a.id, { status: a.status, risk: a.risk });
+    }
+  }
+  const areas = t.modifiesAreas.map((id) => {
+    const c = areaCovById.get(id);
+    return c ? { id, status: c.status, risk: c.risk } : { id };
+  });
+
+  // Linked tickets — jira-linked edges incident to this ticket
+  const linkedTickets: Array<{ id: string; source: string }> = [];
+  for (const e of snap.edges) {
+    if (e.kind !== 'jira-linked') continue;
+    if (e.from === ticketId && snap.tickets[e.to]) {
+      linkedTickets.push({ id: e.to, source: e.source });
+    } else if (e.to === ticketId && snap.tickets[e.from]) {
+      linkedTickets.push({ id: e.from, source: e.source });
+    }
+  }
+
+  // Freshness
+  const latestScenarioAt = ticketScenarios
+    .map((s) => s.generatedAt)
+    .sort()
+    .pop();
+
+  const meta: TicketMeta = {
+    runStats: { total: ticketScenarios.length, pass, fail },
+    failureMix,
+    acTotal: acsForTicket.length,
+    acCoveredIdx,
+    acUncoveredIdx,
+    poms,
+    areas,
+    linkedTickets,
+    fetchedAt: t.fetchedAt,
+    scenarioCount: ticketScenarios.length,
+  };
+  if (lastRunTs) meta.runStats.lastRunTs = lastRunTs;
+  if (topClassification) meta.topClassification = topClassification;
+  if (topConfidence) meta.topConfidence = topConfidence;
+  if (topPriority) meta.topPriority = topPriority;
+  if (latestScenarioAt) meta.latestScenarioAt = latestScenarioAt;
+  return meta;
 }
 
 function buildScenarioNode(snap: Snapshot, scenarioId: string): VisNode {
@@ -240,6 +430,7 @@ function bfsFromTicket(
 export function transformForVisNetwork(
   snap: Snapshot,
   opts: RenderOpts,
+  coverage?: CoverageInput,
 ): {
   nodes: VisNode[];
   edges: VisEdge[];
@@ -291,7 +482,7 @@ export function transformForVisNetwork(
     includeAreas.clear();
   }
 
-  for (const id of includeTickets) nodes.push(buildTicketNode(snap, id));
+  for (const id of includeTickets) nodes.push(buildTicketNode(snap, id, coverage));
   for (const id of includeScenarios) nodes.push(buildScenarioNode(snap, id));
   for (const id of includePoms) nodes.push(buildPomNode(snap, id));
   for (const id of includeAreas) nodes.push(buildAreaNode(snap, id));
