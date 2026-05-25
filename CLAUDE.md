@@ -74,7 +74,9 @@ packages/
     templates/                  scaffold templates (xera.config, playwright.config,
                                 tsconfig, env.example, auth-setup, sample/,
                                 http-xera.config + mixed-xera.config + http-env (v0.7),
-                                xera-graph.yml — CI viewer workflow)
+                                xera-graph.yml — CI viewer workflow,
+                                AGENTS.md — consumer agent-orientation stub,
+                                  scaffolded only when absent)
   skills/    @xera-ai/skills    Claude Code skill .md files (12 skills:
                                 xera-run, xera-fetch, xera-feature, xera-script,
                                 xera-exec, xera-report, xera-impact, xera-promote,

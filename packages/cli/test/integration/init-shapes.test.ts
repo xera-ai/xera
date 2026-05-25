@@ -7,7 +7,7 @@
  */
 
 import { afterAll, describe, expect, test } from 'bun:test';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawn } from 'bun';
@@ -57,6 +57,12 @@ describe('xera init --shape web', () => {
     };
     expect(pkg.scripts['xera:feature-spec-prepare']).toBeUndefined();
 
+    // AGENTS.md scaffolded, web-flavored
+    expect(existsSync(join(cwd, 'AGENTS.md'))).toBe(true);
+    const agents = readFileSync(join(cwd, 'AGENTS.md'), 'utf8');
+    expect(agents).toContain('Web UI tests');
+    expect(agents).not.toContain('HTTP API tests');
+
     // auth-setup exports only web
     const authSetup = readFileSync(join(cwd, 'shared/auth-setup.ts'), 'utf8');
     expect(authSetup).toContain("from '@xera-ai/web'");
@@ -95,6 +101,34 @@ describe('xera init --shape api', () => {
       scripts: Record<string, string>;
     };
     expect(pkg.scripts['xera:feature-spec-prepare']).toBe('xera-internal feature-spec-prepare');
+
+    // AGENTS.md scaffolded, API-flavored
+    expect(existsSync(join(cwd, 'AGENTS.md'))).toBe(true);
+    const agents = readFileSync(join(cwd, 'AGENTS.md'), 'utf8');
+    expect(agents).toContain('HTTP API tests');
+    expect(agents).not.toContain('Web UI tests');
+  }, 30_000);
+});
+
+describe('AGENTS.md scaffolding (never clobber)', () => {
+  test('xera init leaves an existing AGENTS.md untouched', async () => {
+    const cwd = mkdtempSync(join(tmpdir(), 'xera-init-agents-'));
+    createdDirs.push(cwd);
+    const sentinel = '# My own AGENTS.md\n\nHand-curated — do not touch.\n';
+    writeFileSync(join(cwd, 'AGENTS.md'), sentinel);
+
+    const proc = spawn(['bun', 'run', '--cwd', cwd, xeraBin, 'init', '--yes', '--shape', 'web'], {
+      cwd,
+      stderr: 'pipe',
+      stdout: 'pipe',
+    });
+    const exitCode = await proc.exited;
+    if (exitCode !== 0) {
+      const err = await new Response(proc.stderr).text();
+      throw new Error(`init exited ${exitCode}: ${err}`);
+    }
+
+    expect(readFileSync(join(cwd, 'AGENTS.md'), 'utf8')).toBe(sentinel);
   }, 30_000);
 });
 

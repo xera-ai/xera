@@ -36,6 +36,8 @@ Flags (all optional):
 
 Any unflagged field still prompts interactively unless `--yes` is set.
 
+`xera init` also scaffolds a root `AGENTS.md` (a short orientation file every AI coding agent reads — skills, scripts, conventions) **only if one is not already present**. An existing `AGENTS.md` is never overwritten; `xera doctor` reports whether it exists.
+
 **Examples:**
 
 ```bash
