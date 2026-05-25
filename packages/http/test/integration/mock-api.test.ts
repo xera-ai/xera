@@ -7,7 +7,7 @@
  *  - normalizeHttpRun consuming http-trace.jsonl + raw-report.json
  *
  * Skipped by default — set XERA_RUN_INTEGRATION=1 to enable (CI's
- * `test:integration` script sets this; default `bun test` skips it because
+ * `test:integration` script sets this; default test run skips it because
  * port-binding + child-process timing is environment-sensitive).
  */
 
