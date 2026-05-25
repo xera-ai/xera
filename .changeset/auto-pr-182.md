@@ -6,4 +6,4 @@
 '@xera-ai/web': minor
 ---
 
-detect CONTRACT_DRIFT on web traces (Phase 1) + design (auto-generated from #182)
+CONTRACT_DRIFT on web traces + self-heal (auto-generated from #182)
