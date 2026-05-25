@@ -350,10 +350,10 @@ with `P0=3, P1=2, P2=1`; modifies-same-area edge weight 5; jira-linked.blocks we
 Generate a single self-contained HTML file visualizing the project knowledge graph:
 
 ```bash
-bun run xera:graph-render                            # full snapshot
-bun run xera:graph-render --since 90d                # filter to recent activity
-bun run xera:graph-render --ticket ABC-200 --depth 2 # ego-graph centered on one ticket
-bun run xera:graph-render --out custom-path.html     # custom output location
+npx xera-internal graph-render                            # full snapshot
+npx xera-internal graph-render --since 90d                # filter to recent activity
+npx xera-internal graph-render --ticket ABC-200 --depth 2 # ego-graph centered on one ticket
+npx xera-internal graph-render --out custom-path.html     # custom output location
 ```
 
 The viewer is a single self-contained HTML file (~700 KB total — vendored vis-network is the bulk). Open it in any browser; works offline. The file is automatically gitignored.
@@ -372,13 +372,13 @@ The viewer is a single self-contained HTML file (~700 KB total — vendored vis-
 **`xera-internal disputes`** lists `classification.disputed` events for review by the QA lead:
 
 ```bash
-bun run xera:disputes                       # all disputes, text format
-bun run xera:disputes --since 7d            # past week only
-bun run xera:disputes --format json         # machine-readable
+npx xera-internal disputes                       # all disputes, text format
+npx xera-internal disputes --since 7d            # past week only
+npx xera-internal disputes --format json         # machine-readable
 ```
 
 **`xera doctor --auto-enrich`** runs non-interactive backfill of unbackfilled tickets, intended for CI:
 
 ```bash
-bun run xera:doctor --auto-enrich           # cron-friendly
+npx xera-internal doctor --auto-enrich           # cron-friendly
 ```

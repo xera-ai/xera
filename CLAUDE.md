@@ -6,7 +6,7 @@ Claude Code follows the agent instructions in [`AGENTS.md`](AGENTS.md) — **rea
 
 ## What this repo is (read this once)
 
-xera is the **framework that ships Claude Code skills** (`/xera-run`, `/xera-fetch`, `/xera-feature`, `/xera-script`, `/xera-exec`, `/xera-report`, `/xera-impact`, `/xera-promote`, `/xera-coverage`, `/xera-fill-gap`, `/xera-explore`, `/xera-eval`) plus the deterministic plumbing those skills call into. The end user is a QA engineer running `bunx @xera-ai/cli init` in their own project, then driving Playwright/HTTP tests from a Claude Code session.
+xera is the **framework that ships Claude Code skills** (`/xera-run`, `/xera-fetch`, `/xera-feature`, `/xera-script`, `/xera-exec`, `/xera-report`, `/xera-impact`, `/xera-promote`, `/xera-coverage`, `/xera-fill-gap`, `/xera-explore`, `/xera-eval`) plus the deterministic plumbing those skills call into. The end user is a QA engineer running `npx @xera-ai/cli init` in their own project, then driving Playwright/HTTP tests from a Claude Code session.
 
 In other words: when you edit this repo you are writing the prompts, skills, and helper binaries that an *end user's* Claude Code session will execute. Treat skill `.md` and prompt `.md` content as user-facing LLM instructions, not as internal docs.
 
@@ -20,7 +20,7 @@ packages/
                                 CONTRACT_DRIFT/RATE_LIMITED/AUTH_EXPIRED),
                                 auth state, graph + coverage modules,
                                 xera-internal binary
-    src/bin-internal/           35 subcommands invoked by skills via `bun run xera:*`
+    src/bin-internal/           35 subcommands invoked by skills via `npx xera-internal`
                                 v0.1: fetch, validate-feature, typecheck, lint,
                                       exec (supports --grep), normalize, report,
                                       post, status, unlock, promote
@@ -102,8 +102,8 @@ packages/
                                 adversarial-scenarios (v0.9 — experimental))
 fixtures/
   sample-app/                   Next.js login+dashboard target for web integration tests
-  mock-jira/                    Bun.serve mock Jira (deterministic tickets)
-  mock-api/                     Bun.serve mock HTTP API + openapi.yaml (v0.7 http integration)
+  mock-jira/                    node:http mock Jira (deterministic tickets)
+  mock-api/                     node:http mock HTTP API + openapi.yaml (v0.7 http integration)
   golden-tickets/               classifier fixtures (cwd-sensitive — see AGENTS.md)
   golden-tickets-http/          v0.7 http classifier fixtures (CONTRACT_DRIFT,
                                 RATE_LIMITED, AUTH_EXPIRED, real-bug, validation-pass)
@@ -143,7 +143,7 @@ scripts/
 
 A frequent source of confusion when editing in this repo:
 
-- **Skills** (`packages/skills/*.md`) tell the *session LLM* the **workflow**: which `bun run xera:*` subcommand to call, what to read, what to write, in what order. They are deterministic-looking step lists with frontmatter declaring inputs/outputs.
+- **Skills** (`packages/skills/*.md`) tell the *session LLM* the **workflow**: which `npx xera-internal` subcommand to call, what to read, what to write, in what order. They are deterministic-looking step lists with frontmatter declaring inputs/outputs.
 - **Prompts** (`packages/prompts/*.md`) tell the session LLM **how to generate or diagnose**: rules for Gherkin output, selector strategy, classifier decision tree, etc. They are prompt templates with their own version line.
 - A skill that needs AI generation **points at** a prompt template — the session LLM reads the prompt's frontmatter + body and follows it in the *same* session. **The prompt is data the skill points at, not a separate sub-agent.** Do not refactor a skill to "spawn" a prompt as an agent; that's wrong.
 
@@ -165,11 +165,11 @@ To exercise them end-to-end, scaffold a throwaway project:
 
 ```bash
 cd /tmp && rm -rf xera-tryout && mkdir xera-tryout && cd xera-tryout
-bunx @xera-ai/cli init --yes
+npx @xera-ai/cli init --yes
 # then open Claude Code in that directory and run /xera-run SAMPLE-001
 ```
 
-**Exception: `/xera-eval`** is the v0.2 maintainer-only eval harness and IS intended to run inside this repo. It is wired via `.claude/commands/xera-eval.md` (symlink to `packages/skills/xera-eval.md`) and drives `bun run xera:eval-*` against `fixtures/golden-eval/` + `fixtures/golden-tickets/`. See `docs/superpowers/specs/2026-05-14-xera-v02-eval-harness-design.md`.
+**Exception: `/xera-eval`** is the v0.2 maintainer-only eval harness and IS intended to run inside this repo. It is wired via `.claude/commands/xera-eval.md` (symlink to `packages/skills/xera-eval.md`) and drives `npx xera-internal eval-*` against `fixtures/golden-eval/` + `fixtures/golden-tickets/`. See `docs/superpowers/specs/2026-05-14-xera-v02-eval-harness-design.md`.
 
 ## MCPs you can lean on (when present)
 
@@ -180,18 +180,18 @@ bunx @xera-ai/cli init --yes
 
 | Task | Command |
 |---|---|
-| Run all tests | `bun test` |
-| Run one package's tests | `cd packages/<pkg> && bun test` |
-| Run one test file | `bun test packages/web/test/trace-normalizer/scrub.test.ts` |
-| Type check workspace | `bun run typecheck` |
-| Type check one package | `cd packages/<pkg> && bun run typecheck` |
-| Lint everything | `bun run lint` |
-| Format / autofix | `bun run lint:fix` |
-| Try the CLI locally | `cd /tmp && mkdir t && cd t && bunx @xera-ai/cli init --yes` |
+| Run all tests | `npm test` |
+| Run one package's tests | `npx vitest run packages/<pkg>` |
+| Run one test file | `npx vitest run packages/web/test/trace-normalizer/scrub.test.ts` |
+| Type check workspace | `npm run typecheck` |
+| Type check one package | `cd packages/<pkg> && npm run typecheck` |
+| Lint everything | `npm run lint` |
+| Format / autofix | `npm run lint:fix` |
+| Try the CLI locally | `cd /tmp && mkdir t && cd t && npx @xera-ai/cli init --yes` |
 | Verify a package on npm | `curl -s https://registry.npmjs.org/@xera-ai/<pkg>/latest \| python3 -m json.tool` |
-| Where does `bun run xera:*` map to? | `packages/core/src/bin-internal/index.ts` |
+| Where does `npx xera-internal` map to? | `packages/core/src/bin-internal/index.ts` |
 
-Per-package build steps and the publish order live in [`AGENTS.md § Publish flow`](AGENTS.md#publish-flow). Tests do **not** require a build first — the `bun` exports condition resolves workspace packages from `./src/`.
+Per-package build steps and the publish order live in [`AGENTS.md § Publish flow`](AGENTS.md#publish-flow). Tests do **not** require a build first — Vitest resolves workspace packages to `./src/` (via the `source` exports condition + `vitest.config.ts` aliases).
 
 ## Reflexes that bite in this codebase
 
@@ -204,11 +204,11 @@ These show up repeatedly; internalize them before touching code.
   ```
 - **`noUncheckedIndexedAccess` is on.** `arr[0]` is `T | undefined`. Narrow it; use `!` only when the invariant is local and obvious.
 - **ESM only in source.** Tests may use `createRequire`. Source code may not.
-- **`bun:test`, not vitest.** Import from `'bun:test'`. Tests mirror `src/` paths under `packages/<pkg>/test/`.
+- **`vitest`, not bun:test/jest.** Import from `'vitest'` (use `vi.fn`/`vi.spyOn` for mocks). Tests mirror `src/` paths under `packages/<pkg>/test/`. The root `vitest.config.ts` uses `pool: 'forks'` because tests call `process.chdir`.
 - **Restore `process.cwd()` in `afterEach`** if a test calls `process.chdir(...)`. `fixtures/golden-tickets/` resolution depends on cwd; leaks cascade.
 - **Skill `.md` is user-facing copy.** Match implementation plans word for word. Don't "improve the wording."
 - **Workspace deps use explicit caret semver**, not `workspace:*`. All six packages share one `fixed`-group version — changesets bumps them in lockstep, so don't hand-edit individual `version` fields or sibling carets; let the Version Packages PR own it. See `AGENTS.md § Workspace deps` for why.
-- **Release flow is fully PR-title driven (v0.8+).** Conventional-commit PR titles (`feat:`, `fix:`, `chore:`) cause `auto-changeset.yml` to commit a `.changeset/*.md` onto the PR; merging to `main` opens (or updates) a "Version Packages" PR; merging that PR triggers `release.yml` → `bun run release` → `changeset publish`. Don't hand-write changesets unless you need to override the inferred bump; don't run `bun publish` locally; `publish.yml` is a manual fallback only.
+- **Release flow is fully PR-title driven (v0.8+).** Conventional-commit PR titles (`feat:`, `fix:`, `chore:`) cause `auto-changeset.yml` to commit a `.changeset/*.md` onto the PR; merging to `main` opens (or updates) a "Version Packages" PR; merging that PR triggers `release.yml` → `npm run release` → `changeset publish`. Don't hand-write changesets unless you need to override the inferred bump; don't run `npm publish` locally; `publish.yml` is a manual fallback only.
 - **Don't weaken security-sensitive files.** `packages/web/src/trace-normalizer/scrub-rules.ts` and `packages/core/src/auth/encrypt.ts` require adversarial tests for relaxation. Adding rules is fine; removing is not.
 - **Don't bypass hash-based drift detection.** `story_hash` / `feature_hash` / `script_hash` / `events_hash` exist so skills can skip work; "always regenerate" defeats the design.
 - **Graph events are commit-friendly via shard-by-session.** One JSONL file per skill invocation; never append into a shared file. Snapshot is gitignored and rebuilt on demand. See `docs/superpowers/specs/2026-05-16-xera-v06-project-knowledge-graph-design.md` §3.6.

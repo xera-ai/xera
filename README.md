@@ -30,12 +30,12 @@ Backed by a **project knowledge graph** (v0.6+) that links every ticket ↔ scen
 
 ## Quickstart
 
-Prereqs: Bun ≥1.1.0, a supported AI coding agent (Claude Code, Cursor ≥1.6, or OpenAI Codex CLI), an issue tracker (Atlassian-connected MCP / Jira API token **or** GitHub MCP / `gh` CLI), and a web app and/or HTTP API to test.
+Prereqs: Node ≥22, a supported AI coding agent (Claude Code, Cursor ≥1.6, or OpenAI Codex CLI), an issue tracker (Atlassian-connected MCP / Jira API token **or** GitHub MCP / `gh` CLI), and a web app and/or HTTP API to test.
 
 > **Try it without writing tests of your own:** [FlowBoard](https://github.com/xera-ai/xera-sample-app) is the official sample target (Fastify + React, both `web` and `api` shapes). [xera-sample-app-tests](https://github.com/xera-ai/xera-sample-app-tests) is a worked xera consumer project pointed at it — and its graph is published live at **[xera-ai.github.io/xera-sample-app-tests](https://xera-ai.github.io/xera-sample-app-tests/)**. See the [getting-started guide](https://xera-ai.github.io/xera/guide/getting-started#try-it-on-the-sample-app) for the full clone-and-scaffold flow.
 
 ```bash
-bun add -g @xera-ai/cli         # install once globally; or use bunx to run without installing
+npm install -g @xera-ai/cli     # install once globally; or use npx to run without installing
 
 mkdir my-tests && cd my-tests
 xera init                       # interactive: answers shape + tracker + ~5 prompts; scaffolds CI workflow
@@ -44,9 +44,9 @@ xera init -y --shape api --pk MYPROJ --ju https://myco.atlassian.net --au https:
 # or with GitHub Issues (no token required — uses `gh` CLI or the GitHub MCP):
 xera init -y --shape web --tracker github --gr xera-ai/xera --su https://staging.example.com
 cp .env.example .env            # fill in credentials
-bun install
-# Web shape only: bunx playwright install chromium
-bun run xera:auth-setup         # pre-authenticate roles (writes encrypted .xera/.auth/)
+npm install
+# Web shape only: npx playwright install chromium
+npx xera-internal auth-setup    # pre-authenticate roles (writes encrypted .xera/.auth/)
 # Then open your coding agent in this directory:
 #   Claude Code:       `claude`
 #   Cursor:            open this folder in Cursor
