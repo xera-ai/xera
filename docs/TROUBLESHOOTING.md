@@ -122,6 +122,14 @@ Soft warning when `http.spec` is unset. CONTRACT_DRIFT detection and schema-deri
 - **`spec unreachable or not found`** — the path/URL is wrong or the server is down. Verify it loads (a local file must exist; a URL must return 200).
 - **`filter matched no operations`** — your `--tag` / `--operation` / `--path` filter excluded everything. The message lists the available operations; adjust the filter (or drop it to include all).
 
+## 13c. Web test `CONTRACT_DRIFT` never fires
+
+`/xera-report` classifies a web failure as `REAL_BUG`/`TEST_BUG` even though an API the UI called drifted from the contract. Check, in order:
+
+- **No spec configured** — set `web.spec` (or `http.spec` for mixed) to your OpenAPI path/URL.
+- **Recorder not attached / no `network.jsonl`** — the web CONTRACT_DRIFT path needs the `xeraNetwork` recorder (see CONFIGURATION → `web`). Without it, no calls are captured to match. Confirm `.xera/<TICKET>/runs/<runId>/network.jsonl` exists after a run.
+- **The drifting call isn't a documented endpoint** — web drift only flags **documented** endpoints (a status/schema mismatch on a path that exists in OpenAPI). Calls to undocumented endpoints (and page/asset loads) are intentionally ignored to avoid false positives.
+
 ## 14. `XERA_AUTH_KEY mismatch — cannot decrypt`
 
 You either regenerated the key in `.env` or deleted `.env`. The auth state cache is unreadable. Fix:

@@ -19,6 +19,7 @@ const WebSchema = z
       message: 'baseUrl must have at least one environment',
     }),
     defaultEnv: z.string(),
+    spec: z.string().optional(),
     auth: AuthSchema.prefault({}),
     testData: z
       .object({
@@ -176,3 +177,11 @@ export const XeraConfigSchema = z
   });
 
 export type XeraConfig = z.infer<typeof XeraConfigSchema>;
+
+/**
+ * The OpenAPI spec path/URL usable for CONTRACT_DRIFT detection. `http.spec`
+ * wins (mixed projects); web-only projects fall back to `web.spec`.
+ */
+export function resolveOpenApiSpec(config: XeraConfig): string | undefined {
+  return config.http?.spec ?? config.web?.spec;
+}

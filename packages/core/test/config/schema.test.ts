@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { XeraConfigSchema } from '../../src/config/schema';
+import { resolveOpenApiSpec, XeraConfigSchema } from '../../src/config/schema';
 
 function validBase() {
   return {
@@ -15,6 +15,34 @@ function validBase() {
     adapters: ['web'],
   };
 }
+
+describe('resolveOpenApiSpec', () => {
+  test('web-only project reads web.spec', () => {
+    const cfg = XeraConfigSchema.parse({
+      ...validBase(),
+      web: {
+        baseUrl: { local: 'http://localhost:3000' },
+        defaultEnv: 'local',
+        spec: './openapi.yaml',
+      },
+    });
+    expect(resolveOpenApiSpec(cfg)).toBe('./openapi.yaml');
+  });
+
+  test('http.spec wins over web.spec', () => {
+    const cfg = XeraConfigSchema.parse({
+      jira: validBase().jira,
+      web: { baseUrl: { local: 'http://localhost:3000' }, defaultEnv: 'local', spec: './web.yaml' },
+      http: { baseUrl: { dev: 'http://localhost:4000' }, defaultEnv: 'dev', spec: './http.yaml' },
+      adapters: ['web', 'http'],
+    });
+    expect(resolveOpenApiSpec(cfg)).toBe('./http.yaml');
+  });
+
+  test('undefined when neither configures a spec', () => {
+    expect(resolveOpenApiSpec(XeraConfigSchema.parse(validBase()))).toBeUndefined();
+  });
+});
 
 describe('XeraConfigSchema.coverage', () => {
   test('coverage block is optional; defaults fill when absent', () => {

@@ -9,6 +9,7 @@ import { classifyContractDrift } from '../classifier/contract-drift';
 import { classifyRateLimited } from '../classifier/rate-limited';
 import type { ScenarioClassification } from '../classifier/types';
 import { loadConfig } from '../config/load';
+import { resolveOpenApiSpec } from '../config/schema';
 import type { OutdatedDecision } from '../graph/classify';
 import { enhanceClassification } from '../graph/classify';
 import { deriveSnapshot, loadAllEvents } from '../graph/store';
@@ -104,19 +105,72 @@ export async function reportCmd(argv: string[]): Promise<number> {
     }
   }
 
-  // Apply override: if a deterministic rule fired, stamp every FAIL scenario with it.
-  const scenariosForAggregation: ScenarioClassification[] = httpRuleOverride
-    ? input.scenarios.map((s) =>
-        s.outcome === 'FAIL'
-          ? {
-              ...s,
-              class: httpRuleOverride.class,
-              rationale: httpRuleOverride.rationale,
-              confidence: 'high' as const,
-            }
-          : s,
-      )
-    : input.scenarios;
+  // Web/mixed CONTRACT_DRIFT: match each FAIL scenario's captured calls (from the
+  // network.jsonl sidecar via the normalizer) against OpenAPI, stamping PER SCENARIO
+  // (unlike the http path's all-FAIL stamp) to avoid over-claiming on web runs.
+  const perScenarioDrift = new Map<string, HttpRuleOverride>();
+  if (meta && meta.adapter !== 'http') {
+    const config = await loadConfig(cwd);
+    const spec = resolveOpenApiSpec(config);
+    if (spec) {
+      const normalizedPath = join(paths.ticketDir, 'runs', input.runId, 'normalized.json');
+      if (existsSync(normalizedPath)) {
+        const norm = JSON.parse(readFileSync(normalizedPath, 'utf8')) as {
+          scenarios?: Array<{
+            name: string;
+            failure?: {
+              networkAtFailure?: Array<{
+                method: string;
+                url: string;
+                status: number;
+                responseBody?: unknown;
+              }>;
+            };
+          }>;
+        };
+        const { loadOpenApi, findOperation } = await import('@xera-ai/http');
+        const openapi = await loadOpenApi(spec);
+        if (openapi) {
+          for (const sc of norm.scenarios ?? []) {
+            // A web page emits responses for HTML, JS/CSS, images, analytics, etc.
+            // Only calls to a DOCUMENTED endpoint are candidates — otherwise every
+            // non-API response would trip the classifier's "endpoint not found"
+            // branch. So web drift is scoped to status/schema mismatches on known
+            // endpoints, never "undocumented endpoint".
+            const calls = (sc.failure?.networkAtFailure ?? [])
+              .map((n) => ({
+                method: n.method,
+                url: n.url,
+                status: n.status,
+                respBody: n.responseBody,
+              }))
+              .filter((c) => findOperation(openapi, c.method, c.url) !== null);
+            if (calls.length === 0) continue;
+            const drift = classifyContractDrift({ calls, openapi });
+            if (drift) perScenarioDrift.set(sc.name, drift);
+          }
+        }
+      }
+    }
+  }
+
+  // Apply override: http rules stamp every FAIL scenario; web drift stamps per scenario.
+  const scenariosForAggregation: ScenarioClassification[] = input.scenarios.map((s) => {
+    if (s.outcome !== 'FAIL') return s;
+    if (httpRuleOverride) {
+      return {
+        ...s,
+        class: httpRuleOverride.class,
+        rationale: httpRuleOverride.rationale,
+        confidence: 'high' as const,
+      };
+    }
+    const web = perScenarioDrift.get(s.name);
+    if (web) {
+      return { ...s, class: web.class, rationale: web.rationale, confidence: 'high' as const };
+    }
+    return s;
+  });
 
   const aggregated = aggregateScenarios(scenariosForAggregation);
 

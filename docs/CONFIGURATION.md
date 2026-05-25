@@ -176,11 +176,14 @@ export default defineConfig({
 ### `web`
 - `baseUrl`: map of environment name → URL. Must include `defaultEnv`.
 - `defaultEnv`: which environment xera targets by default.
+- `spec`: optional path or URL to an OpenAPI 3 document. When set (and the `xeraNetwork` recorder is active), `/xera-report` matches the network calls a web test made against the contract and emits `CONTRACT_DRIFT` on a mismatch. Mixed projects can configure `http.spec` once and it applies to web too (`http.spec` wins). Web drift is scoped to **documented** endpoints (status/schema mismatch) — page/asset loads are ignored.
 - `auth.strategy`: `storageState` (browser login form), `apiToken` (Bearer), or `none`.
 - `auth.ttl`: how long cached auth state is valid (`8h`, `30m`, etc.).
 - `auth.refreshBuffer`: refresh proactively this far before expiry.
 - `auth.setupScript`: path to your `defineAuthSetup`-exported function.
 - `auth.roles`: declares which env vars hold credentials for each role.
+
+> **Web CONTRACT_DRIFT recorder (opt-in).** Detecting `CONTRACT_DRIFT` on web tests needs the network calls captured. `@xera-ai/web` exports `attachNetworkRecorder(page, { logPath: process.env.XERA_NETWORK_LOG, scenario, baseUrl })` (and the `xeraNetwork` fixture) — attach it in your base Playwright `test`. It's a **no-op unless `XERA_NETWORK_LOG` is set**, which `xera:exec` does automatically, so plain `playwright test` runs are unaffected. Bodies are scrubbed at capture.
 
 ### `ai`
 - `livePageSnapshot`: probe staging via Playwright MCP during POM generation. Disable for offline workflows.

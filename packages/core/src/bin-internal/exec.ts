@@ -148,6 +148,9 @@ export async function execCmd(argv: string[]): Promise<number> {
         XERA_BASE_URL: baseURL,
         XERA_ENV: envName,
         XERA_RUN_ID: runId,
+        // Enables the opt-in xeraNetwork recorder to capture calls for web
+        // CONTRACT_DRIFT detection. Recorder is a no-op unless attached.
+        XERA_NETWORK_LOG: join(runDir, 'network.jsonl'),
         // Playwright's JSON reporter prints to stdout by default. Redirect it
         // to a file inside the run dir so xera:normalize has a deterministic
         // path to read.

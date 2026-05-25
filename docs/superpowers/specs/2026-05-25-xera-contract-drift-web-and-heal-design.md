@@ -128,6 +128,8 @@ if (meta.adapter !== 'http' && spec && hasNetworkData(normalized)) {
 
 This runs **before** aggregation, alongside the existing http override. CONTRACT_DRIFT's high priority in `aggregate.ts` is preserved. Per-scenario stamping avoids over-claiming on web runs where one scenario drifted and others failed for unrelated reasons.
 
+**Documented-endpoint filter (critical):** a web page emits responses for HTML, JS/CSS, images, and third-party calls — almost none in OpenAPI. `classifyContractDrift` returns CONTRACT_DRIFT on the *first* unmatched URL ("endpoint not found"), so feeding raw page responses would false-positive on essentially every web test. Therefore the web branch **pre-filters** each scenario's calls to those where `findOperation(openapi, method, url) !== null` (a documented path+method) before classifying. Web drift is thus scoped to **status/schema mismatches on known endpoints**, never "undocumented endpoint" (which is meaningless noise for web). The http path keeps its existing behavior (it only ever sees deliberate `request.*` calls). `findOperation` is the already-exported matcher from `@xera-ai/http`.
+
 ---
 
 ## 3. Architecture — Self-Heal (parallel to v0.5)

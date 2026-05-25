@@ -56,7 +56,10 @@ packages/
   web/       @xera-ai/web       Playwright adapter (--grep support since v0.6.4)
     src/executor/               run Playwright + JSON reporter
     src/generator/              selector rules, lint, pom-scan, gherkin-validate
-    src/trace-normalizer/       parse + scrub Playwright traces (security-sensitive)
+    src/trace-normalizer/       parse + scrub Playwright traces (security-sensitive);
+                                prefers network.jsonl sidecar when present
+    src/network-recorder/       opt-in xeraNetwork fixture — captures page responses
+                                to network.jsonl for web CONTRACT_DRIFT (env-gated)
     src/auth-setup/             defineAuthSetup + role runner
   http/      @xera-ai/http      HTTP API adapter (v0.7+, no browser)
     src/executor/               HTTP request runner + JSON reporter

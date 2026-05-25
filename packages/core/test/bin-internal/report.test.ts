@@ -127,6 +127,142 @@ function writeOutdatedDecisions(ticket: string, runId: string, decisions: unknow
   writeFileSync(join(runDir, 'outdated-decisions.json'), JSON.stringify(decisions));
 }
 
+function writeWebProject(ticket: string, opts: { spec?: boolean } = {}) {
+  writeFileSync(
+    join(root, 'xera.config.ts'),
+    `export default { jira: { baseUrl: 'https://x.atlassian.net', projectKeys: ['PROJ'], fields: { story: 'description' } }, web: { baseUrl: { local: 'http://localhost:3000' }, defaultEnv: 'local'${opts.spec ? ", spec: './openapi.yaml'" : ''} }, adapters: ['web'] };`,
+  );
+  if (opts.spec) {
+    writeFileSync(
+      join(root, 'openapi.yaml'),
+      `openapi: 3.0.0
+info: { title: T, version: 1.0.0 }
+paths:
+  /users:
+    post:
+      responses:
+        '201': { content: { application/json: { schema: { type: object, required: [id], properties: { id: { type: string } } } } } }
+  /users/{id}:
+    get:
+      responses:
+        '200': { content: { application/json: { schema: { type: object } } } }
+`,
+    );
+  }
+  const dir = join(root, '.xera', ticket);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(
+    join(dir, 'meta.json'),
+    JSON.stringify({ ticket, adapter: 'web', xera_version: '0', prompts_version: '0' }),
+  );
+}
+
+function writeNormalizedWeb(
+  ticket: string,
+  runId: string,
+  scenarios: Array<{
+    name: string;
+    calls: Array<{ method: string; url: string; status: number; responseBody?: unknown }>;
+  }>,
+) {
+  const runDir = join(root, '.xera', ticket, 'runs', runId);
+  mkdirSync(runDir, { recursive: true });
+  writeFileSync(
+    join(runDir, 'normalized.json'),
+    JSON.stringify({
+      runId,
+      outcome: 'FAIL',
+      scenarios: scenarios.map((s) => ({
+        name: s.name,
+        outcome: 'FAIL',
+        failure: { networkAtFailure: s.calls.map((c) => ({ ...c })) },
+      })),
+      scrubbed_fields_count: 0,
+    }),
+  );
+}
+
+function writeWebReportInput(ticket: string, runId: string, names: string[]): string {
+  const runDir = join(root, '.xera', ticket, 'runs', runId);
+  mkdirSync(runDir, { recursive: true });
+  const input = {
+    runId,
+    scenarioCounts: { total: names.length, passed: 0, failed: names.length, skipped: 0 },
+    scenarios: names.map((name) => ({
+      name,
+      outcome: 'FAIL',
+      class: 'REAL_BUG',
+      confidence: 'medium',
+      rationale: 'ui failed',
+    })),
+  };
+  const p = join(runDir, 'classifier-output.json');
+  writeFileSync(p, JSON.stringify(input));
+  return p;
+}
+
+function classOf(md: string, scenario: string): string | undefined {
+  const block = md.split('### Scenario:').find((b) => b.trimStart().startsWith(scenario));
+  return block?.match(/\*\*Classification:\*\*\s+(\w+)/)?.[1];
+}
+
+describe('reportCmd web CONTRACT_DRIFT', () => {
+  test('stamps CONTRACT_DRIFT when a documented endpoint returns an undocumented status', async () => {
+    writeWebProject('WEB-1', { spec: true });
+    writeNormalizedWeb('WEB-1', 'r1', [
+      { name: 'create user', calls: [{ method: 'POST', url: '/users', status: 500 }] },
+    ]);
+    const input = writeWebReportInput('WEB-1', 'r1', ['create user']);
+    expect(await reportCmd(['WEB-1', `--input=${input}`])).toBe(0);
+    const status = JSON.parse(readFileSync(join(root, '.xera/WEB-1/status.json'), 'utf8'));
+    expect(status.classification).toBe('CONTRACT_DRIFT');
+  });
+
+  test('stamps per scenario — only the drifting one', async () => {
+    writeWebProject('WEB-2', { spec: true });
+    writeNormalizedWeb('WEB-2', 'r1', [
+      { name: 'create user', calls: [{ method: 'POST', url: '/users', status: 500 }] },
+      {
+        name: 'view user',
+        calls: [{ method: 'GET', url: '/users/1', status: 200, responseBody: { id: '1' } }],
+      },
+    ]);
+    const input = writeWebReportInput('WEB-2', 'r1', ['create user', 'view user']);
+    expect(await reportCmd(['WEB-2', `--input=${input}`])).toBe(0);
+    const md = readFileSync(join(root, '.xera/WEB-2/comment.draft.md'), 'utf8');
+    expect(classOf(md, 'create user')).toBe('CONTRACT_DRIFT');
+    expect(classOf(md, 'view user')).toBe('REAL_BUG');
+  });
+
+  test('ignores undocumented (non-API) calls — no false positive', async () => {
+    writeWebProject('WEB-3', { spec: true });
+    writeNormalizedWeb('WEB-3', 'r1', [
+      {
+        name: 'home',
+        calls: [
+          { method: 'GET', url: '/', status: 200 },
+          { method: 'GET', url: '/app.js', status: 200 },
+        ],
+      },
+    ]);
+    const input = writeWebReportInput('WEB-3', 'r1', ['home']);
+    expect(await reportCmd(['WEB-3', `--input=${input}`])).toBe(0);
+    const status = JSON.parse(readFileSync(join(root, '.xera/WEB-3/status.json'), 'utf8'));
+    expect(status.classification).toBe('REAL_BUG');
+  });
+
+  test('no spec configured → no CONTRACT_DRIFT', async () => {
+    writeWebProject('WEB-4', { spec: false });
+    writeNormalizedWeb('WEB-4', 'r1', [
+      { name: 'create user', calls: [{ method: 'POST', url: '/users', status: 500 }] },
+    ]);
+    const input = writeWebReportInput('WEB-4', 'r1', ['create user']);
+    expect(await reportCmd(['WEB-4', `--input=${input}`])).toBe(0);
+    const status = JSON.parse(readFileSync(join(root, '.xera/WEB-4/status.json'), 'utf8'));
+    expect(status.classification).toBe('REAL_BUG');
+  });
+});
+
 describe('reportCmd with TEST_OUTDATED enhancement', () => {
   test('preserves REAL_BUG when no graph candidates', async () => {
     seedGraph('ABC-100', { hasCandidate: false });
