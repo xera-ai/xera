@@ -1,10 +1,10 @@
-import { describe, expect, test } from 'bun:test';
 import { join } from 'node:path';
+import { describe, expect, test } from 'vitest';
 import { loadOpenApi } from '../../src/openapi/loader';
 
 describe('loadOpenApi', () => {
   test('parses YAML and dereferences $ref', async () => {
-    const spec = await loadOpenApi(join(import.meta.dir, 'fixtures', 'users.yaml'));
+    const spec = await loadOpenApi(join(import.meta.dirname, 'fixtures', 'users.yaml'));
     expect(spec).not.toBeNull();
     expect(spec?.paths['/users']?.post).toBeDefined();
     const respSchema =
@@ -20,7 +20,7 @@ describe('loadOpenApi', () => {
 
   test('throws on malformed YAML', async () => {
     await expect(
-      loadOpenApi(join(import.meta.dir, 'fixtures', 'malformed.yaml')),
+      loadOpenApi(join(import.meta.dirname, 'fixtures', 'malformed.yaml')),
     ).rejects.toThrow();
   });
 });

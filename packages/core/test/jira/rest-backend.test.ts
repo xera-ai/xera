@@ -1,11 +1,11 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { createRestBackend } from '../../src/jira/rest-backend';
 
 const originalFetch = globalThis.fetch;
 
 describe('rest-backend', () => {
   beforeEach(() => {
-    globalThis.fetch = mock(async (url: string | URL, init?: RequestInit) => {
+    globalThis.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
       const u = url.toString();
       if (u.includes('/rest/api/3/issue/JIRA-1?')) {
         return new Response(

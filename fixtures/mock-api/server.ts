@@ -14,8 +14,10 @@
  * Toggles via query string:
  *   ?simulate=rate-limited  → 429 on every endpoint
  *
- * Run: `bun run fixtures/mock-api/server.ts` (or `MOCK_API_PORT=4200 bun run ...`).
+ * Run: `npx tsx fixtures/mock-api/server.ts` (or `MOCK_API_PORT=4200 npx tsx ...`).
  */
+
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 
 const TOKENS = new Map<string, 'user' | 'admin'>([
   ['Bearer test-token-001', 'user'],
@@ -24,8 +26,27 @@ const TOKENS = new Map<string, 'user' | 'admin'>([
 
 const PORT = Number(process.env.MOCK_API_PORT ?? 4100);
 
-function unauthorized(): Response {
-  return Response.json({ error: 'Unauthorized' }, { status: 401 });
+function sendJson(res: ServerResponse, status: number, body: unknown): void {
+  res.statusCode = status;
+  res.setHeader('content-type', 'application/json');
+  res.end(JSON.stringify(body));
+}
+
+function readJson(req: IncomingMessage): Promise<unknown> {
+  return new Promise((resolve) => {
+    let data = '';
+    req.on('data', (chunk) => {
+      data += chunk;
+    });
+    req.on('end', () => {
+      try {
+        resolve(data ? JSON.parse(data) : {});
+      } catch {
+        resolve({});
+      }
+    });
+    req.on('error', () => resolve({}));
+  });
 }
 
 function validateEmail(email: unknown): { ok: true } | { ok: false; reason: string } {
@@ -34,52 +55,51 @@ function validateEmail(email: unknown): { ok: true } | { ok: false; reason: stri
   return { ok: true };
 }
 
-const server = Bun.serve({
-  port: PORT,
-  async fetch(req: Request) {
-    const url = new URL(req.url);
-    const auth = req.headers.get('authorization') ?? '';
-    const role = TOKENS.get(auth);
+const server = createServer(async (req, res) => {
+  const url = new URL(req.url ?? '/', `http://localhost:${PORT}`);
+  const auth = (req.headers.authorization as string | undefined) ?? '';
+  const role = TOKENS.get(auth);
 
-    if (url.searchParams.get('simulate') === 'rate-limited') {
-      return Response.json({ error: 'Too Many Requests' }, { status: 429 });
-    }
+  if (url.searchParams.get('simulate') === 'rate-limited') {
+    return sendJson(res, 429, { error: 'Too Many Requests' });
+  }
 
-    // POST /users
-    if (url.pathname === '/users' && req.method === 'POST') {
-      if (!role) return unauthorized();
-      const body = (await req.json().catch(() => ({}))) as { name?: string; email?: string };
-      const check = validateEmail(body.email);
-      if (!check.ok) return Response.json({ errors: [check.reason] }, { status: 422 });
-      return Response.json(
-        { id: `usr-${Date.now()}`, email: body.email, name: body.name ?? null },
-        { status: 201 },
-      );
-    }
+  // POST /users
+  if (url.pathname === '/users' && req.method === 'POST') {
+    if (!role) return sendJson(res, 401, { error: 'Unauthorized' });
+    const body = (await readJson(req)) as { name?: string; email?: string };
+    const check = validateEmail(body.email);
+    if (!check.ok) return sendJson(res, 422, { errors: [check.reason] });
+    return sendJson(res, 201, {
+      id: `usr-${Date.now()}`,
+      email: body.email,
+      name: body.name ?? null,
+    });
+  }
 
-    // GET /users/:id
-    if (url.pathname.startsWith('/users/') && req.method === 'GET') {
-      if (!role) return unauthorized();
-      const id = url.pathname.split('/')[2];
-      if (!id || id === 'missing') {
-        return Response.json({ error: 'Not Found' }, { status: 404 });
-      }
-      return Response.json({ id, email: 'demo@example.com', name: 'Demo' }, { status: 200 });
-    }
+  // GET /users/:id
+  if (url.pathname.startsWith('/users/') && req.method === 'GET') {
+    if (!role) return sendJson(res, 401, { error: 'Unauthorized' });
+    const id = url.pathname.split('/')[2];
+    if (!id || id === 'missing') return sendJson(res, 404, { error: 'Not Found' });
+    return sendJson(res, 200, { id, email: 'demo@example.com', name: 'Demo' });
+  }
 
-    // POST /orders (admin only)
-    if (url.pathname === '/orders' && req.method === 'POST') {
-      if (!role) return unauthorized();
-      if (role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
-      const body = (await req.json().catch(() => ({}))) as { product?: string };
-      return Response.json(
-        { id: `ord-${Date.now()}`, product: body.product ?? 'unknown', status: 'pending' },
-        { status: 201 },
-      );
-    }
+  // POST /orders (admin only)
+  if (url.pathname === '/orders' && req.method === 'POST') {
+    if (!role) return sendJson(res, 401, { error: 'Unauthorized' });
+    if (role !== 'admin') return sendJson(res, 403, { error: 'Forbidden' });
+    const body = (await readJson(req)) as { product?: string };
+    return sendJson(res, 201, {
+      id: `ord-${Date.now()}`,
+      product: body.product ?? 'unknown',
+      status: 'pending',
+    });
+  }
 
-    return Response.json({ error: 'Not Found' }, { status: 404 });
-  },
+  return sendJson(res, 404, { error: 'Not Found' });
 });
 
-console.log(`[mock-api] listening on http://localhost:${server.port}`);
+server.listen(PORT, () => {
+  console.log(`[mock-api] listening on http://localhost:${PORT}`);
+});

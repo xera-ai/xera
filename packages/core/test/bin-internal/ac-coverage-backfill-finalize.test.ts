@@ -1,7 +1,7 @@
-import { describe, expect, test } from 'bun:test';
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { describe, expect, test } from 'vitest';
 import { acCoverageBackfillFinalizeCmd } from '../../src/bin-internal/ac-coverage-backfill-finalize';
 import { appendEvents } from '../../src/graph/store';
 import type { Event } from '../../src/graph/types';

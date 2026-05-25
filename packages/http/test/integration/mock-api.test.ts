@@ -11,12 +11,13 @@
  * port-binding + child-process timing is environment-sensitive).
  */
 
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { type ChildProcess, spawn } from 'node:child_process';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { request as pwRequest } from '@playwright/test';
 import { readAuthState } from '@xera-ai/core';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { presetHttpAuth } from '../../src/auth-setup/preset';
 import { runHttpAuthSetup } from '../../src/auth-setup/runner';
 import { newAuthedContext } from '../../src/runtime';
@@ -26,7 +27,7 @@ const ENABLED = process.env.XERA_RUN_INTEGRATION === '1';
 const describeMaybe = ENABLED ? describe : describe.skip;
 
 const PORT = 4123;
-let serverProc: ReturnType<typeof Bun.spawn> | null = null;
+let serverProc: ChildProcess | null = null;
 let tmpDir: string;
 const ORIG = {
   KEY: process.env.XERA_AUTH_KEY,
@@ -43,11 +44,10 @@ beforeAll(async () => {
   process.env.XERA_BASE_URL = `http://localhost:${PORT}`;
   process.env.MOCK_USER_TOKEN = 'test-token-001';
 
-  serverProc = Bun.spawn(['bun', 'run', 'fixtures/mock-api/server.ts'], {
-    cwd: join(import.meta.dir, '..', '..', '..', '..'),
+  serverProc = spawn('npx', ['tsx', 'fixtures/mock-api/server.ts'], {
+    cwd: join(import.meta.dirname, '..', '..', '..', '..'),
     env: { ...process.env, MOCK_API_PORT: String(PORT) },
-    stdout: 'pipe',
-    stderr: 'pipe',
+    stdio: ['ignore', 'pipe', 'pipe'],
   });
 
   const deadline = Date.now() + 5000;
@@ -113,7 +113,7 @@ describeMaybe('http adapter end-to-end against mock-api', () => {
 
   test('normalizeHttpRun consumes trace + report files', async () => {
     const runDir = join(tmpDir, 'run-1');
-    require('node:fs').mkdirSync(runDir, { recursive: true });
+    mkdirSync(runDir, { recursive: true });
 
     writeFileSync(
       join(runDir, 'http-trace.jsonl'),

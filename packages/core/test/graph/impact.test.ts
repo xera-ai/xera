@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import type { ImpactReport, ImpactScenario } from '../../src/graph/impact';
 import { renderImpactMarkdown, riskScore, walkImpact } from '../../src/graph/impact';
 import type {

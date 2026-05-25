@@ -13,22 +13,22 @@
     "url": "https://github.com/xera-ai/xera/issues"
   },
   "engines": {
-    "bun": ">=1.1.0"
+    "node": ">=22.0.0"
   },
   "workspaces": [
     "packages/*",
     "fixtures/*"
   ],
   "scripts": {
-    "build": "bun run --filter '*' build",
+    "build": "npm run build --workspace=@xera-ai/web --workspace=@xera-ai/http --workspace=@xera-ai/core --workspace=@xera-ai/cli",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "test": "bun test packages/core packages/web packages/http",
-    "test:integration": "XERA_RUN_INTEGRATION=1 bun test packages/cli/test/integration packages/http/test/integration",
-    "typecheck": "bun run --filter '*' typecheck",
+    "test": "vitest run packages/core packages/web packages/http",
+    "test:integration": "XERA_RUN_INTEGRATION=1 vitest run packages/cli/test/integration packages/http/test/integration",
+    "typecheck": "npm run typecheck --workspaces --if-present",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "bun run build && changeset publish",
+    "release": "npm run build && changeset publish",
     "xera:doctor": "xera-internal doctor",
     "xera:eval-deterministic": "xera-internal eval-deterministic",
     "xera:eval-prepare": "xera-internal eval-prepare",
@@ -39,7 +39,10 @@
     "@biomejs/biome": "2.4.15",
     "@changesets/changelog-github": "0.7.0",
     "@changesets/cli": "2.31.0",
-    "bun-types": "1.3.14",
-    "typescript": "6.0.3"
+    "@types/node": "25.9.1",
+    "tsup": "8.5.1",
+    "tsx": "4.22.3",
+    "typescript": "6.0.3",
+    "vitest": "4.1.7"
   }
 }

@@ -1,25 +1,22 @@
 // packages/cli/test/integration/init-update-add-editor.test.ts
-import { afterAll, describe, expect, test } from 'bun:test';
+
 import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { spawn } from 'bun';
+import { afterAll, describe, expect, test } from 'vitest';
+import { run } from './helpers';
 
-const xeraBin = resolve(import.meta.dir, '../../bin/xera');
+const xeraBin = resolve(import.meta.dirname, '../../bin/xera');
 const created: string[] = [];
 afterAll(() => {
   for (const d of created) rmSync(d, { recursive: true, force: true });
 });
 
 async function runXera(cwd: string, args: string[]): Promise<void> {
-  const proc = spawn(['bun', 'run', '--cwd', cwd, xeraBin, ...args], {
-    cwd,
-    stderr: 'pipe',
-    stdout: 'pipe',
-  });
+  const proc = run(['node', xeraBin, ...args], { cwd, pipe: true });
   const code = await proc.exited;
   if (code !== 0) {
-    const err = await new Response(proc.stderr).text();
+    const err = await proc.stderr;
     throw new Error(`xera ${args.join(' ')} exited ${code}: ${err}`);
   }
 }

@@ -1,23 +1,22 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { doctorCommand } from '../src/commands/doctor';
 
 describe('doctorCommand --strict flag arity (#153)', () => {
   let dir: string;
   const origCwd = process.cwd();
   let logs: string[];
-  let logSpy: ReturnType<typeof mock>;
+  let logSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'xera-doctor-'));
     process.chdir(dir);
     logs = [];
-    logSpy = mock((...args: unknown[]) => {
+    logSpy = vi.spyOn(console, 'log').mockImplementation((...args: unknown[]) => {
       logs.push(args.map(String).join(' '));
     });
-    console.log = logSpy;
   });
   afterEach(() => {
     process.chdir(origCwd);

@@ -1,7 +1,7 @@
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { createGithubCliBackend } from '../../src/github/cli-backend';
 
 // Build a fake `gh` shim. The script inspects argv to decide which canned

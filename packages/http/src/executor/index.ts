@@ -1,3 +1,4 @@
+import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { XeraConfig } from '@xera-ai/core';
@@ -39,17 +40,19 @@ export async function runHttpScenarios(
   const rawReportPath = join(input.runDir, 'raw-report.json');
   const traceFile = join(input.runDir, 'http-trace.jsonl');
 
-  const proc = Bun.spawn(['npx', 'playwright', 'test', '--config', pwConfigPath], {
-    env: {
-      ...process.env,
-      XERA_BASE_URL: baseURL,
-      XERA_AUTH_DIR: join(process.cwd(), '.xera', '.auth'),
-      XERA_HTTP_TRACE: traceFile,
-      XERA_RUN_ID: input.runId,
-    },
-    stdout: 'inherit',
-    stderr: 'inherit',
+  const exitCode = await new Promise<number>((resolve) => {
+    const child = spawn('npx', ['playwright', 'test', '--config', pwConfigPath], {
+      env: {
+        ...process.env,
+        XERA_BASE_URL: baseURL,
+        XERA_AUTH_DIR: join(process.cwd(), '.xera', '.auth'),
+        XERA_HTTP_TRACE: traceFile,
+        XERA_RUN_ID: input.runId,
+      },
+      stdio: 'inherit',
+    });
+    child.on('error', () => resolve(1));
+    child.on('close', (code) => resolve(code ?? 1));
   });
-  const exitCode = await proc.exited;
   return { rawReportPath, exitCode };
 }

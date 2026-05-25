@@ -1,9 +1,9 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { request as pwRequest } from '@playwright/test';
 import { writeAuthState } from '@xera-ai/core';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { newAuthedContext } from '../../src/runtime';
 
 const ORIG_KEY = process.env.XERA_AUTH_KEY;

@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { buildCoverageReport, renderMarkdown } from '../../src/coverage/report';
 import { DEFAULT_COVERAGE_CONFIG } from '../../src/coverage/types';
 import type { Snapshot } from '../../src/graph/types';

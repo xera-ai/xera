@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from 'bun:test';
+import { afterEach, describe, expect, test } from 'vitest';
 import { XeraConfigSchema } from '../../src/config/schema';
 import { createIssueProvider } from '../../src/providers/factory';
 

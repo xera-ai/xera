@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { resolveOpenApiSpec, XeraConfigSchema } from '../../src/config/schema';
 
 function validBase() {

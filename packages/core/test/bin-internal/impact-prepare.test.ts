@@ -1,7 +1,7 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { impactPrepareCmd } from '../../src/bin-internal/impact-prepare';
 import { appendEvents } from '../../src/graph/store';
 import type { Event } from '../../src/graph/types';

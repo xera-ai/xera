@@ -1,12 +1,12 @@
-import { describe, expect, test } from 'bun:test';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { describe, expect, test } from 'vitest';
 import { type AuthFileSummary, classifyAuthExpired } from '../../src/classifier/auth-expired';
 import { classifyContractDrift, type OpenAPIDocument } from '../../src/classifier/contract-drift';
 import { classifyRateLimited } from '../../src/classifier/rate-limited';
 
 const FIXTURE_ROOT = join(
-  import.meta.dir,
+  import.meta.dirname,
   '..',
   '..',
   '..',

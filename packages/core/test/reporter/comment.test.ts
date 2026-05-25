@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { buildComment } from '../../src/reporter/comment';
 
 describe('buildComment', () => {

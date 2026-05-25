@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { writeAuthState } from '@xera-ai/core';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { runChecks } from '../src/checks';
 
 // Helper: create a minimal web project with optional coverage config (plain object export)

@@ -1,5 +1,5 @@
-import { describe, expect, test } from 'bun:test';
 import type { GenerateInput } from '@xera-ai/core';
+import { describe, expect, test } from 'vitest';
 import { HttpAdapter } from '../src/adapter';
 
 describe('HttpAdapter', () => {

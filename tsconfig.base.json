@@ -14,7 +14,7 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "types": ["bun-types"],
-    "customConditions": ["bun"]
+    "types": ["node"],
+    "customConditions": ["source"]
   }
 }

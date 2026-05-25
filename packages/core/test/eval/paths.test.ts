@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { resolveEvalPaths } from '../../src/eval/paths';
 
 describe('resolveEvalPaths', () => {

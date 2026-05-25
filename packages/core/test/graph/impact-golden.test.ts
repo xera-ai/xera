@@ -1,11 +1,11 @@
-import { describe, expect, test } from 'bun:test';
 import { cpSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { describe, expect, test } from 'vitest';
 import { walkImpact } from '../../src/graph/impact';
 import { deriveSnapshot, loadAllEvents } from '../../src/graph/store';
 
-const FIXTURES = join(import.meta.dir, '../../../../fixtures/golden-impact');
+const FIXTURES = join(import.meta.dirname, '../../../../fixtures/golden-impact');
 
 const SCENARIOS = [
   { name: 'impact-depth-1', target: 'ABC-200', depth: 1 as const },

@@ -1,2 +1,2 @@
-#!/usr/bin/env bun
-import('../dist/index.js').then(m => m.default ? m.default() : undefined);
+#!/usr/bin/env node
+import('../dist/index.js').then((m) => (m.default ? m.default() : undefined));

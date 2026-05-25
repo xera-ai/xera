@@ -1,7 +1,7 @@
-import { describe, expect, test } from 'bun:test';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { describe, expect, test } from 'vitest';
 import { loadConfig } from '../../src/config/load';
 
 const defineModulePath = resolve(__dirname, '../../src/config/define.ts');

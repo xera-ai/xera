@@ -21,7 +21,7 @@
     "templates"
   ],
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target bun --packages external",
+    "build": "tsup",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
