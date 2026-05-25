@@ -1,5 +1,19 @@
 # @xera-ai/cli
 
+## 0.18.0
+
+### Minor Changes
+
+- [#179](https://github.com/xera-ai/xera/pull/179) [`a21ca17`](https://github.com/xera-ai/xera/commit/a21ca17bff782443b22353af05c17961077101e2) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - generate features from OpenAPI (/xera-feature --from-spec) (auto-generated from [#179](https://github.com/xera-ai/xera/issues/179))
+
+- [#181](https://github.com/xera-ai/xera/pull/181) [`c650ca6`](https://github.com/xera-ai/xera/commit/c650ca6902520848e9d2ff0df41eb12b44b6fc47) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - scaffold consumer AGENTS.md on xera init (never clobber) (auto-generated from [#181](https://github.com/xera-ai/xera/issues/181))
+
+### Patch Changes
+
+- Updated dependencies [[`a21ca17`](https://github.com/xera-ai/xera/commit/a21ca17bff782443b22353af05c17961077101e2)]:
+  - @xera-ai/core@0.18.0
+  - @xera-ai/skills@0.18.0
+
 ## 0.17.2
 
 ### Patch Changes
