@@ -4,7 +4,7 @@
 
 **Goal:** Build a fixture web app (Next.js) and mock-Jira server for integration tests, wire up the E2E nightly workflow, write user-facing documentation, and cut the v0.1.0 release.
 
-**Architecture:** `fixtures/sample-app/` is a tiny Next.js app with login, dashboard, form pages — enough surface area to exercise auth-state refresh, POM reuse, classifier categories. A separate `fixtures/mock-jira/` is a single-file Bun HTTP server that responds with deterministic ticket JSON. The E2E workflow boots both, runs `xera init` + `/xera-run SAMPLE-001` and asserts pass.
+**Architecture:** `fixtures/sample-app/` is a tiny Next.js app with login, dashboard, form pages — enough surface area to exercise auth-state refresh, POM reuse, classifier categories. A separate `fixtures/mock-jira/` is a single-file node:http server that responds with deterministic ticket JSON. The E2E workflow boots both, runs `xera init` + `/xera-run SAMPLE-001` and asserts pass.
 
 **Prereqs:** Plans 01–04 complete.
 
@@ -184,7 +184,7 @@ export async function POST(req: Request) {
 - [x] **Step 7: Install + commit**
 
 ```bash
-cd fixtures/sample-app && bun install
+cd fixtures/sample-app && npm install
 cd ../..
 git add fixtures/sample-app
 git commit -m "fixtures: Next.js sample app with login + dashboard + protected route"
@@ -209,7 +209,7 @@ git commit -m "fixtures: Next.js sample app with login + dashboard + protected r
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "start": "bun run server.ts"
+    "start": "npm run server.ts"
   }
 }
 ```
@@ -233,6 +233,7 @@ function loadTicket(key: string): unknown | null {
 
 const comments: Array<{ key: string; body: unknown }> = [];
 
+// NOTE: current fixtures use node:http (createServer) — see fixtures/mock-*/server.ts
 Bun.serve({
   port: PORT,
   fetch(req) {
@@ -315,18 +316,18 @@ This test boots mock-jira + sample-app, runs `xera init`, then exercises `xera-i
 - [x] **Step 1: Write the test**
 
 ```ts
-import { describe, expect, test, beforeAll, afterAll } from 'bun:test';
+import { describe, expect, test, beforeAll, afterAll } from 'vitest';
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { spawn, type Subprocess } from 'bun';
+import { run } from './helpers';
 
-let mockJira: Subprocess | undefined;
-let sampleApp: Subprocess | undefined;
+let mockJira: Proc | undefined;
+let sampleApp: Proc | undefined;
 
 beforeAll(async () => {
-  mockJira = spawn(['bun', 'run', 'fixtures/mock-jira/server.ts'], { env: { ...process.env, MOCK_JIRA_PORT: '4322' } });
-  sampleApp = spawn(['bun', 'run', '--cwd', 'fixtures/sample-app', 'dev']);
+  mockJira = run(['npx', 'tsx', 'fixtures/mock-jira/server.ts'], { env: { ...process.env, MOCK_JIRA_PORT: '4322' } });
+  sampleApp = run(['npm', 'run', 'dev'], { cwd: 'fixtures/sample-app' });
   // Wait for both to come up
   for (let i = 0; i < 30; i++) {
     try {
@@ -349,7 +350,7 @@ describe('xera integration — init + fetch + exec + report', () => {
     const cwd = mkdtempSync(join(tmpdir(), 'xera-int-'));
 
     // 1. Run `xera init --yes`
-    const init = spawn(['bun', 'run', '--cwd', cwd, '../../packages/cli/bin/xera', 'init', '--yes'], { cwd });
+    const init = run(['node', '../../packages/cli/bin/xera', 'init', '--yes'], { cwd });
     expect(await init.exited).toBe(0);
     expect(existsSync(join(cwd, 'xera.config.ts'))).toBe(true);
     expect(existsSync(join(cwd, '.xera/SAMPLE-001/spec.ts'))).toBe(true);
@@ -386,7 +387,7 @@ describe('xera integration — init + fetch + exec + report', () => {
     `);
 
     // 4. Run xera-internal fetch SAMPLE-001 (uses mock-jira REST since no MCP)
-    const fetchProc = spawn(['bun', 'run', '--cwd', cwd, 'xera:fetch', 'SAMPLE-001'], { cwd });
+    const fetchProc = run(['npx', 'xera-internal', 'fetch', 'SAMPLE-001'], { cwd });
     expect(await fetchProc.exited).toBe(0);
     expect(existsSync(join(cwd, '.xera/SAMPLE-001/story.md'))).toBe(true);
 
@@ -422,13 +423,13 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-        with: { bun-version: '1.1.x' }
-      - run: bun install --frozen-lockfile
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm ci
       - name: Install Playwright browsers
-        run: bunx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium
       - name: Run integration tests
-        run: bun test packages/cli/test/integration
+        run: npx vitest run packages/cli/test/integration
       - name: Upload artifacts on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -467,14 +468,14 @@ AI-native test framework for QA teams — fetch a Jira ticket, generate Gherkin 
 
 ## Quickstart
 
-Prereqs: Bun ≥1.1.0, Claude Code, an Atlassian-connected MCP **or** a Jira API token, a web app to test.
+Prereqs: Node ≥22, Claude Code, an Atlassian-connected MCP **or** a Jira API token, a web app to test.
 
 ```bash
 mkdir my-tests && cd my-tests
-bunx xera init                  # answers ~5 prompts
+npx xera init                  # answers ~5 prompts
 cp .env.example .env            # fill in credentials
-bun install
-bunx playwright install chromium
+npm install
+npx playwright install chromium
 # Then open Claude Code in this directory:
 claude
 > /xera-run SAMPLE-001          # smoke test — runs against playwright.dev
@@ -693,7 +694,7 @@ https://id.atlassian.com/manage-profile/security/api-tokens
 JIRA_EMAIL=your-email@company.com
 JIRA_API_TOKEN=<paste-here>
 # Verify:
-bunx xera doctor
+npx xera doctor
 ```
 
 ## 2. `Atlassian MCP not connecting`
@@ -706,7 +707,7 @@ The MCP server isn't running in your Claude Code session. Either:
 ## 3. `Playwright browser not installed`
 
 ```bash
-bunx playwright install chromium
+npx playwright install chromium
 ```
 
 ## 4. `Web baseUrl unreachable`
@@ -726,14 +727,14 @@ The skill retries automatically. If it still fails, open `.xera/<TICKET>/test.fe
 
 ## 7. `Auth setupScript failing`
 
-The shared/auth-setup.ts couldn't log in. Most often: selectors changed in your login page. Edit it manually to match your current UI. Run `bun run xera:exec <TICKET>` to test in isolation.
+The shared/auth-setup.ts couldn't log in. Most often: selectors changed in your login page. Edit it manually to match your current UI. Run `npx xera-internal exec <TICKET>` to test in isolation.
 
 ## 8. `.lock file stale`
 
 Another xera run was killed mid-run. To force-clear:
 
 ```bash
-bunx xera-internal unlock <TICKET> --force
+npx xera-internal unlock <TICKET> --force
 ```
 
 ## 9. `Skill not found in Claude Code`
@@ -742,7 +743,7 @@ The `.claude/skills/` directory is missing or out of date.
 
 ```bash
 # In your project:
-bunx xera init --update
+npx xera init --update
 # Restart Claude Code to refresh skill discovery.
 ```
 
@@ -785,12 +786,12 @@ For the full spec see [the design doc](superpowers/specs/2026-05-14-xera-core-we
 
 ```
 End user (QA)
-  │ uses `bunx xera init` once
+  │ uses `npx xera init` once
   │ then `/xera-*` slash commands in Claude Code
   ▼
 Skills (`.claude/skills/xera-*.md`)
   │ tell the session LLM what to do
-  │ session LLM calls `bun run xera:*`
+  │ session LLM calls `npx xera-internal`
   ▼
 `xera-internal` binary (in @xera-ai/core)
   │ deterministic helpers only
@@ -855,11 +856,11 @@ gh repo create xera-ai/xera-starter --public --description "Template repo for xe
 cd /tmp && gh repo clone xera-ai/xera-starter && cd xera-starter
 ```
 
-- [x] **Step 2: Run `bunx xera init --yes` against an empty dir to produce the starter content**
+- [x] **Step 2: Run `npx xera init --yes` against an empty dir to produce the starter content**
 
 ```bash
 # (after publishing @xera-ai/cli to npm — see Task 13.6)
-bunx @xera-ai/cli init --yes
+npx @xera-ai/cli init --yes
 # Edit the generated files to be more generic templates:
 #  - xera.config.ts: leave placeholders like https://YOUR-WORKSPACE.atlassian.net
 #  - .env.example: blank values
@@ -884,11 +885,11 @@ gh repo edit xera-ai/xera-starter --template
 - [x] **Step 1: Pre-publish checks**
 
 ```bash
-bun install --frozen-lockfile
-bun run lint
-bun run typecheck
-bun test
-bun run --filter '*' build
+npm ci
+npm run lint
+npm run typecheck
+npx vitest run
+npm run --filter '*' build
 ```
 
 All must be green.
@@ -896,25 +897,25 @@ All must be green.
 - [x] **Step 2: Login to npm + dry-run publish (in order: core, web, cli, skills, prompts)**
 
 ```bash
-bunx npm login
+npx npm login
 # core depends on nothing internal
-bun publish --filter @xera-ai/core --dry-run
+npm publish --filter @xera-ai/core --dry-run
 # web depends on core
-bun publish --filter @xera-ai/web --dry-run
+npm publish --filter @xera-ai/web --dry-run
 # cli depends on core
-bun publish --filter @xera-ai/cli --dry-run
-bun publish --filter @xera-ai/skills --dry-run
-bun publish --filter @xera-ai/prompts --dry-run
+npm publish --filter @xera-ai/cli --dry-run
+npm publish --filter @xera-ai/skills --dry-run
+npm publish --filter @xera-ai/prompts --dry-run
 ```
 
 - [x] **Step 3: Real publish**
 
 ```bash
-bun publish --filter @xera-ai/core
-bun publish --filter @xera-ai/web
-bun publish --filter @xera-ai/cli
-bun publish --filter @xera-ai/skills
-bun publish --filter @xera-ai/prompts
+npm publish --filter @xera-ai/core
+npm publish --filter @xera-ai/web
+npm publish --filter @xera-ai/cli
+npm publish --filter @xera-ai/skills
+npm publish --filter @xera-ai/prompts
 ```
 
 - [x] **Step 4: Verify**
@@ -922,7 +923,7 @@ bun publish --filter @xera-ai/prompts
 ```bash
 # In a fresh tmp dir
 cd /tmp && mkdir t && cd t
-bunx xera init --yes
+npx xera init --yes
 ls -la
 # xera.config.ts, .xera/SAMPLE-001/, .claude/skills/* should all be present
 ```
@@ -954,7 +955,7 @@ xera is an AI-native test framework that lets QA teams generate, run, and diagno
 
 ## Highlights
 
-- Public CLI: `bunx xera init`, `bunx xera doctor`
+- Public CLI: `npx xera init`, `npx xera doctor`
 - Skills: `/xera-run`, `/xera-fetch`, `/xera-feature`, `/xera-script`, `/xera-exec`, `/xera-report`, `/xera-promote`
 - Web adapter: Playwright + auto Page Object generation + selector lint rules
 - Failure classifier: PASS / REAL_BUG / SELECTOR_DRIFT / FLAKY / TEST_BUG with confidence
@@ -965,7 +966,7 @@ xera is an AI-native test framework that lets QA teams generate, run, and diagno
 
 \`\`\`bash
 mkdir my-tests && cd my-tests
-bunx xera init
+npx xera init
 \`\`\`
 
 See the [README](https://github.com/xera-ai/xera#readme) for the full quickstart.
@@ -991,17 +992,17 @@ echo "v0.1.0 shipped"
 Final verification:
 
 ```bash
-bun run lint
-bun run typecheck
-bun test
-bunx xera doctor
+npm run lint
+npm run typecheck
+npx vitest run
+npx xera doctor
 ```
 
 In a fresh directory:
 
 ```bash
 mkdir /tmp/xera-smoke && cd /tmp/xera-smoke
-bunx xera@latest init
+npx xera@latest init
 # Open Claude Code → /xera-run SAMPLE-001 → green ✓
 ```
 

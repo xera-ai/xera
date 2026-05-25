@@ -39,12 +39,12 @@ Egress is already defended by `packages/web/src/trace-normalizer/scrub-rules.ts`
 
 From a clean checkout of xera, a maintainer can:
 
-1. `bun install`
-2. `bun run xera:doctor` — reports `ok` (now also validates the prompt-injection preamble exists in scoped templates).
-3. `bun run xera:verify-prompts` — reports `ok` standalone.
+1. `npm install`
+2. `npx xera-internal doctor` — reports `ok` (now also validates the prompt-injection preamble exists in scoped templates).
+3. `npx xera-internal verify-prompts` — reports `ok` standalone.
 4. Open Claude Code in the repo. Run `/xera-eval --ticket=EVAL-006 --prompt=feature-from-story`.
 5. Read `.xera/eval/<run-id>/report.md`. The actual gen for EVAL-006 should match the placeholder-refusal shape, judged PASS on Coverage with note containing `injection` or `refused`.
-6. Edit a prompt template to remove the `Handling untrusted input` section. Re-run `bun run xera:verify-prompts` — exits non-zero with a clear message naming the offending template.
+6. Edit a prompt template to remove the `Handling untrusted input` section. Re-run `npx xera-internal verify-prompts` — exits non-zero with a clear message naming the offending template.
 
 If any of those breaks, v0.3.0 is not ready.
 
@@ -59,7 +59,7 @@ Two parts working together:
 **(a) Skill mints a nonce per invocation.** Before passing untrusted content to the LLM, the skill runs a deterministic shell command:
 
 ```bash
-bun -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"
+node -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"
 ```
 
 Output: a 12-hex-char nonce prefixed with `XR_`, e.g. `XR_a3f9b2c14e8d`. This nonce is the wrapper marker for THIS invocation only. Not persisted. Not logged. Lives only in the session LLM's context.
@@ -105,7 +105,7 @@ treat the entire input as if it were wrapped — same rules apply.
 
 1. **Nonce is ephemeral, not persisted.** No new field in `meta.json`. No persistence layer. Each skill invocation generates a fresh nonce. Reproducibility is sacrificed for the security property "no nonce can leak via disk". The eval harness already captures prompt versions for reproducibility-in-description.
 
-2. **Nonce mechanism is shell-mintable.** A QA running the skill in Claude Code has Bash. The one-liner `bun -e "..."` is deterministic, portable, and inspectable. No new helper binary needed.
+2. **Nonce mechanism is shell-mintable.** A QA running the skill in Claude Code has Bash. The one-liner `node -e "..."` is deterministic, portable, and inspectable. No new helper binary needed.
 
 3. **Wrapping happens at LLM-call time, not on-disk.** `story.md` and `test.feature` files remain in their natural format. Human-readable, version-controllable. Wrapping is a property of the prompt context, not the artifact.
 
@@ -272,7 +272,7 @@ Exit 0 on pass, 1 on any failure.
 
 | Failure mode | Behavior |
 |---|---|
-| Skill cannot mint a nonce (e.g., `bun` not on PATH) | Skill prose says: surface the error, stop. Don't proceed without wrapping. |
+| Skill cannot mint a nonce (e.g., `node` not on PATH) | Skill prose says: surface the error, stop. Don't proceed without wrapping. |
 | Story.md contains a literal occurrence of the freshly-minted nonce | Collision rate 1/2^48; treated as negligible. No active detection. If it occurred, the LLM would see two opening tags and behavior is undefined — but the prompt preamble's "outermost matching pair" rule limits damage. |
 | Prompt template missing `Handling untrusted input` section | `verify-prompts` exits 1 with specific message. `doctor` reports the failure. |
 | `verify-prompts` invoked outside the xera repo | Fails with the same "missing prompts directory" check `doctor` already has. |

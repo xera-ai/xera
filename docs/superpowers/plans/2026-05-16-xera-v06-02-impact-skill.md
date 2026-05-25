@@ -6,13 +6,13 @@
 
 **Architecture:** New module `packages/core/src/graph/impact.ts` exposes pure data functions: `walkImpact(graph, target, opts)` (BFS over edges) and `riskScore(impact)` (weighted sum). New `bin-internal/impact-prepare.ts` wraps this in CLI: reads graph snapshot, computes impact list, writes both human-readable `.xera/impact/<TICKET>.md` and machine-readable `.xera/impact/<TICKET>.json`. New skill `packages/skills/xera-impact.md` orchestrates the user-facing flow (snapshot check → impact-prepare → display + 4-way prompt → optional re-run via existing `/xera-exec`). Existing `xera-run.md` skill extended to auto-call impact-prepare with a quiet mode after fetch — if the threshold is exceeded, prompt user to re-run impacted scenarios first. New `RunSchema` in config adds `xera.config.run.autoImpact` settings.
 
-**Tech Stack:** Bun runtime, TypeScript strict (`exactOptionalPropertyTypes` + `noUncheckedIndexedAccess`), zod 4.4.3, `bun:test`, markdown-driven skills.
+**Tech Stack:** Node runtime, TypeScript strict (`exactOptionalPropertyTypes` + `noUncheckedIndexedAccess`), zod 4.4.3, `vitest`, markdown-driven skills.
 
 **Spec:** `docs/superpowers/specs/2026-05-16-xera-v06-project-knowledge-graph-design.md` §6 (`/xera-impact` design), §11.1 (auto-trigger in `/xera-run`)
 
 **Builds on:** v0.6.0 + v0.6.1 (PR #11 + PR #13 merged) — graph foundation, TEST_OUTDATED classifier.
 
-**Scope decision:** The `xera:exec --from-impact <TICKET>` flag (mentioned in spec §6.4) is implemented at the **skill layer**, not as a new bin-internal subcommand. The `/xera-impact` skill `.md` reads `.xera/impact/<TICKET>.json`, groups impacted scenarios by their owner ticket, then iterates calling the existing `bun run xera:exec <owner-ticket>` for each. This keeps `bin-internal/exec.ts` unchanged and confines orchestration logic to skills. Documented in Task 6 (skill flow).
+**Scope decision:** The `xera:exec --from-impact <TICKET>` flag (mentioned in spec §6.4) is implemented at the **skill layer**, not as a new bin-internal subcommand. The `/xera-impact` skill `.md` reads `.xera/impact/<TICKET>.json`, groups impacted scenarios by their owner ticket, then iterates calling the existing `npx xera-internal exec <owner-ticket>` for each. This keeps `bin-internal/exec.ts` unchanged and confines orchestration logic to skills. Documented in Task 6 (skill flow).
 
 ---
 
@@ -38,7 +38,7 @@
   2. Run `xera-internal impact-prepare <TICKET>` with passed flags
   3. Display top-3 from `.xera/impact/<TICKET>.json`
   4. 4-way prompt: `[Y]es / [p] P0 only / [s]elect / [n]o`
-  5. On Y/p/s: read JSON, group by owner ticket, iterate `bun run xera:exec <owner-ticket>` for each
+  5. On Y/p/s: read JSON, group by owner ticket, iterate `npx xera-internal exec <owner-ticket>` for each
   6. After exec, recommend `/xera-report <TICKET>` for TEST_OUTDATED classification
 - `xera-run.md` — MODIFIED. Insert new step between `/xera-fetch` and `/xera-script`: auto-call `xera:impact-prepare <TICKET> --quiet`, count high-risk scenarios from JSON; if ≥1 above config threshold, prompt user.
 
@@ -81,7 +81,7 @@
 Create `packages/core/test/graph/impact.test.ts`:
 
 ```typescript
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { riskScore } from '../../src/graph/impact';
 import type { ImpactScenario } from '../../src/graph/impact';
 
@@ -147,7 +147,7 @@ describe('riskScore', () => {
 
 - [ ] **Step 2: Run to fail**
 
-Run: `cd /home/user/xera/packages/core && bun test test/graph/impact.test.ts`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/graph/impact.test.ts`
 Expected: FAIL — cannot import.
 
 - [ ] **Step 3: Implement initial `impact.ts`**
@@ -225,7 +225,7 @@ export function riskScore(scenario: ImpactScenario, daysSinceLastPass: number): 
 
 - [ ] **Step 4: Run tests, verify pass**
 
-Run: `cd /home/user/xera/packages/core && bun test test/graph/impact.test.ts`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/graph/impact.test.ts`
 Expected: PASS (6 tests).
 
 - [ ] **Step 5: Commit**
@@ -366,7 +366,7 @@ describe('walkImpact', () => {
 
 - [ ] **Step 2: Run to fail**
 
-Run: `cd /home/user/xera/packages/core && bun test test/graph/impact.test.ts -t walkImpact`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/graph/impact.test.ts -t walkImpact`
 Expected: FAIL — cannot import `walkImpact`.
 
 - [ ] **Step 3: Implement `walkImpact`**
@@ -489,7 +489,7 @@ function daysSince(ts: string | undefined): number {
 
 - [ ] **Step 4: Run tests, verify pass**
 
-Run: `cd /home/user/xera/packages/core && bun test test/graph/impact.test.ts && bun run typecheck`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/graph/impact.test.ts && npm run typecheck`
 Expected: 12 tests pass (6 riskScore + 6 walkImpact); typecheck clean.
 
 - [ ] **Step 5: Commit**
@@ -556,7 +556,7 @@ describe('renderImpactMarkdown', () => {
 
 - [ ] **Step 2: Run to fail**
 
-Run: `cd /home/user/xera/packages/core && bun test test/graph/impact.test.ts -t renderImpactMarkdown`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/graph/impact.test.ts -t renderImpactMarkdown`
 Expected: FAIL.
 
 - [ ] **Step 3: Implement `renderImpactMarkdown`**
@@ -614,9 +614,9 @@ export function renderImpactMarkdown(report: ImpactReport): string {
   }
 
   lines.push('## Re-run commands');
-  lines.push('- All:        `bun run xera:exec --from-impact ' + report.targetTicket + '`');
-  lines.push('- P0 only:    `bun run xera:exec --from-impact ' + report.targetTicket + ' --min-priority p0`');
-  lines.push('- Select:     `bun run xera:exec --from-impact ' + report.targetTicket + ' --select`');
+  lines.push('- All:        `npx xera-internal exec --from-impact ' + report.targetTicket + '`');
+  lines.push('- P0 only:    `npx xera-internal exec --from-impact ' + report.targetTicket + ' --min-priority p0`');
+  lines.push('- Select:     `npx xera-internal exec --from-impact ' + report.targetTicket + ' --select`');
   lines.push('');
 
   return lines.join('\n');
@@ -643,7 +643,7 @@ export type {
 
 - [ ] **Step 5: Run tests, verify pass**
 
-Run: `cd /home/user/xera/packages/core && bun test test/graph/impact.test.ts && bun run typecheck`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/graph/impact.test.ts && npm run typecheck`
 Expected: 14 tests pass; typecheck clean.
 
 - [ ] **Step 6: Commit**
@@ -669,7 +669,7 @@ git commit -m "core: add renderImpactMarkdown + impact barrel exports (v0.6.2)"
 Create `packages/core/test/bin-internal/impact-prepare.test.ts`:
 
 ```typescript
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -804,7 +804,7 @@ describe('impact-prepare', () => {
 
 - [ ] **Step 2: Run to fail**
 
-Run: `cd /home/user/xera/packages/core && bun test test/bin-internal/impact-prepare.test.ts`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/bin-internal/impact-prepare.test.ts`
 Expected: FAIL — cannot import.
 
 - [ ] **Step 3: Implement `impact-prepare.ts`**
@@ -888,7 +888,7 @@ import { impactPrepareCmd } from './impact-prepare';
 
 - [ ] **Step 5: Run tests, verify pass**
 
-Run: `cd /home/user/xera/packages/core && bun test test/bin-internal/impact-prepare.test.ts && bun run typecheck`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/bin-internal/impact-prepare.test.ts && npm run typecheck`
 Expected: 6 tests pass; typecheck clean.
 
 - [ ] **Step 6: Commit**
@@ -919,7 +919,7 @@ For each fixture under `fixtures/golden-impact/`:
 
 Generate ULIDs via:
 ```bash
-cd /home/user/xera/packages/core && bun -e "import { ulid } from './src/graph/ulid'; console.log(ulid())"
+cd /home/user/xera/packages/core && node -e "import { ulid } from './src/graph/ulid'; console.log(ulid())"
 ```
 
 **`impact-depth-1/`**
@@ -944,7 +944,7 @@ cd /home/user/xera/packages/core && bun -e "import { ulid } from './src/graph/ul
 Create `packages/core/test/graph/impact-golden.test.ts`:
 
 ```typescript
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { cpSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -983,7 +983,7 @@ describe('impact golden fixtures', () => {
 
 - [ ] **Step 3: Run tests**
 
-Run: `cd /home/user/xera/packages/core && bun test test/graph/impact-golden.test.ts`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/graph/impact-golden.test.ts`
 Expected: 3 tests pass.
 
 - [ ] **Step 4: Commit**
@@ -1019,7 +1019,7 @@ This skill walks the project knowledge graph (`.xera/graph/`) to find scenarios 
 Run:
 
 ```bash
-bun run xera:graph-snapshot --check
+npx xera-internal graph-snapshot --check
 ```
 
 If stale, the subcommand auto-rebuilds. If `<TICKET>` is not in the graph, this step will succeed but Step 2 will exit with code 2 — that means you must run `/xera-fetch {{TICKET}}` first.
@@ -1029,7 +1029,7 @@ If stale, the subcommand auto-rebuilds. If `<TICKET>` is not in the graph, this 
 Run:
 
 ```bash
-bun run xera:impact-prepare {{TICKET}} [--depth N] [--min-priority P]
+npx xera-internal impact-prepare {{TICKET}} [--depth N] [--min-priority P]
 ```
 
 Pass through any flags the user provided. On exit code 2, surface: *"Ticket {{TICKET}} not in graph — run `/xera-fetch {{TICKET}}` first"* and STOP.
@@ -1067,7 +1067,7 @@ Ask the user: `Re-run impacted scenarios?  [Y]es / [p] P0 only / [s]elect / [n]o
 
 - **[n]:** STOP. The user can inspect `.xera/impact/{{TICKET}}.md` separately.
 
-- **[Y]:** Group impacted scenarios by their owner ticket (`scenario.ticketId`). For each owner ticket, invoke `bun run xera:exec <owner-ticket>` (the existing exec subcommand). Collect the `RUN_ID` from each. Note: this re-runs the ENTIRE spec for each impacted owner, not just the impacted scenarios — Playwright doesn't natively support per-test selection from a json list without test-name regex. Acceptable for v0.6.2; precise per-scenario selection is a v0.6.x patch.
+- **[Y]:** Group impacted scenarios by their owner ticket (`scenario.ticketId`). For each owner ticket, invoke `npx xera-internal exec <owner-ticket>` (the existing exec subcommand). Collect the `RUN_ID` from each. Note: this re-runs the ENTIRE spec for each impacted owner, not just the impacted scenarios — Playwright doesn't natively support per-test selection from a json list without test-name regex. Acceptable for v0.6.2; precise per-scenario selection is a v0.6.x patch.
 
 - **[p]:** Filter `scenarios` array to `priority === 'p0'` only, then proceed as [Y].
 
@@ -1132,7 +1132,7 @@ Read `xera.config.run.autoImpact` (defaults: `{ enabled: true, threshold: 6.0 }`
 Run:
 
 ```bash
-bun run xera:impact-prepare {{TICKET}} --quiet
+npx xera-internal impact-prepare {{TICKET}} --quiet
 ```
 
 This writes `.xera/impact/{{TICKET}}.json` (no markdown). Exit code 2 means the ticket is not yet in graph — surface a warning and proceed (graph data only accumulates over time).
@@ -1146,7 +1146,7 @@ If ≥1 high-risk scenario, prompt the user:
 Re-run them before generating the new script? [Y/n/details]
 ```
 
-- **[Y]:** Iterate `bun run xera:exec <owner-ticket>` for each unique owner ticket. After each, check status; if all pass, continue to Step 2. If any fail, surface the failure and STOP — the user should diagnose existing-test breakage before introducing more changes.
+- **[Y]:** Iterate `npx xera-internal exec <owner-ticket>` for each unique owner ticket. After each, check status; if all pass, continue to Step 2. If any fail, surface the failure and STOP — the user should diagnose existing-test breakage before introducing more changes.
 - **[n]:** Continue to Step 2.
 - **[details]:** Suggest the user run `/xera-impact {{TICKET}}` interactively for full details, then ask again.
 
@@ -1190,7 +1190,7 @@ ls /home/user/xera/packages/core/test/config/ 2>/dev/null || echo "no test dir"
 If no test dir exists, create `packages/core/test/config/schema.test.ts`:
 
 ```typescript
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { XeraConfigSchema } from '../../src/config/schema';
 
 const MIN_VALID = {
@@ -1239,7 +1239,7 @@ describe('XeraConfigSchema run.autoImpact', () => {
 
 - [ ] **Step 3: Run to fail**
 
-Run: `cd /home/user/xera/packages/core && bun test test/config/schema.test.ts`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/config/schema.test.ts`
 Expected: FAIL — `run.autoImpact` doesn't exist yet.
 
 - [ ] **Step 4: Add `RunSchema` to `schema.ts`**
@@ -1270,7 +1270,7 @@ export const XeraConfigSchema = z.object({
 
 - [ ] **Step 5: Run tests, verify pass**
 
-Run: `cd /home/user/xera/packages/core && bun test test/config/schema.test.ts && bun run typecheck`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/config/schema.test.ts && npm run typecheck`
 Expected: 4 tests pass; typecheck clean.
 
 - [ ] **Step 6: Commit**
@@ -1363,7 +1363,7 @@ If `/xera-impact` returns >50 scenarios, the markdown report shows the top 20 by
 If `/xera-impact` returns no scenarios even though there should be coverage:
 
 1. Run `xera doctor` to confirm the graph is up-to-date
-2. Run `bun run xera:graph-query --ticket <TICKET>` to verify the ticket has `modifies` edges
+2. Run `npx xera-internal graph-query --ticket <TICKET>` to verify the ticket has `modifies` edges
 3. If the ticket has no `modifies` edges, re-fetch: `/xera-fetch <TICKET>` (the v0.6.0 `extract-areas.md` prompt populates them at fetch time)
 ```
 
@@ -1384,17 +1384,17 @@ git commit -m "release: bump versions to v0.6.2 + autoImpact config + impact doc
 
 - [ ] **Step 1: Lint**
 
-Run: `cd /home/user/xera && bun run lint`
-Expected: zero errors. If errors, run `bun run lint:fix` and commit `chore: lint fixes for v0.6.2`.
+Run: `cd /home/user/xera && npm run lint`
+Expected: zero errors. If errors, run `npm run lint:fix` and commit `chore: lint fixes for v0.6.2`.
 
 - [ ] **Step 2: Typecheck**
 
-Run: `cd /home/user/xera && bun run typecheck`
+Run: `cd /home/user/xera && npm run typecheck`
 Expected: zero errors across all 3 packages.
 
 - [ ] **Step 3: All tests**
 
-Run: `cd /home/user/xera && bun test`
+Run: `cd /home/user/xera && npx vitest run`
 Expected: all unit tests pass. Pre-existing `init-and-run` integration test still fails (live-server requirement) — that's expected.
 
 - [ ] **Step 4: Verify graph subcommand registration**
@@ -1417,7 +1417,7 @@ Expected: ≥ 1.
 
 ```bash
 cd /tmp && rm -rf v062test && mkdir v062test && cd v062test
-bunx --bun /home/user/xera/packages/cli/dist/index.js init --yes 2>&1 || echo "CLI not built — skip"
+node /home/user/xera/packages/cli/dist/index.js init --yes 2>&1 || echo "CLI not built — skip"
 ```
 
 - [ ] **Step 8: If fixups needed, commit**

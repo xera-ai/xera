@@ -8,7 +8,7 @@
 
 **Architecture:** Config block validated by Zod (`.prefault({})` style, parsed in `loadConfig`). Binary follows `impact-prepare.ts` exactly: `xxxCmd(argv: string[]): Promise<number>` signature, imports from `@xera-ai/core` (Plan 01 barrel) + `deriveSnapshot(loadAllEvents(repoRoot))`, writes JSON + markdown via `node:fs`, emits event via `appendEvents` helper. Subcommand is registered in `bin-internal/index.ts` `COMMANDS` map. Skill .md mirrors `xera-impact.md` frontmatter shape (just `name` + `description`). Doctor checks live in `packages/cli/src/checks.ts` `runChecks` function.
 
-**Tech Stack:** TypeScript, `bun:test`, Zod.
+**Tech Stack:** TypeScript, `vitest`, Zod.
 
 **Prereqs:** Plan 01 complete (`@xera-ai/core/coverage` barrel exists and exports `CoverageConfig`, `DEFAULT_COVERAGE_CONFIG`, `buildCoverageReport`, `renderMarkdown`, `buildWhyArea`, `buildWhyTicket`). The following v0.6 helpers are also used:
 
@@ -47,7 +47,7 @@
 - [ ] **Step 1: Write the failing test**
 
 ```ts
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect } from 'vitest';
 import { XeraConfigSchema } from '../../src/config/schema';
 
 function validBase() {
@@ -112,7 +112,7 @@ describe('XeraConfigSchema.coverage', () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/core && bun test test/config/schema.test.ts
+cd packages/core && npx vitest run test/config/schema.test.ts
 ```
 
 Expected: `coverage` undefined on parsed object.
@@ -152,7 +152,7 @@ export const XeraConfigSchema = z
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/core && bun test test/config/schema.test.ts
+cd packages/core && npx vitest run test/config/schema.test.ts
 ```
 
 Expected: 4 passes + existing tests still green.
@@ -178,7 +178,7 @@ git commit -m "feat(core): add coverage block to XeraConfigSchema"
 - [ ] **Step 1: Write the failing test**
 
 ```ts
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect } from 'vitest';
 import { coveragePrepareCmd } from '../../src/bin-internal/coverage-prepare';
 
 describe('coverage-prepare subcommand', () => {
@@ -193,7 +193,7 @@ describe('coverage-prepare subcommand', () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/core && bun test test/bin-internal/coverage-prepare.test.ts
+cd packages/core && npx vitest run test/bin-internal/coverage-prepare.test.ts
 ```
 
 Expected: module not found.
@@ -224,7 +224,7 @@ const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/core && bun test test/bin-internal/coverage-prepare.test.ts
+cd packages/core && npx vitest run test/bin-internal/coverage-prepare.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -294,7 +294,7 @@ Note: this test calls `process.chdir(dir)` then restores in `finally`. CLAUDE.md
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/core && bun test test/bin-internal/coverage-prepare.test.ts
+cd packages/core && npx vitest run test/bin-internal/coverage-prepare.test.ts
 ```
 
 Expected: returns 4 / "not implemented".
@@ -377,7 +377,7 @@ export async function coveragePrepareCmd(argv: string[]): Promise<number> {
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/core && bun test test/bin-internal/coverage-prepare.test.ts
+cd packages/core && npx vitest run test/bin-internal/coverage-prepare.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -485,7 +485,7 @@ test('--why <ticket-id> prints ticket drill-down', async () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/core && bun test test/bin-internal/coverage-prepare.test.ts
+cd packages/core && npx vitest run test/bin-internal/coverage-prepare.test.ts
 ```
 
 - [ ] **Step 3: Implement `--why` dispatch**
@@ -510,7 +510,7 @@ if (args.why) {
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/core && bun test test/bin-internal/coverage-prepare.test.ts
+cd packages/core && npx vitest run test/bin-internal/coverage-prepare.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -611,7 +611,7 @@ test('does NOT emit when --json (machine-readable mode)', async () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/core && bun test test/bin-internal/coverage-prepare.test.ts
+cd packages/core && npx vitest run test/bin-internal/coverage-prepare.test.ts
 ```
 
 - [ ] **Step 3: Implement event emission**
@@ -652,7 +652,7 @@ Also: the existing code path that handles `--why` and `--json` must return BEFOR
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/core && bun test test/bin-internal/coverage-prepare.test.ts
+cd packages/core && npx vitest run test/bin-internal/coverage-prepare.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -762,7 +762,7 @@ test('default (no --all) shows collapsed COVERED line', async () => {
 - [ ] **Step 2: Verify failure** (should be PASS already after Task 12.2 wired the flag)
 
 ```bash
-cd packages/core && bun test test/bin-internal/coverage-prepare.test.ts
+cd packages/core && npx vitest run test/bin-internal/coverage-prepare.test.ts
 ```
 
 If both PASS without further changes, skip to Step 5. If they fail, investigate — `args.all` may not be flowing through to `RenderOptions`.
@@ -814,7 +814,7 @@ And STOP.
 Pass through the user's flags:
 
 ```bash
-bun run xera:coverage-prepare [--why <id>] [--all] [--json] [--no-emit-event]
+npx xera-internal coverage-prepare [--why <id>] [--all] [--json] [--no-emit-event]
 ```
 
 Flag handling:
@@ -854,7 +854,7 @@ HTML viewer for coverage is planned for v0.8.1.
 For now, the report.md above is the full output.
 ```
 
-(Plan 04 will wire `--viewer` through to `bun run xera:graph-render --include-coverage`.)
+(Plan 04 will wire `--viewer` through to `npx xera-internal graph-render --include-coverage`.)
 
 ## Step 6 — Print next-step hints
 
@@ -883,7 +883,7 @@ ls packages/skills/xera-coverage.md
 - [ ] **Step 3: Verify with `xera:verify-prompts` (if it inspects skills)**
 
 ```bash
-bun run xera:verify-prompts
+npx xera-internal verify-prompts
 ```
 
 Expected: existing in-scope prompt count unchanged (skills are separate; `map-ac-to-scenarios.md` lands in Plan 03). No errors.
@@ -908,7 +908,7 @@ git commit -m "feat(skills): add xera-coverage skill (v0.8.0 Plan 02)"
 - [ ] **Step 1: Write the failing test**
 
 ```ts
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -960,7 +960,7 @@ describe('runChecks coverage warnings', () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/cli && bun test test/checks.test.ts
+cd packages/cli && npx vitest run test/checks.test.ts
 ```
 
 - [ ] **Step 3: Implement check**
@@ -981,7 +981,7 @@ if (cfg.coverage.staleAfterDays > 90) {
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/cli && bun test test/checks.test.ts
+cd packages/cli && npx vitest run test/checks.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -1054,7 +1054,7 @@ test('no warning when all criticalAreas exist in snapshot', async () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/cli && bun test test/checks.test.ts
+cd packages/cli && npx vitest run test/checks.test.ts
 ```
 
 - [ ] **Step 3: Implement**
@@ -1090,7 +1090,7 @@ if (existsSync(snapPath) && cfg.coverage.criticalAreas.length > 0) {
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/cli && bun test test/checks.test.ts
+cd packages/cli && npx vitest run test/checks.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -1145,7 +1145,7 @@ test('warns when ticket has acs but no ACNode (snapshot stale)', async () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/cli && bun test test/checks.test.ts
+cd packages/cli && npx vitest run test/checks.test.ts
 ```
 
 - [ ] **Step 3: Implement**
@@ -1182,7 +1182,7 @@ if (existsSync(snapPath)) {
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/cli && bun test test/checks.test.ts
+cd packages/cli && npx vitest run test/checks.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -1204,7 +1204,7 @@ git commit -m "feat(cli): doctor warns when ACNodes not materialized for tickets
 - [ ] **Step 1: Write the failing test**
 
 ```ts
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, copyFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
@@ -1287,7 +1287,7 @@ describe('coverage-prepare against golden fixtures', () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/core && bun test test/bin-internal/coverage-prepare-golden.test.ts
+cd packages/core && npx vitest run test/bin-internal/coverage-prepare-golden.test.ts
 ```
 
 Expected: unknown flag `--snapshot-file` OR (if the flag is silently ignored) report has empty areas because `loadAllEvents` returns empty events.
@@ -1333,7 +1333,7 @@ This `--snapshot-file` flag is intended for tests and rare diagnostic use. The s
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/core && bun test test/bin-internal/coverage-prepare-golden.test.ts
+cd packages/core && npx vitest run test/bin-internal/coverage-prepare-golden.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -1355,7 +1355,7 @@ This task is non-automated. Documenting the recipe so the engineer can reproduce
 
 ```bash
 cd /tmp && rm -rf xera-coverage-smoke && mkdir xera-coverage-smoke && cd xera-coverage-smoke
-bunx @xera-ai/cli init --yes --shape web
+npx @xera-ai/cli init --yes --shape web
 ```
 
 - [ ] **Step 2: Seed a snapshot from the `mixed.json` golden fixture**
@@ -1376,7 +1376,7 @@ coverage: { criticalAreas: ['checkout'] },
 - [ ] **Step 4: Run the binary directly using the snapshot file**
 
 ```bash
-bun run xera:coverage-prepare --snapshot-ts 2026-05-17T10:00:00.000Z --no-emit-event --snapshot-file .xera/graph/snapshot.json
+npx xera-internal coverage-prepare --snapshot-ts 2026-05-17T10:00:00.000Z --no-emit-event --snapshot-file .xera/graph/snapshot.json
 cat .xera/coverage/report.md
 ```
 
@@ -1385,7 +1385,7 @@ Expected: UNCOVERED `checkout` at risk 2 (critical ×2), STALE `search`, COVERED
 - [ ] **Step 5: `--why checkout`**
 
 ```bash
-bun run xera:coverage-prepare --snapshot-ts 2026-05-17T10:00:00.000Z --no-emit-event --snapshot-file .xera/graph/snapshot.json --why checkout
+npx xera-internal coverage-prepare --snapshot-ts 2026-05-17T10:00:00.000Z --no-emit-event --snapshot-file .xera/graph/snapshot.json --why checkout
 ```
 
 Expected: formula expansion `1 × 2 + 0 = 2` + ticket list.
@@ -1393,7 +1393,7 @@ Expected: formula expansion `1 × 2 + 0 = 2` + ticket list.
 - [ ] **Step 6: `--why PROJ-101`**
 
 ```bash
-bun run xera:coverage-prepare --snapshot-ts 2026-05-17T10:00:00.000Z --no-emit-event --snapshot-file .xera/graph/snapshot.json --why PROJ-101
+npx xera-internal coverage-prepare --snapshot-ts 2026-05-17T10:00:00.000Z --no-emit-event --snapshot-file .xera/graph/snapshot.json --why PROJ-101
 ```
 
 Expected: AC list with ✗ markers + next-step hint.
@@ -1403,7 +1403,7 @@ Expected: AC list with ✗ markers + next-step hint.
 Remove `--snapshot-file` and `--no-emit-event`:
 
 ```bash
-bun run xera:coverage-prepare --snapshot-ts 2026-05-17T10:00:00.000Z
+npx xera-internal coverage-prepare --snapshot-ts 2026-05-17T10:00:00.000Z
 ls .xera/graph/events/2026-05/
 ```
 
@@ -1411,10 +1411,10 @@ Expected: a `<ULID>-coverage-session.jsonl` file present. Inspect content; shoul
 
 (With no real events, the snapshot will be empty — so the report content is mostly empty. The event emission is what we're verifying.)
 
-- [ ] **Step 8: Run `bunx @xera-ai/cli doctor`**
+- [ ] **Step 8: Run `npx @xera-ai/cli doctor`**
 
 ```bash
-bunx @xera-ai/cli doctor
+npx @xera-ai/cli doctor
 ```
 
 Expected: green for everything except possibly the `criticalArea "checkout"` check (the seeded snapshot may now be empty after Step 7's overwrite — re-seed if needed).
@@ -1440,7 +1440,7 @@ git commit -am "chore(core): coverage-prepare smoke-test fix-ups"
 - [ ] **Step 1: Typecheck**
 
 ```bash
-cd /home/user/xera && bun run typecheck
+cd /home/user/xera && npm run typecheck
 ```
 
 Expected: no errors.
@@ -1448,7 +1448,7 @@ Expected: no errors.
 - [ ] **Step 2: Full test suite**
 
 ```bash
-cd /home/user/xera && bun test
+cd /home/user/xera && npx vitest run
 ```
 
 Expected: all green — Plans 01 + 02 tests + no v0.6/v0.7 regressions.
@@ -1456,7 +1456,7 @@ Expected: all green — Plans 01 + 02 tests + no v0.6/v0.7 regressions.
 - [ ] **Step 3: verify-prompts**
 
 ```bash
-bun run xera:verify-prompts
+npx xera-internal verify-prompts
 ```
 
 Expected: existing in-scope prompts pass (Plan 03 adds `map-ac-to-scenarios.md`; not in this plan).
@@ -1479,7 +1479,7 @@ End state of Plan 02 (revised):
 
 What works after Plan 02:
 
-- `bun run xera:coverage-prepare` produces a coverage report from real graph events
+- `npx xera-internal coverage-prepare` produces a coverage report from real graph events
 - `/xera-coverage` skill prints the report; `--why` drill-down works; `--json` machine output works; `--all` reveals COVERED
 - `coverage.snapshot` events accumulate in `.xera/graph/events/` for Plan 04 (Trend tab)
 - Doctor surfaces config + snapshot health

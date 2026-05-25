@@ -6,7 +6,7 @@
 
 **Architecture:** Three independent phases. Phase 0 is a pure file move with adversarial tests carried over. Phase 1 adds a top-level optional block + a refinement ensuring at least one of `web`/`http` is present. Phase 2 adds rule files under `packages/core/src/classifier/` that the existing `classify()` driver applies in priority order before falling through to the existing 5 buckets.
 
-**Prereqs:** v0.6 codebase clean. `bun install && bun test` green.
+**Prereqs:** v0.6 codebase clean. `npm install && npx vitest run` green.
 
 ---
 
@@ -62,7 +62,7 @@ export function scrubBody(body: unknown): unknown {
 
 ```ts
 // packages/core/test/scrub/scrub.test.ts
-import { test, expect } from 'bun:test';
+import { test, expect } from 'vitest';
 import { scrubBody, scrubHeaders, scrubString } from '../../src/scrub';
 
 test('scrubHeaders masks Authorization', () => {
@@ -90,7 +90,7 @@ test('scrubBody handles arrays', () => {
 
 - [ ] **Step 4: Run tests, verify pass**
 
-Run: `cd packages/core && bun test test/scrub/`
+Run: `cd packages/core && npx vitest run test/scrub/`
 Expected: 4 passing tests.
 
 - [ ] **Step 5: Commit**
@@ -117,7 +117,7 @@ export { scrubBody, scrubHeaders, scrubString, HEADER_BLACKLIST, BODY_PATTERNS }
 
 - [ ] **Step 2: Run typecheck**
 
-Run: `cd packages/core && bun run typecheck`
+Run: `cd packages/core && npm run typecheck`
 Expected: no errors.
 
 - [ ] **Step 3: Commit**
@@ -161,8 +161,8 @@ Check `packages/web/test/trace-normalizer/scrub.test.ts`. If it has tests that a
 - [ ] **Step 4: Run both package tests**
 
 ```bash
-cd packages/web && bun test
-cd ../core && bun test
+cd packages/web && npx vitest run
+cd ../core && npx vitest run
 ```
 Expected: all green, scrub coverage intact.
 
@@ -188,7 +188,7 @@ git commit -m "web: delete scrub-rules, import from core"
 Add to `packages/core/test/config/schema.test.ts`:
 
 ```ts
-import { test, expect } from 'bun:test';
+import { test, expect } from 'vitest';
 import { XeraConfigSchema } from '../../src/config/schema';
 
 test('http block validates with bearer strategy and roles', () => {
@@ -219,7 +219,7 @@ test('http block rejects defaultEnv not in baseUrl', () => {
 
 - [ ] **Step 2: Run, verify fail**
 
-Run: `cd packages/core && bun test test/config/schema.test.ts`
+Run: `cd packages/core && npx vitest run test/config/schema.test.ts`
 Expected: fail with "Cannot read properties of undefined (reading 'auth')" or "http" key not allowed.
 
 - [ ] **Step 3: Implement schemas in `packages/core/src/config/schema.ts`**
@@ -261,7 +261,7 @@ const HttpSchema = z
 
 - [ ] **Step 4: Run test, verify pass**
 
-Run: `cd packages/core && bun test test/config/schema.test.ts`
+Run: `cd packages/core && npx vitest run test/config/schema.test.ts`
 Expected: 2 new tests pass.
 
 - [ ] **Step 5: Commit**
@@ -312,7 +312,7 @@ test('config rejects when adapters references unconfigured adapter', () => {
 
 - [ ] **Step 2: Run, verify fail**
 
-Run: `cd packages/core && bun test test/config/schema.test.ts`
+Run: `cd packages/core && npx vitest run test/config/schema.test.ts`
 Expected: 3 failures.
 
 - [ ] **Step 3: Update the top-level schema**
@@ -341,12 +341,12 @@ export const XeraConfigSchema = z
 
 - [ ] **Step 4: Run, verify pass**
 
-Run: `cd packages/core && bun test test/config/schema.test.ts`
+Run: `cd packages/core && npx vitest run test/config/schema.test.ts`
 Expected: all green.
 
 - [ ] **Step 5: Run full core suite to catch regressions**
 
-Run: `cd packages/core && bun test`
+Run: `cd packages/core && npx vitest run`
 Expected: all green.
 
 - [ ] **Step 6: Commit**
@@ -373,7 +373,7 @@ Wherever the loader reads `config.web.X`, guard with `if (config.web !== undefin
 
 - [ ] **Step 3: Run core tests**
 
-Run: `cd packages/core && bun test`
+Run: `cd packages/core && npx vitest run`
 Expected: green.
 
 - [ ] **Step 4: Commit** (only if there were changes)
@@ -403,7 +403,7 @@ Run: `grep -n "Classification" packages/core/src/artifact/status.ts packages/cor
 In `packages/core/test/classifier/types.test.ts` (create if missing):
 
 ```ts
-import { test, expect } from 'bun:test';
+import { test, expect } from 'vitest';
 import type { Classification } from '../../src/artifact/status';
 
 const all: Classification[] = [
@@ -420,7 +420,7 @@ test('Classification enum includes v0.7 buckets', () => {
 
 - [ ] **Step 3: Run, verify fail**
 
-Run: `cd packages/core && bun test test/classifier/types.test.ts`
+Run: `cd packages/core && npx vitest run test/classifier/types.test.ts`
 Expected: compile error — the new values aren't valid `Classification`.
 
 - [ ] **Step 4: Extend the union type**
@@ -444,12 +444,12 @@ Search for any zod enum that mirrors this and update it too: `grep -rn "z.enum(\
 
 - [ ] **Step 5: Run typecheck across workspace**
 
-Run: `bun run typecheck`
+Run: `npm run typecheck`
 Expected: no errors. If any exhaustive `switch (cls)` exists, it will fail to compile — add the new cases (initially returning the same fallthrough as `FAIL` or default).
 
 - [ ] **Step 6: Run test**
 
-Run: `cd packages/core && bun test test/classifier/types.test.ts`
+Run: `cd packages/core && npx vitest run test/classifier/types.test.ts`
 Expected: pass.
 
 - [ ] **Step 7: Commit**
@@ -473,7 +473,7 @@ git commit -m "core: extend Classification enum with v0.7 buckets"
 
 ```ts
 // packages/core/test/classifier/rate-limited.test.ts
-import { test, expect } from 'bun:test';
+import { test, expect } from 'vitest';
 import { classifyRateLimited } from '../../src/classifier/rate-limited';
 
 test('returns RATE_LIMITED when any captured call has status 429', () => {
@@ -499,7 +499,7 @@ test('returns null with no calls', () => {
 
 - [ ] **Step 2: Run, verify fail**
 
-Run: `cd packages/core && bun test test/classifier/rate-limited.test.ts`
+Run: `cd packages/core && npx vitest run test/classifier/rate-limited.test.ts`
 Expected: import error.
 
 - [ ] **Step 3: Implement**
@@ -535,7 +535,7 @@ export function classifyRateLimited(input: ClassifyRateLimitedInput): ClassifyRe
 
 - [ ] **Step 4: Run, verify pass**
 
-Run: `cd packages/core && bun test test/classifier/rate-limited.test.ts`
+Run: `cd packages/core && npx vitest run test/classifier/rate-limited.test.ts`
 Expected: 3 green.
 
 - [ ] **Step 5: Commit**
@@ -557,7 +557,7 @@ git commit -m "core: classifier rule for RATE_LIMITED"
 
 ```ts
 // packages/core/test/classifier/auth-expired.test.ts
-import { test, expect } from 'bun:test';
+import { test, expect } from 'vitest';
 import { classifyAuthExpired } from '../../src/classifier/auth-expired';
 
 const expiredJwt = () => {
@@ -598,7 +598,7 @@ test('returns AUTH_EXPIRED when no 401 but auth file already past expiry (prefli
 
 - [ ] **Step 2: Run, verify fail**
 
-Run: `cd packages/core && bun test test/classifier/auth-expired.test.ts`
+Run: `cd packages/core && npx vitest run test/classifier/auth-expired.test.ts`
 Expected: import error.
 
 - [ ] **Step 3: Implement**
@@ -640,7 +640,7 @@ export function classifyAuthExpired(input: ClassifyAuthExpiredInput): ClassifyRe
     if (fileExpired || jwtExpired) {
       return {
         class: 'AUTH_EXPIRED',
-        rationale: `HTTP 401 captured; auth file for role '${role}' is past expiry. Run: bun run xera:auth-setup --role ${role}`,
+        rationale: `HTTP 401 captured; auth file for role '${role}' is past expiry. Run: npx xera-internal auth-setup --role ${role}`,
       };
     }
   }
@@ -650,7 +650,7 @@ export function classifyAuthExpired(input: ClassifyAuthExpiredInput): ClassifyRe
 
 - [ ] **Step 4: Run, verify pass**
 
-Run: `cd packages/core && bun test test/classifier/auth-expired.test.ts`
+Run: `cd packages/core && npx vitest run test/classifier/auth-expired.test.ts`
 Expected: 3 green.
 
 - [ ] **Step 5: Commit**
@@ -674,7 +674,7 @@ This rule consumes a pre-loaded OpenAPI document (dereferenced — see plan 02 f
 
 ```ts
 // packages/core/test/classifier/contract-drift.test.ts
-import { test, expect } from 'bun:test';
+import { test, expect } from 'vitest';
 import { classifyContractDrift } from '../../src/classifier/contract-drift';
 
 const spec = {
@@ -737,7 +737,7 @@ test('returns null when response matches schema', () => {
 
 - [ ] **Step 2: Run, verify fail**
 
-Run: `cd packages/core && bun test test/classifier/contract-drift.test.ts`
+Run: `cd packages/core && npx vitest run test/classifier/contract-drift.test.ts`
 Expected: import error.
 
 - [ ] **Step 3: Implement**
@@ -833,7 +833,7 @@ export function classifyContractDrift(input: ClassifyContractDriftInput): Classi
 
 - [ ] **Step 4: Run, verify pass**
 
-Run: `cd packages/core && bun test test/classifier/contract-drift.test.ts`
+Run: `cd packages/core && npx vitest run test/classifier/contract-drift.test.ts`
 Expected: 5 green.
 
 - [ ] **Step 5: Commit**
@@ -859,7 +859,7 @@ Run: `cat packages/core/src/classifier/index.ts`. Identify where existing rules 
 
 ```ts
 // packages/core/test/classifier/index.test.ts (add)
-import { test, expect } from 'bun:test';
+import { test, expect } from 'vitest';
 import { classify } from '../../src/classifier';
 
 test('classify prefers RATE_LIMITED over REAL_BUG when 429 present', () => {
@@ -890,7 +890,7 @@ test('classify falls through to existing rules when http signals absent', () => 
 
 - [ ] **Step 3: Run, verify fail**
 
-Run: `cd packages/core && bun test test/classifier/index.test.ts`
+Run: `cd packages/core && npx vitest run test/classifier/index.test.ts`
 Expected: fail (classify doesn't yet accept http signals or apply new rules).
 
 - [ ] **Step 4: Extend `classify()` input type and dispatch**
@@ -941,7 +941,7 @@ export function classify(input: ClassifyInput): { class: Classification; rationa
 
 - [ ] **Step 5: Run, verify pass**
 
-Run: `cd packages/core && bun test test/classifier/`
+Run: `cd packages/core && npx vitest run test/classifier/`
 Expected: all green.
 
 - [ ] **Step 6: Commit**
@@ -985,7 +985,7 @@ test('jira-comment renders AUTH_EXPIRED with re-auth command', () => {
   const md = buildJiraComment({
     runId: 'x', outcome: 'FAIL', adapter: 'http',
     scenarios: [],
-    classification: { class: 'AUTH_EXPIRED', rationale: 'auth file for role \'user\' is past expiry. Run: bun run xera:auth-setup --role user' },
+    classification: { class: 'AUTH_EXPIRED', rationale: 'auth file for role \'user\' is past expiry. Run: npx xera-internal auth-setup --role user' },
   });
   expect(md).toContain('xera:auth-setup --role user');
 });
@@ -993,7 +993,7 @@ test('jira-comment renders AUTH_EXPIRED with re-auth command', () => {
 
 - [ ] **Step 2: Run, verify fail**
 
-Run: `cd packages/core && bun test test/reporter/jira-comment.test.ts`
+Run: `cd packages/core && npx vitest run test/reporter/jira-comment.test.ts`
 Expected: rationale text missing or template doesn't handle new enum values.
 
 - [ ] **Step 3: Update `buildJiraComment` to include rationale for new buckets**
@@ -1002,7 +1002,7 @@ Inspect existing implementation. The template should already print `Classificati
 
 - [ ] **Step 4: Run, verify pass**
 
-Run: `cd packages/core && bun test test/reporter/`
+Run: `cd packages/core && npx vitest run test/reporter/`
 Expected: green.
 
 - [ ] **Step 5: Commit**
@@ -1018,18 +1018,18 @@ git commit -m "core: jira-comment renders v0.7 buckets"
 
 - [ ] **Step 1: Run full core tests**
 
-Run: `cd packages/core && bun test`
+Run: `cd packages/core && npx vitest run`
 Expected: all green.
 
 - [ ] **Step 2: Run workspace typecheck**
 
-Run: `bun run typecheck`
+Run: `npm run typecheck`
 Expected: green.
 
 - [ ] **Step 3: Run lint**
 
-Run: `bun run lint`
-Expected: green (or auto-fix with `bun run lint:fix`).
+Run: `npm run lint`
+Expected: green (or auto-fix with `npm run lint:fix`).
 
 - [ ] **Step 4: Tag commit for milestone**
 

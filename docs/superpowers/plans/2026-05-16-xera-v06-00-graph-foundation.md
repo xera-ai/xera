@@ -4,9 +4,9 @@
 
 **Goal:** Ship the data layer foundation for the project knowledge graph — repo-local event log (JSONL files sharded by skill invocation), derivable snapshot, four `xera-internal` subcommands (`graph-record`, `graph-snapshot`, `graph-query`, `graph-backfill`), LLM cost telemetry, and event-emission patches to the five existing skills. No new user-facing features; this enables v0.6.1 (TEST_OUTDATED) and v0.6.2 (`/xera-impact`) to plug in.
 
-**Architecture:** New `packages/core/src/graph/` module exports a small, focused API: `Event` types (Zod-validated), `EventStore` (atomic write per skill invocation, glob-replay for snapshot, hash-based drift detection), `CostLog` (append `.xera/cost-log.jsonl` per LLM call). Skills emit events by calling `bun run xera:graph-record <action> <ticket>`; subcommands re-read artifacts (story.md, .feature, POM .ts, classifier output) and synthesize events. Snapshot is gitignored, rebuilt on demand. Event files committed.
+**Architecture:** New `packages/core/src/graph/` module exports a small, focused API: `Event` types (Zod-validated), `EventStore` (atomic write per skill invocation, glob-replay for snapshot, hash-based drift detection), `CostLog` (append `.xera/cost-log.jsonl` per LLM call). Skills emit events by calling `npx xera-internal graph-record <action> <ticket>`; subcommands re-read artifacts (story.md, .feature, POM .ts, classifier output) and synthesize events. Snapshot is gitignored, rebuilt on demand. Event files committed.
 
-**Tech Stack:** Bun runtime, TypeScript with `exactOptionalPropertyTypes` + `noUncheckedIndexedAccess`, `bun:test`, Zod, ULID generation, atomic file write (tmp + rename), `glob` (Bun built-in).
+**Tech Stack:** Node runtime, TypeScript with `exactOptionalPropertyTypes` + `noUncheckedIndexedAccess`, `vitest`, Zod, ULID generation, atomic file write (tmp + rename), `glob`.
 
 **Spec:** `docs/superpowers/specs/2026-05-16-xera-v06-project-knowledge-graph-design.md`
 
@@ -284,7 +284,7 @@ export interface Snapshot {
 Create `packages/core/test/graph/schema.test.ts`:
 
 ```typescript
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { safeParseEvent } from '../../src/graph/schema';
 
 describe('safeParseEvent', () => {
@@ -359,7 +359,7 @@ describe('safeParseEvent', () => {
 
 - [ ] **Step 3: Run test to verify it fails**
 
-Run: `cd packages/core && bun test test/graph/schema.test.ts -t safeParseEvent`
+Run: `cd packages/core && npx vitest run test/graph/schema.test.ts -t safeParseEvent`
 Expected: FAIL — cannot import `safeParseEvent`
 
 - [ ] **Step 4: Implement `schema.ts`**
@@ -482,7 +482,7 @@ export function safeParseEvent(value: unknown): { success: true; data: Event } |
 
 - [ ] **Step 5: Run tests to verify pass**
 
-Run: `cd packages/core && bun test test/graph/schema.test.ts`
+Run: `cd packages/core && npx vitest run test/graph/schema.test.ts`
 Expected: PASS (5 tests)
 
 - [ ] **Step 6: Commit**
@@ -569,7 +569,7 @@ export function ulid(now: number = Date.now()): string {
 Create `packages/core/test/graph/paths.test.ts`:
 
 ```typescript
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { join } from 'node:path';
 import { graphPaths } from '../../src/graph/paths';
 
@@ -593,7 +593,7 @@ describe('graphPaths', () => {
 
 - [ ] **Step 3: Run to fail**
 
-Run: `cd packages/core && bun test test/graph/paths.test.ts`
+Run: `cd packages/core && npx vitest run test/graph/paths.test.ts`
 Expected: FAIL — cannot import `graphPaths`
 
 - [ ] **Step 4: Implement `paths.ts`**
@@ -632,7 +632,7 @@ export function currentYyyyMm(now: Date = new Date()): string {
 
 - [ ] **Step 5: Verify pass**
 
-Run: `cd packages/core && bun test test/graph/paths.test.ts`
+Run: `cd packages/core && npx vitest run test/graph/paths.test.ts`
 Expected: PASS (2 tests)
 
 - [ ] **Step 6: Commit**
@@ -657,7 +657,7 @@ git commit -m "core: add ulid generator + graph paths helper"
 Create `packages/core/test/graph/store.test.ts`:
 
 ```typescript
-import { describe, expect, test, beforeEach, afterEach } from 'bun:test';
+import { describe, expect, test, beforeEach, afterEach } from 'vitest';
 import { mkdirSync, mkdtempSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -786,7 +786,7 @@ describe('snapshot drift', () => {
 
 - [ ] **Step 2: Run to fail**
 
-Run: `cd packages/core && bun test test/graph/store.test.ts`
+Run: `cd packages/core && npx vitest run test/graph/store.test.ts`
 Expected: FAIL — cannot import from `store`
 
 - [ ] **Step 3: Implement `store.ts`**
@@ -980,7 +980,7 @@ export function isSnapshotStale(repoRoot: string): boolean {
 
 - [ ] **Step 4: Run tests, verify pass**
 
-Run: `cd packages/core && bun test test/graph/store.test.ts`
+Run: `cd packages/core && npx vitest run test/graph/store.test.ts`
 Expected: PASS (7+ tests)
 
 - [ ] **Step 5: Commit**
@@ -1004,7 +1004,7 @@ git commit -m "core: add graph event store + snapshot derivation"
 Create `packages/core/test/graph/cost.test.ts`:
 
 ```typescript
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -1047,7 +1047,7 @@ describe('summarizeCost', () => {
 
 - [ ] **Step 2: Run to fail**
 
-Run: `cd packages/core && bun test test/graph/cost.test.ts`
+Run: `cd packages/core && npx vitest run test/graph/cost.test.ts`
 Expected: FAIL — cannot import
 
 - [ ] **Step 3: Implement `cost.ts`**
@@ -1113,7 +1113,7 @@ export function summarizeCost(repoRoot: string, daysBack: number): CostSummary {
 
 - [ ] **Step 4: Run tests**
 
-Run: `cd packages/core && bun test test/graph/cost.test.ts`
+Run: `cd packages/core && npx vitest run test/graph/cost.test.ts`
 Expected: PASS (2 tests)
 
 - [ ] **Step 5: Commit**
@@ -1155,7 +1155,7 @@ export type { LlmCallLog, CostSummary } from './cost';
 
 - [ ] **Step 2: Verify typecheck**
 
-Run: `cd packages/core && bun run typecheck`
+Run: `cd packages/core && npm run typecheck`
 Expected: no errors
 
 - [ ] **Step 3: Commit**
@@ -1180,7 +1180,7 @@ The subcommand has five actions; each re-reads existing artifact files (no LLM c
 Create `packages/core/test/bin-internal/graph-record.test.ts`:
 
 ```typescript
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -1253,7 +1253,7 @@ describe('graph-record promote', () => {
 
 - [ ] **Step 2: Run to fail**
 
-Run: `cd packages/core && bun test test/bin-internal/graph-record.test.ts`
+Run: `cd packages/core && npx vitest run test/bin-internal/graph-record.test.ts`
 Expected: FAIL — cannot import
 
 - [ ] **Step 3: Implement `graph-record.ts`**
@@ -1599,7 +1599,7 @@ const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
 
 - [ ] **Step 6: Run tests**
 
-Run: `cd packages/core && bun test test/bin-internal/graph-record.test.ts`
+Run: `cd packages/core && npx vitest run test/bin-internal/graph-record.test.ts`
 Expected: PASS (3 tests)
 
 - [ ] **Step 7: Commit**
@@ -1625,7 +1625,7 @@ git commit -m "core: add graph-record bin-internal (5 actions)"
 Create `packages/core/test/bin-internal/graph-snapshot.test.ts`:
 
 ```typescript
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -1668,7 +1668,7 @@ describe('graph-snapshot', () => {
 
 - [ ] **Step 2: Run to fail**
 
-Run: `cd packages/core && bun test test/bin-internal/graph-snapshot.test.ts`
+Run: `cd packages/core && npx vitest run test/bin-internal/graph-snapshot.test.ts`
 Expected: FAIL
 
 - [ ] **Step 3: Implement `graph-snapshot.ts`**
@@ -1709,7 +1709,7 @@ import { graphSnapshotCmd } from './graph-snapshot';
 
 - [ ] **Step 5: Run tests**
 
-Run: `cd packages/core && bun test test/bin-internal/graph-snapshot.test.ts`
+Run: `cd packages/core && npx vitest run test/bin-internal/graph-snapshot.test.ts`
 Expected: PASS (2 tests)
 
 - [ ] **Step 6: Commit**
@@ -1734,7 +1734,7 @@ git commit -m "core: add graph-snapshot bin-internal (rebuild + --check)"
 Create `packages/core/test/bin-internal/graph-query.test.ts`:
 
 ```typescript
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -1788,7 +1788,7 @@ describe('graph-query', () => {
 
 - [ ] **Step 2: Run to fail**
 
-Run: `cd packages/core && bun test test/bin-internal/graph-query.test.ts`
+Run: `cd packages/core && npx vitest run test/bin-internal/graph-query.test.ts`
 Expected: FAIL
 
 - [ ] **Step 3: Implement `graph-query.ts`**
@@ -1848,7 +1848,7 @@ import { graphQueryCmd } from './graph-query';
 
 - [ ] **Step 5: Run tests**
 
-Run: `cd packages/core && bun test test/bin-internal/graph-query.test.ts`
+Run: `cd packages/core && npx vitest run test/bin-internal/graph-query.test.ts`
 Expected: PASS
 
 - [ ] **Step 6: Commit**
@@ -1873,7 +1873,7 @@ git commit -m "core: add graph-query bin-internal (text + json)"
 Create `packages/core/test/bin-internal/graph-backfill.test.ts`:
 
 ```typescript
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -1929,7 +1929,7 @@ describe('graph-backfill', () => {
 
 - [ ] **Step 2: Run to fail**
 
-Run: `cd packages/core && bun test test/bin-internal/graph-backfill.test.ts`
+Run: `cd packages/core && npx vitest run test/bin-internal/graph-backfill.test.ts`
 Expected: FAIL
 
 - [ ] **Step 3: Implement `graph-backfill.ts`**
@@ -2003,7 +2003,7 @@ import { graphBackfillCmd } from './graph-backfill';
 
 - [ ] **Step 6: Run tests**
 
-Run: `cd packages/core && bun test test/bin-internal/graph-backfill.test.ts`
+Run: `cd packages/core && npx vitest run test/bin-internal/graph-backfill.test.ts`
 Expected: PASS (2 tests)
 
 - [ ] **Step 7: Commit**
@@ -2136,7 +2136,7 @@ test('extract-areas.md is in IN_SCOPE_PROMPTS', async () => {
 
 - [ ] **Step 5: Run verify-prompts tests**
 
-Run: `cd packages/core && bun test test/bin-internal/verify-prompts.test.ts`
+Run: `cd packages/core && npx vitest run test/bin-internal/verify-prompts.test.ts`
 Expected: PASS (existing + 1 new)
 
 - [ ] **Step 6: Commit**
@@ -2182,7 +2182,7 @@ test('doctor prints cost summary when cost-log.jsonl exists', async () => {
 
 - [ ] **Step 2: Run to fail**
 
-Run: `cd packages/core && bun test test/bin-internal/doctor.test.ts -t 'cost summary'`
+Run: `cd packages/core && npx vitest run test/bin-internal/doctor.test.ts -t 'cost summary'`
 Expected: FAIL
 
 - [ ] **Step 3: Add cost summary block to `doctor.ts`**
@@ -2206,7 +2206,7 @@ if (cost.totalCalls > 0) {
 
 - [ ] **Step 4: Run test**
 
-Run: `cd packages/core && bun test test/bin-internal/doctor.test.ts`
+Run: `cd packages/core && npx vitest run test/bin-internal/doctor.test.ts`
 Expected: PASS
 
 - [ ] **Step 5: Commit**
@@ -2241,7 +2241,7 @@ test('doctor warns when .xera/<TICKET> dirs exist but no graph events', async ()
 
 - [ ] **Step 2: Run to fail**
 
-Run: `cd packages/core && bun test test/bin-internal/doctor.test.ts -t 'backfill'`
+Run: `cd packages/core && npx vitest run test/bin-internal/doctor.test.ts -t 'backfill'`
 Expected: FAIL
 
 - [ ] **Step 3: Implement backfill detection**
@@ -2266,7 +2266,7 @@ if (existsSync(xeraDir)) {
     console.log('');
     console.log(`⚠ Graph: ${unbackfilled.length} ticket(s) not yet in graph.`);
     console.log(`  These won't participate in v0.6.1+ features (TEST_OUTDATED, /xera-impact).`);
-    console.log(`  Run: bun run xera:graph-backfill`);
+    console.log(`  Run: npx xera-internal graph-backfill`);
     console.log(`  (Use --dry-run to preview.)`);
   }
 }
@@ -2274,7 +2274,7 @@ if (existsSync(xeraDir)) {
 
 - [ ] **Step 4: Run tests**
 
-Run: `cd packages/core && bun test test/bin-internal/doctor.test.ts`
+Run: `cd packages/core && npx vitest run test/bin-internal/doctor.test.ts`
 Expected: PASS
 
 - [ ] **Step 5: Commit**
@@ -2312,7 +2312,7 @@ Write that JSON to `.xera/<TICKET>/graph-input.json`.
 Run:
 
 ```bash
-bun run xera:graph-record fetch <TICKET>
+npx xera-internal graph-record fetch <TICKET>
 ```
 
 This is non-fatal: if it exits non-zero, log a warning *"Graph event not recorded — run `xera doctor` to rebuild"* but continue. Do not block the fetch flow on this.
@@ -2350,7 +2350,7 @@ For each, add a single final "record graph events" step. Pattern:
 Run:
 
 ```bash
-bun run xera:graph-record script <TICKET>
+npx xera-internal graph-record script <TICKET>
 ```
 
 Non-fatal as in `/xera-fetch`.
@@ -2364,7 +2364,7 @@ Non-fatal as in `/xera-fetch`.
 After Playwright reporter writes `runs/<RUN_ID>/reporter.json`:
 
 ```bash
-bun run xera:graph-record exec <TICKET> --run-id <RUN_ID>
+npx xera-internal graph-record exec <TICKET> --run-id <RUN_ID>
 ```
 
 Non-fatal.
@@ -2376,7 +2376,7 @@ Non-fatal.
 ## Step N — Record graph classification events (v0.6)
 
 ```bash
-bun run xera:graph-record classify <TICKET> --run-id <RUN_ID>
+npx xera-internal graph-record classify <TICKET> --run-id <RUN_ID>
 ```
 
 Non-fatal. Note: TEST_OUTDATED detection ships in v0.6.1 — for v0.6.0 this just emits `run.classified` events with existing 4-bucket classifications.
@@ -2388,7 +2388,7 @@ Non-fatal. Note: TEST_OUTDATED detection ships in v0.6.1 — for v0.6.0 this jus
 ## Step N — Record graph events (v0.6)
 
 ```bash
-bun run xera:graph-record promote --pom-id <ID> --from <OLD> --to <NEW>
+npx xera-internal graph-record promote --pom-id <ID> --from <OLD> --to <NEW>
 ```
 
 `<ID>` is the sha1 of the POM filename basename (the bin-internal can compute this if `--pom-id` is omitted). Non-fatal.
@@ -2435,7 +2435,7 @@ git commit -m "skills: emit graph events from script/exec/report/promote (v0.6)"
 
 For each fixture under `fixtures/golden-graph/`, create:
 - `meta.json` — `{ "id": "<name>", "summary": "<one-line>", "expectation": "<what should happen>" }`
-- `events/<month>/<ulid>-...jsonl` — synthetic events (use `bun -e 'import {ulid} from ".../ulid"; console.log(ulid())'` to generate)
+- `events/<month>/<ulid>-...jsonl` — synthetic events (use `node -e 'import {ulid} from ".../ulid"; console.log(ulid())'` to generate)
 - `expected/snapshot.json` — expected snapshot output
 
 Specific contents:
@@ -2455,7 +2455,7 @@ Specific contents:
 Create `packages/core/test/graph/golden.test.ts`:
 
 ```typescript
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { existsSync, mkdtempSync, rmSync, cpSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -2486,7 +2486,7 @@ describe('golden-graph fixtures', () => {
 
 - [ ] **Step 3: Run golden tests**
 
-Run: `cd packages/core && bun test test/graph/golden.test.ts`
+Run: `cd packages/core && npx vitest run test/graph/golden.test.ts`
 Expected: PASS
 
 - [ ] **Step 4: Commit**
@@ -2587,7 +2587,7 @@ Append:
 If `xera doctor` warns the snapshot is stale, run:
 
 \`\`\`bash
-bun run xera:graph-snapshot
+npx xera-internal graph-snapshot
 \`\`\`
 
 This rebuilds `.xera/graph/snapshot.json` from `events/` in < 1s.
@@ -2597,8 +2597,8 @@ This rebuilds `.xera/graph/snapshot.json` from `events/` in < 1s.
 If you upgraded an existing project to v0.6, your historical tickets are not in the graph yet:
 
 \`\`\`bash
-bun run xera:graph-backfill --dry-run    # preview
-bun run xera:graph-backfill              # commit events
+npx xera-internal graph-backfill --dry-run    # preview
+npx xera-internal graph-backfill              # commit events
 \`\`\`
 
 Generates one `ticket.fetched` event per existing `.xera/<TICKET>/` directory.
@@ -2626,28 +2626,28 @@ git commit -m "release: bump packages + cli template for v0.6.0 graph foundation
 
 - [ ] **Step 1: Lint**
 
-Run: `cd /home/user/xera && bun run lint`
+Run: `cd /home/user/xera && npm run lint`
 Expected: zero errors
 
 - [ ] **Step 2: Typecheck**
 
-Run: `cd /home/user/xera && bun run typecheck`
+Run: `cd /home/user/xera && npm run typecheck`
 Expected: zero errors
 
 - [ ] **Step 3: Run all tests**
 
-Run: `cd /home/user/xera && bun test`
+Run: `cd /home/user/xera && npx vitest run`
 Expected: all green
 
 - [ ] **Step 4: Doctor on a scaffolded project**
 
 ```bash
 cd /tmp && rm -rf v06test && mkdir v06test && cd v06test
-bunx @xera-ai/cli init --yes
+npx @xera-ai/cli init --yes
 cp .env.example .env
 # fill .env minimal (Atlassian + SUT URL not needed for doctor)
-bun install
-bun run doctor
+npm install
+npm run doctor
 ```
 
 Expected: doctor exits 0; output mentions graph status (no untracked tickets warning since fresh project); no cost summary (no LLM calls yet).
@@ -2657,9 +2657,9 @@ Expected: doctor exits 0; output mentions graph status (no untracked tickets war
 In the scaffolded project, manually seed one `.xera/SAMPLE-001/` directory with `story.md`, `feature/`, `poms/`. Run:
 
 ```bash
-bun run xera:graph-backfill --dry-run
-bun run xera:graph-backfill
-bun run xera:graph-query
+npx xera-internal graph-backfill --dry-run
+npx xera-internal graph-backfill
+npx xera-internal graph-query
 ```
 
 Expected: query output shows the seeded ticket.

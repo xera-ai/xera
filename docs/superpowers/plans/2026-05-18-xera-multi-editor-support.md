@@ -6,7 +6,7 @@
 
 **Architecture:** New `packages/cli/src/editors/` module with one adapter per editor (`claude.ts`, `cursor.ts`, `codex.ts`) implementing a shared `EditorAdapter` interface (skill writer, command writer, detect, legacy migrate, doctor checks). A `resolveEditors()` helper picks the target set from `--editor` flag, auto-detection, or interactive prompt. `init` / `init-update` / `checks` iterate the resolved set and delegate to each adapter. Single source of truth for skill bodies stays in `@xera-ai/skills`; Cursor's `RULE.md` frontmatter is transformed at scaffold time.
 
-**Tech Stack:** TypeScript (ESM), Bun, `bun:test`, `cac` (CLI flag parsing), `@clack/prompts` (interactive multi-select).
+**Tech Stack:** TypeScript (ESM), Node, `vitest`, `cac` (CLI flag parsing), `@clack/prompts` (interactive multi-select).
 
 **Spec:** [`docs/superpowers/specs/2026-05-18-xera-multi-editor-support-design.md`](../specs/2026-05-18-xera-multi-editor-support-design.md)
 
@@ -53,7 +53,7 @@ A tiny purpose-built parser/serializer for the frontmatter shapes we actually pr
 
 ```ts
 // packages/cli/test/editors/frontmatter.test.ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { parseFrontmatter, serializeFrontmatter } from '../../src/editors/frontmatter';
 
 describe('parseFrontmatter', () => {
@@ -114,7 +114,7 @@ describe('serializeFrontmatter', () => {
 
 - [ ] **Step 2: Run tests, verify failure**
 
-Run: `bun test packages/cli/test/editors/frontmatter.test.ts`
+Run: `npx vitest run packages/cli/test/editors/frontmatter.test.ts`
 Expected: All tests fail with `Cannot find module '../../src/editors/frontmatter'`.
 
 - [ ] **Step 3: Implement the helper**
@@ -203,7 +203,7 @@ export function serializeFrontmatter(
 
 - [ ] **Step 4: Run tests, verify pass**
 
-Run: `bun test packages/cli/test/editors/frontmatter.test.ts`
+Run: `npx vitest run packages/cli/test/editors/frontmatter.test.ts`
 Expected: 7 pass, 0 fail.
 
 - [ ] **Step 5: Commit**
@@ -262,7 +262,7 @@ export const editors: Partial<Record<EditorName, EditorAdapter>> = {};
 
 - [ ] **Step 2: Confirm typecheck passes**
 
-Run: `cd packages/cli && bun run typecheck`
+Run: `cd packages/cli && npm run typecheck`
 Expected: exit 0 (no type errors).
 
 - [ ] **Step 3: Commit**
@@ -284,7 +284,7 @@ git commit -m "cli: add EditorAdapter interface + registry stub"
 
 ```ts
 // packages/cli/test/editors/detect.test.ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -350,7 +350,7 @@ describe('detectEditors', () => {
 
 - [ ] **Step 2: Run tests, verify failure**
 
-Run: `bun test packages/cli/test/editors/detect.test.ts`
+Run: `npx vitest run packages/cli/test/editors/detect.test.ts`
 Expected: All fail with `Cannot find module '../../src/editors/detect'`.
 
 - [ ] **Step 3: Implement**
@@ -374,7 +374,7 @@ export function detectEditors(cwd: string): EditorName[] {
 
 - [ ] **Step 4: Run tests, verify pass**
 
-Run: `bun test packages/cli/test/editors/detect.test.ts`
+Run: `npx vitest run packages/cli/test/editors/detect.test.ts`
 Expected: 5 pass, 0 fail.
 
 - [ ] **Step 5: Commit**
@@ -399,7 +399,7 @@ Behaviour mirrors the post-PR-#106 logic currently in `init.ts` (skills → `.cl
 
 ```ts
 // packages/cli/test/editors/claude.test.ts
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -477,7 +477,7 @@ describe('claudeAdapter', () => {
 
 - [ ] **Step 2: Run tests, verify failure**
 
-Run: `bun test packages/cli/test/editors/claude.test.ts`
+Run: `npx vitest run packages/cli/test/editors/claude.test.ts`
 Expected: All fail (module not found).
 
 - [ ] **Step 3: Implement adapter**
@@ -565,7 +565,7 @@ export const editors: Partial<Record<EditorName, EditorAdapter>> = {
 
 - [ ] **Step 5: Run tests, verify pass**
 
-Run: `bun test packages/cli/test/editors/claude.test.ts`
+Run: `npx vitest run packages/cli/test/editors/claude.test.ts`
 Expected: 7 pass, 0 fail.
 
 - [ ] **Step 6: Commit**
@@ -592,7 +592,7 @@ Cursor needs frontmatter transformation:
 
 ```ts
 // packages/cli/test/editors/cursor.test.ts
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -673,7 +673,7 @@ describe('cursorAdapter', () => {
 
 - [ ] **Step 2: Run tests, verify failure**
 
-Run: `bun test packages/cli/test/editors/cursor.test.ts`
+Run: `npx vitest run packages/cli/test/editors/cursor.test.ts`
 Expected: All fail (module not found).
 
 - [ ] **Step 3: Implement adapter**
@@ -761,7 +761,7 @@ export const editors: Partial<Record<EditorName, EditorAdapter>> = {
 
 - [ ] **Step 5: Run tests, verify pass**
 
-Run: `bun test packages/cli/test/editors/cursor.test.ts`
+Run: `npx vitest run packages/cli/test/editors/cursor.test.ts`
 Expected: 6 pass, 0 fail.
 
 - [ ] **Step 6: Commit**
@@ -786,7 +786,7 @@ Codex SKILL.md format = Claude SKILL.md format (verbatim). No slash command (Cod
 
 ```ts
 // packages/cli/test/editors/codex.test.ts
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -843,7 +843,7 @@ describe('codexAdapter', () => {
 
 - [ ] **Step 2: Run tests, verify failure**
 
-Run: `bun test packages/cli/test/editors/codex.test.ts`
+Run: `npx vitest run packages/cli/test/editors/codex.test.ts`
 Expected: All fail.
 
 - [ ] **Step 3: Implement adapter**
@@ -908,7 +908,7 @@ Note: change the type from `Partial<Record<...>>` to `Record<...>` now that all 
 
 - [ ] **Step 5: Run tests, verify pass**
 
-Run: `bun test packages/cli/test/editors/codex.test.ts`
+Run: `npx vitest run packages/cli/test/editors/codex.test.ts`
 Expected: 5 pass, 0 fail.
 
 - [ ] **Step 6: Commit**
@@ -930,7 +930,7 @@ git commit -m "cli: add OpenAI Codex CLI editor adapter (skill only)"
 
 ```ts
 // packages/cli/test/editors/resolve.test.ts
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -1011,7 +1011,7 @@ describe('resolveEditors', () => {
 
 - [ ] **Step 2: Run tests, verify failure**
 
-Run: `bun test packages/cli/test/editors/resolve.test.ts`
+Run: `npx vitest run packages/cli/test/editors/resolve.test.ts`
 Expected: All fail.
 
 - [ ] **Step 3: Implement**
@@ -1054,7 +1054,7 @@ export async function resolveEditors(opts: ResolveOptions): Promise<EditorName[]
 
 - [ ] **Step 4: Run tests, verify pass**
 
-Run: `bun test packages/cli/test/editors/resolve.test.ts`
+Run: `npx vitest run packages/cli/test/editors/resolve.test.ts`
 Expected: 8 pass, 0 fail.
 
 - [ ] **Step 5: Commit**
@@ -1119,7 +1119,7 @@ In the `.example(...)` block, add:
 
 - [ ] **Step 7: Typecheck**
 
-Run: `cd packages/cli && bun run typecheck`
+Run: `cd packages/cli && npm run typecheck`
 Expected: errors complaining that `editor` is not in `InitOptions` / `InitUpdateOptions`. That's the cue for Tasks 9 and 10 to add the field — fix in those tasks. Note the error and proceed.
 
 - [ ] **Step 8: Commit**
@@ -1230,7 +1230,7 @@ Next:
        cp .env.example .env
        # then edit .env to set USER_BEARER_TOKEN=...
   2) Run pre-authentication:
-       bun run xera:auth-setup
+       npx xera-internal auth-setup
   3) Start testing:
 ${editorLines.join('\n')}
 `
@@ -1243,12 +1243,12 @@ ${editorLines.join('\n')}
 
 - [ ] **Step 6: Typecheck**
 
-Run: `cd packages/cli && bun run typecheck`
+Run: `cd packages/cli && npm run typecheck`
 Expected: exit 0.
 
 - [ ] **Step 7: Run existing integration tests (they should still pass since default is "all")**
 
-Run: `bun run --cwd packages/cli build && bun test packages/cli/test/integration/init-shapes.test.ts`
+Run: `npm run --cwd packages/cli build && npx vitest run packages/cli/test/integration/init-shapes.test.ts`
 Expected: 4 pass, 0 fail (existing tests assert on Claude files which are still scaffolded under the "all" default).
 
 - [ ] **Step 8: Commit**
@@ -1334,12 +1334,12 @@ Remove any newly-unused imports (`dirname`, `writeFileSync`, `unlinkSync` if no 
 
 - [ ] **Step 4: Typecheck**
 
-Run: `cd packages/cli && bun run typecheck`
+Run: `cd packages/cli && npm run typecheck`
 Expected: exit 0.
 
 - [ ] **Step 5: Build + run existing update tests**
 
-Run: `bun run --cwd packages/cli build && bun test packages/cli/test/integration/init-update-shape.test.ts`
+Run: `npm run --cwd packages/cli build && npx vitest run packages/cli/test/integration/init-update-shape.test.ts`
 Expected: 3 pass.
 
 - [ ] **Step 6: Commit**
@@ -1405,7 +1405,7 @@ Open `packages/cli/test/checks.test.ts`. The tests added in PR #106 (`xera skill
 
 - [ ] **Step 5: Typecheck + run unit tests**
 
-Run: `cd packages/cli && bun run typecheck && cd ../.. && bun test packages/cli/test/checks.test.ts`
+Run: `cd packages/cli && npm run typecheck && cd ../.. && npx vitest run packages/cli/test/checks.test.ts`
 Expected: 0 typecheck errors; all checks tests pass.
 
 - [ ] **Step 6: Commit**
@@ -1426,11 +1426,11 @@ git commit -m "cli: drive doctor checks via editor adapter dispatch"
 
 ```ts
 // packages/cli/test/integration/init-editors.test.ts
-import { afterAll, describe, expect, test } from 'bun:test';
+import { afterAll, describe, expect, test } from 'vitest';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { spawn } from 'bun';
+import { run } from './helpers';
 
 const xeraBin = resolve(import.meta.dir, '../../bin/xera');
 const created: string[] = [];
@@ -1441,7 +1441,7 @@ afterAll(() => {
 async function runInit(args: string[]): Promise<string> {
   const cwd = mkdtempSync(join(tmpdir(), 'xera-ed-'));
   created.push(cwd);
-  const proc = spawn(['bun', 'run', '--cwd', cwd, xeraBin, 'init', '--yes', '--shape', 'web', ...args], {
+  const proc = run(['node', xeraBin, 'init', '--yes', '--shape', 'web', ...args], {
     cwd,
     stderr: 'pipe',
     stdout: 'pipe',
@@ -1508,7 +1508,7 @@ describe('xera init --editor', () => {
 
 - [ ] **Step 2: Build CLI then run the test**
 
-Run: `bun run --cwd packages/cli build && bun test packages/cli/test/integration/init-editors.test.ts`
+Run: `npm run --cwd packages/cli build && npx vitest run packages/cli/test/integration/init-editors.test.ts`
 Expected: 6 pass, 0 fail.
 
 - [ ] **Step 3: Commit**
@@ -1529,11 +1529,11 @@ git commit -m "cli: integration tests for --editor flag combinations"
 
 ```ts
 // packages/cli/test/integration/init-update-add-editor.test.ts
-import { afterAll, describe, expect, test } from 'bun:test';
+import { afterAll, describe, expect, test } from 'vitest';
 import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { spawn } from 'bun';
+import { run } from './helpers';
 
 const xeraBin = resolve(import.meta.dir, '../../bin/xera');
 const created: string[] = [];
@@ -1542,7 +1542,7 @@ afterAll(() => {
 });
 
 async function runXera(cwd: string, args: string[]): Promise<void> {
-  const proc = spawn(['bun', 'run', '--cwd', cwd, xeraBin, ...args], {
+  const proc = run(['node', xeraBin, ...args], {
     cwd,
     stderr: 'pipe',
     stdout: 'pipe',
@@ -1584,7 +1584,7 @@ describe('xera init --update --editor (additive)', () => {
 
 - [ ] **Step 2: Build + run**
 
-Run: `bun run --cwd packages/cli build && bun test packages/cli/test/integration/init-update-add-editor.test.ts`
+Run: `npm run --cwd packages/cli build && npx vitest run packages/cli/test/integration/init-update-add-editor.test.ts`
 Expected: 2 pass.
 
 - [ ] **Step 3: Commit**
@@ -1614,8 +1614,8 @@ The doc updates are surgical: replace Claude-only wording with editor-agnostic w
 Find: `Driven entirely by Claude Code skills.` (line ~3)
 Replace with: `Driven by AI coding-agent skills (Claude Code, Cursor, OpenAI Codex CLI).`
 
-Find: `Prereqs: Bun ≥1.1.0, Claude Code, an Atlassian-connected MCP **or** a Jira API token, a web app and/or HTTP API to test.`
-Replace with: `Prereqs: Bun ≥1.1.0, a supported AI coding agent (Claude Code, Cursor ≥1.6, or OpenAI Codex CLI), an Atlassian-connected MCP **or** a Jira API token, a web app and/or HTTP API to test.`
+Find: `Prereqs: Node ≥22, Claude Code, an Atlassian-connected MCP **or** a Jira API token, a web app and/or HTTP API to test.`
+Replace with: `Prereqs: Node ≥22, a supported AI coding agent (Claude Code, Cursor ≥1.6, or OpenAI Codex CLI), an Atlassian-connected MCP **or** a Jira API token, a web app and/or HTTP API to test.`
 
 Find: `# Then open Claude Code in this directory:\nclaude`
 Replace with:
@@ -1731,25 +1731,25 @@ scaffold time.
 
 - [ ] **Step 2: Full test sweep**
 
-Run: `bun test`
+Run: `npx vitest run`
 Expected: All previously-passing tests still pass, plus the new editor + integration tests. No failures.
 
 - [ ] **Step 3: Typecheck workspace**
 
-Run: `bun run typecheck`
+Run: `npm run typecheck`
 Expected: All packages typecheck (pre-existing playwright-core duplicate-install errors in `core/src/bin-internal/{auth-setup,exec}.ts` are present on `main` and unrelated — verify nothing NEW breaks).
 
 - [ ] **Step 4: Lint workspace**
 
-Run: `bunx @biomejs/biome check packages/cli/src/editors/ packages/cli/src/commands/ packages/cli/src/checks.ts packages/cli/test/editors/ packages/cli/test/integration/init-editors.test.ts packages/cli/test/integration/init-update-add-editor.test.ts`
+Run: `npx @biomejs/biome check packages/cli/src/editors/ packages/cli/src/commands/ packages/cli/src/checks.ts packages/cli/test/editors/ packages/cli/test/integration/init-editors.test.ts packages/cli/test/integration/init-update-add-editor.test.ts`
 Expected: clean.
 
 - [ ] **Step 5: Manual smoke test**
 
 ```bash
 cd /tmp && rm -rf xera-multi-editor-smoke && mkdir xera-multi-editor-smoke && cd xera-multi-editor-smoke
-bun run --cwd /Users/.../packages/cli build
-bun /Users/.../packages/cli/bin/xera init --yes --shape web --editor all
+npm run --cwd /Users/.../packages/cli build
+node /Users/.../packages/cli/bin/xera init --yes --shape web --editor all
 ls .claude/skills/xera-run/   # → SKILL.md
 ls .cursor/rules/xera-run/    # → RULE.md
 ls .agents/skills/xera-run/   # → SKILL.md

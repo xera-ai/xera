@@ -99,7 +99,7 @@ packages/core/src/
 │  /xera-fetch         │──┐
 │  /xera-script        │  │
 │  /xera-exec          │  │ writes events via
-│  /xera-report        │──┤ `bun run xera:graph-record`
+│  /xera-report        │──┤ `npx xera-internal graph-record`
 │  /xera-promote       │  │
 └──────────────────────┘  │
                           ▼
@@ -120,7 +120,7 @@ packages/core/src/
 
 ### 2.4 Skill ↔ graph boundary
 
-Skill `.md` files **never import** the graph module. Skills call `bun run xera:graph-record <action> <TICKET>` via bin-internal — the subcommand re-reads artifacts (`story.md`, `.feature`, POM `.ts`, classifier output) and synthesizes events. This preserves the xera architectural rule: skill = LLM-readable workflow, binary = deterministic plumbing.
+Skill `.md` files **never import** the graph module. Skills call `npx xera-internal graph-record <action> <TICKET>` via bin-internal — the subcommand re-reads artifacts (`story.md`, `.feature`, POM `.ts`, classifier output) and synthesizes events. This preserves the xera architectural rule: skill = LLM-readable workflow, binary = deterministic plumbing.
 
 ### 2.5 Package version impact
 
@@ -252,7 +252,7 @@ Snapshot acts as in-memory materialized view, mitigating the "replay" cost. Re-e
 
 ## 4. Event Emission Per Skill
 
-Each skill, after its primary work completes, invokes `bun run xera:graph-record <action> <ticket> [flags]`. The subcommand re-reads artifacts and synthesizes events. Skill `.md` files are NOT responsible for event payload shape.
+Each skill, after its primary work completes, invokes `npx xera-internal graph-record <action> <ticket> [flags]`. The subcommand re-reads artifacts and synthesizes events. Skill `.md` files are NOT responsible for event payload shape.
 
 ### 4.1 `/xera-fetch <TICKET>`
 
@@ -266,7 +266,7 @@ Output → `.xera/<TICKET>/graph-input.json`. **Note: similarity edges are NOT c
 Then:
 
 ```bash
-bun run xera:graph-record fetch <TICKET>
+npx xera-internal graph-record fetch <TICKET>
 ```
 
 **Events emitted:**
@@ -285,7 +285,7 @@ bun run xera:graph-record fetch <TICKET>
 **Trigger:** after `.feature` + POMs + `.spec.ts` written.
 
 ```bash
-bun run xera:graph-record script <TICKET>
+npx xera-internal graph-record script <TICKET>
 ```
 
 **Events emitted:**
@@ -305,7 +305,7 @@ bun run xera:graph-record script <TICKET>
 **Trigger:** after Playwright JSON reporter writes results.
 
 ```bash
-bun run xera:graph-record exec <TICKET> --run-id <ULID>
+npx xera-internal graph-record exec <TICKET> --run-id <ULID>
 ```
 
 **Events emitted:**
@@ -323,7 +323,7 @@ Primary consumer of graph (for TEST_OUTDATED detection) and an emitter.
 **Trigger:** after classifier picks bucket for each failure.
 
 ```bash
-bun run xera:graph-record classify <TICKET> --run-id <ULID>
+npx xera-internal graph-record classify <TICKET> --run-id <ULID>
 ```
 
 **Events emitted:**
@@ -337,7 +337,7 @@ bun run xera:graph-record classify <TICKET> --run-id <ULID>
 **Trigger:** after `git mv` succeeds.
 
 ```bash
-bun run xera:graph-record promote --pom-id <sha> --from <oldPath> --to <newPath>
+npx xera-internal graph-record promote --pom-id <sha> --from <oldPath> --to <newPath>
 ```
 
 **Events emitted:** `pom.promoted` ×1. `pomId` is stable across move, so existing `uses` edges remain valid.
@@ -346,7 +346,7 @@ bun run xera:graph-record promote --pom-id <sha> --from <oldPath> --to <newPath>
 
 - **Skill crash mid-flow** → event file not written (atomic tmp + rename). Graph stays consistent. Re-running the skill emits again (idempotent via ULID dedupe).
 - **Subcommand `graph-record` crash** → non-zero exit. Skill `.md` logs warning *"Graph event not recorded — run `xera doctor` to rebuild"* but does NOT fail the parent skill. Graph is a secondary feature; core flow must not break.
-- **Pre-existing tickets** (no graph events yet) → handled by one-shot `bun run xera:graph-backfill` (see §8).
+- **Pre-existing tickets** (no graph events yet) → handled by one-shot `npx xera-internal graph-backfill` (see §8).
 
 ---
 
@@ -525,11 +525,11 @@ Pre-flight: before merge, answer "which scenarios may break?"
 
 ```
 1. Verify graph current:
-     bun run xera:graph-snapshot --check
+     npx xera-internal graph-snapshot --check
      (auto-rebuild if events_hash mismatch)
 
 2. Compute impact (pure data, no LLM):
-     bun run xera:impact-prepare <TICKET> [--depth N] [--min-priority P]
+     npx xera-internal impact-prepare <TICKET> [--depth N] [--min-priority P]
      → write .xera/impact/<TICKET>.md      (human-readable)
      → write .xera/impact/<TICKET>.json    (machine-readable for re-run)
 
@@ -541,7 +541,7 @@ Pre-flight: before merge, answer "which scenarios may break?"
      [s] Select scenarios interactively
      [n] Skip — report only
 
-5. If Y/p/s → invoke `bun run xera:exec --from-impact <TICKET>`.
+5. If Y/p/s → invoke `npx xera-internal exec --from-impact <TICKET>`.
 6. After exec, suggest `/xera-report <TICKET>` (which runs TEST_OUTDATED check).
 ```
 
@@ -592,9 +592,9 @@ Tunable per project via `xera.config.ts`. Default values calibrated against `fix
 ...
 
 ## Re-run commands
-- All:        bun run xera:exec --from-impact ABC-200
-- P0 only:    bun run xera:exec --from-impact ABC-200 --min-priority p0
-- Select:     bun run xera:exec --from-impact ABC-200 --select
+- All:        npx xera-internal exec --from-impact ABC-200
+- P0 only:    npx xera-internal exec --from-impact ABC-200 --min-priority p0
+- Select:     npx xera-internal exec --from-impact ABC-200 --select
 ```
 
 ### 6.5 Terminal output
@@ -639,7 +639,7 @@ Re-run impacted scenarios?  [Y]es / [p] P0 only / [s]elect / [n]o
 
 ## 7. HTML Viewer (v0.6.3)
 
-Single self-contained HTML file. Generated by `bun run xera:graph-render`. Opened in a browser, works offline, no server.
+Single self-contained HTML file. Generated by `npx xera-internal graph-render`. Opened in a browser, works offline, no server.
 
 ### 7.1 Stack
 
@@ -651,9 +651,9 @@ Single self-contained HTML file. Generated by `bun run xera:graph-render`. Opene
 ### 7.2 Command surface
 
 ```bash
-bun run xera:graph-render                            # full snapshot
-bun run xera:graph-render --since 90d                # time filter
-bun run xera:graph-render --ticket ABC-200 --depth 2 # ego-graph around one ticket
+npx xera-internal graph-render                            # full snapshot
+npx xera-internal graph-render --since 90d                # time filter
+npx xera-internal graph-render --ticket ABC-200 --depth 2 # ego-graph around one ticket
 ```
 
 ### 7.3 UX
@@ -707,7 +707,7 @@ Side panel: details for selected node (full ticket text, POM file path, last-run
 
 ### 8.1 Backfill for pre-v0.6 projects
 
-One-shot `bun run xera:graph-backfill`. Reads:
+One-shot `npx xera-internal graph-backfill`. Reads:
 - All existing `.xera/<TICKET>/story.md`, `.feature`, `*.spec.ts`, POMs
 - Historical `.xera/<TICKET>/run-*.json` if retained
 
@@ -790,7 +790,7 @@ Mitigation:
 
 ## 9. Testing Strategy
 
-### 9.1 Unit tests (bun:test)
+### 9.1 Unit tests (vitest)
 
 | Module | Test |
 |---|---|
@@ -848,9 +848,9 @@ Rubric: 0/1/2 per criterion; release gate ≥ 80% average.
 graph-e2e:
   steps:
     - start fixtures/sample-app
-    - bunx xera init                            # scaffold throwaway project
-    - bun run xera:graph-backfill --dry-run     # exit 0
-    - bun run xera:graph-render                 # .xera/graph.html exists, >10KB
+    - npx xera init                            # scaffold throwaway project
+    - npx xera-internal graph-backfill --dry-run     # exit 0
+    - npx xera-internal graph-render                 # .xera/graph.html exists, >10KB
     - parse HTML, assert window.__GRAPH__ valid JSON
 ```
 
@@ -896,7 +896,7 @@ Smoke-level, not a substitute for unit/integration.
 - `@xera-ai/core` 0.4.2 → 0.4.3 (`render.ts`, vendored vis-network)
 - `@xera-ai/skills` 0.4.2 → 0.4.3 (CHANGELOG only)
 - `@xera-ai/cli` adds `.github/workflows/xera-graph.yml.template` to scaffold; init template copies it
-- New `bun run xera:graph-render`
+- New `npx xera-internal graph-render`
 - CI publishes `.xera/graph.html` as PR artifact + sticky comment (§11.5)
 - Disputed runs visually distinct in viewer (§11.6)
 - Tests: render fixture snapshot, HTML structure validation, CI workflow snapshot
@@ -934,7 +934,7 @@ This section captures **how QA actually interacts with v0.6 day-to-day**, addres
 ```
 1. /xera-fetch <TICKET>
 2. Auto-check impact:
-     bun run xera:impact-prepare <TICKET> --quiet
+     npx xera-internal impact-prepare <TICKET> --quiet
    If top-score scenarios exist (default threshold: ≥1 scenario with score ≥6.0):
      Prompt: "Found 3 high-risk impacted scenarios. Re-run before continuing? [Y/n]"
      If yes → run impacted scenarios first, route results to next step
@@ -955,7 +955,7 @@ The Claude similarity rolling window adds ~5–10s and 50K input tokens per fetc
 
 - When `/xera-impact <TICKET>` runs and target ticket has no `similar` edges yet → trigger `xera:graph-enrich --ticket <TICKET>` first
 - When `classify.findCandidateTickets()` returns no candidates AND ticket has no enrichment → trigger enrichment, then re-query (one-time cost per ticket lifetime)
-- Manual: `bun run xera:graph-enrich --since 7d` to batch-enrich recent tickets
+- Manual: `npx xera-internal graph-enrich --since 7d` to batch-enrich recent tickets
 
 Each enrichment writes `edge.discovered kind:"similar"` events and marks the ticket node as `enrichedAt: <timestamp>`. Snapshot field `tickets[id].enrichedAt` distinguishes enriched vs not.
 
@@ -1009,7 +1009,7 @@ The viewer is manager-facing, but the original design required QA/dev to run CLI
 
 ```yaml
 - name: Build graph viewer
-  run: bun run xera:graph-render
+  run: npx xera-internal graph-render
 - name: Upload viewer
   uses: actions/upload-artifact@v4
   with:
@@ -1024,7 +1024,7 @@ The viewer is manager-facing, but the original design required QA/dev to run CLI
 
 Manager sees PR → clicks "xera-graph" artifact → opens HTML in browser. No clone, no CLI. Per-PR snapshot of graph state.
 
-For end-user consumer projects, scaffold template `.github/workflows/xera-graph.yml.template` shipped via `bunx xera init`.
+For end-user consumer projects, scaffold template `.github/workflows/xera-graph.yml.template` shipped via `npx xera init`.
 
 ### 11.6 Dispute event (feedback loop for classifier)
 

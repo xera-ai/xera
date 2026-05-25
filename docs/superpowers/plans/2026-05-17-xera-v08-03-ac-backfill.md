@@ -6,7 +6,7 @@
 
 **Architecture:** Two new deterministic binaries (`ac-coverage-backfill-prepare` and `ac-coverage-backfill-finalize`) following the impact-prepare pattern. One new prompt template (`map-ac-to-scenarios.md`). `/xera-coverage` skill workflow updated with an inline orchestration block. The `appendEvents` + `ac-coverage.backfilled` event handler from Plan 01 already exists; this plan just wires up the producer of those events.
 
-**Tech Stack:** TypeScript, `bun:test`, Zod.
+**Tech Stack:** TypeScript, `vitest`, Zod.
 
 **Prereqs:** Plans 01 + 02 complete. `coverage-prepare` already writes `acBackfillNeeded` to `report.json`. Snapshot already handles `ac-coverage.backfilled` events idempotently.
 
@@ -125,7 +125,7 @@ If the input is empty (no tickets), output `{ "mappings": [] }`.
 
 ```bash
 ls /home/user/xera/packages/prompts/map-ac-to-scenarios.md
-bun run xera:verify-prompts
+npx xera-internal verify-prompts
 ```
 
 If `verify-prompts` enforces a fixed in-scope count and fails, update the in-scope list source. (Check `packages/core/src/bin-internal/verify-prompts.ts` for the count assertion — it may need to bump from 9 to 10.)
@@ -154,7 +154,7 @@ git commit -m "feat(prompts): add map-ac-to-scenarios prompt for AC backfill"
 ### Step 1 — failing test
 
 ```ts
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect } from 'vitest';
 import { acCoverageBackfillPrepareCmd } from '../../src/bin-internal/ac-coverage-backfill-prepare';
 
 describe('ac-coverage-backfill-prepare subcommand', () => {
@@ -431,7 +431,7 @@ export async function acCoverageBackfillPrepareCmd(argv: string[]): Promise<numb
 ### Step 1 — failing test
 
 ```ts
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect } from 'vitest';
 import { acCoverageBackfillFinalizeCmd } from '../../src/bin-internal/ac-coverage-backfill-finalize';
 
 describe('ac-coverage-backfill-finalize subcommand', () => {
@@ -701,7 +701,7 @@ Read `.xera/coverage/report.json`. If `acBackfillNeeded === true`:
 ### 3a — Assemble unmapped context
 
 ```bash
-bun run xera:ac-coverage-backfill-prepare
+npx xera-internal ac-coverage-backfill-prepare
 ```
 
 This writes `.xera/coverage/ac-backfill-input.json` listing tickets that have ACs + scenarios but no `satisfies` edges yet.
@@ -713,7 +713,7 @@ If the input file is `{ "tickets": [] }`, skip to Step 4 — there's nothing to 
 Mint a fresh per-invocation nonce:
 
 ```bash
-bun -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"
+node -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"
 ```
 
 Capture the single-line output as the nonce.
@@ -733,7 +733,7 @@ Write the prompt output to `.xera/coverage/ac-backfill-decisions.json`. The outp
 ### 3c — Materialize the satisfies edges
 
 ```bash
-bun run xera:ac-coverage-backfill-finalize
+npx xera-internal ac-coverage-backfill-finalize
 ```
 
 This validates the decisions JSON and emits one `ac-coverage.backfilled` event per ticket. Each event materializes the `satisfies` edges in the graph snapshot.
@@ -741,7 +741,7 @@ This validates the decisions JSON and emits one `ac-coverage.backfilled` event p
 ### 3d — Re-run coverage-prepare
 
 ```bash
-bun run xera:coverage-prepare --no-emit-event
+npx xera-internal coverage-prepare --no-emit-event
 ```
 
 This regenerates `.xera/coverage/report.json` with the newly materialized `satisfies` edges. After this, `acBackfillNeeded` should be `false` (or only `true` for tickets the AI declined to map — those are an AI quality issue and need a human eye).
@@ -755,7 +755,7 @@ Also remove the stale "⚠ AC backfill is needed" warning text from the now-repl
 
 ```bash
 cd /home/user/xera
-bun run xera:verify-prompts
+npx xera-internal verify-prompts
 ```
 
 ### Step 3 — commit: `feat(skills): xera-coverage auto-orchestrates AC backfill`
@@ -771,7 +771,7 @@ bun run xera:verify-prompts
 ### Step 1 — failing test
 
 ```ts
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -897,9 +897,9 @@ describe('AC backfill end-to-end round-trip', () => {
 
 ```bash
 cd /home/user/xera
-bun run typecheck
-bun run lint
-bun test packages/core packages/web packages/http
+npm run typecheck
+npm run lint
+npx vitest run packages/core packages/web packages/http
 git status
 ```
 

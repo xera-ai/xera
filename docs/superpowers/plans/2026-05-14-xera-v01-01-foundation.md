@@ -2,13 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Stand up the Bun workspace and build `@xera-ai/core` foundations: config, artifact paths, hashing, logging, file lock, Jira client (MCP + REST), and the encrypted auth-state manager.
+**Goal:** Stand up the npm workspace and build `@xera-ai/core` foundations: config, artifact paths, hashing, logging, file lock, Jira client (MCP + REST), and the encrypted auth-state manager.
 
 **Architecture:** Five workspace packages scaffolded. All shared types and IO live in `@xera-ai/core`. Jira is abstracted behind a `JiraClient` interface with two backends (MCP preferred, REST fallback). Auth state is AES-256-GCM-encrypted at rest, with TTL/expiry-based refresh.
 
-**Tech Stack:** Bun, TypeScript 5.x strict, vitest-style `bun test`, zod, biome, node:crypto.
+**Tech Stack:** Node, TypeScript 5.x strict, vitest-style `npx vitest run`, zod, biome, node:crypto.
 
-**Prereqs:** Bun ≥1.1.0 installed. `gh` CLI authenticated.
+**Prereqs:** Node ≥22 installed. `gh` CLI authenticated.
 
 ---
 
@@ -33,17 +33,17 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "engines": { "bun": ">=1.1.0" },
+  "engines": { "node": ">=22.0.0" },
   "workspaces": [
     "packages/*",
     "fixtures/*"
   ],
   "scripts": {
-    "build": "bun run --filter '*' build",
-    "test": "bun test",
+    "build": "npm run --filter '*' build",
+    "test": "npx vitest run",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "typecheck": "bun run --filter '*' typecheck"
+    "typecheck": "npm run --filter '*' typecheck"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
@@ -81,7 +81,7 @@ preload = []
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "types": ["bun-types"]
+    "types": ["@types/node"]
   }
 }
 ```
@@ -103,14 +103,14 @@ preload = []
 
 - [x] **Step 5: Install root devDeps**
 
-Run: `bun install`
-Expected: lockfile created at `bun.lock`, no errors.
+Run: `npm install`
+Expected: lockfile created at `package-lock.json`, no errors.
 
 - [x] **Step 6: Commit**
 
 ```bash
-git add package.json bunfig.toml tsconfig.base.json biome.json bun.lock
-git commit -m "chore: bootstrap bun workspace + biome + tsconfig"
+git add package.json bunfig.toml tsconfig.base.json biome.json package-lock.json
+git commit -m "chore: bootstrap npm workspace + biome + tsconfig"
 ```
 
 ---
@@ -140,7 +140,7 @@ git commit -m "chore: bootstrap bun workspace + biome + tsconfig"
   "bin": { "xera-internal": "./dist/bin/internal.js" },
   "files": ["dist", "bin"],
   "scripts": {
-    "build": "bun build ./src/index.ts ./src/bin/internal.ts --outdir ./dist --target bun",
+    "build": "tsup",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -180,7 +180,7 @@ export const VERSION = '0.1.0';
   "bin": { "xera": "./bin/xera" },
   "files": ["dist", "bin", "templates"],
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target bun",
+    "build": "tsup",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -211,7 +211,7 @@ export const CLI_VERSION = '0.1.0';
 - [x] **Step 7: `packages/cli/bin/xera`**
 
 ```sh
-#!/usr/bin/env bun
+#!/usr/bin/env node
 import('../dist/index.js').then(m => m.default ? m.default() : undefined);
 ```
 
@@ -231,7 +231,7 @@ Make executable: `chmod +x packages/cli/bin/xera`
   },
   "files": ["dist"],
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target bun",
+    "build": "tsup",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -293,7 +293,7 @@ export const WEB_VERSION = '0.1.0';
 
 - [x] **Step 15: Verify workspace resolution**
 
-Run: `bun install`
+Run: `npm install`
 Expected: `node_modules/@xera-ai/core` (symlink), `node_modules/@xera-ai/cli`, `node_modules/@xera-ai/web` all exist.
 
 - [x] **Step 16: Commit**
@@ -322,12 +322,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-        with: { bun-version: '1.1.x' }
-      - run: bun install --frozen-lockfile
-      - run: bun run lint
-      - run: bun run typecheck
-      - run: bun test
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npx vitest run
 ```
 
 - [x] **Step 2: Commit and verify**
@@ -355,7 +355,7 @@ Open the Actions tab on GitHub; the workflow should pass (no tests yet, just typ
 `packages/core/test/config/schema.test.ts`:
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { XeraConfigSchema } from '../../src/config/schema';
 
 describe('XeraConfigSchema', () => {
@@ -408,7 +408,7 @@ describe('XeraConfigSchema', () => {
 - [x] **Step 2: Run tests, confirm they fail**
 
 ```bash
-cd packages/core && bun test
+cd packages/core && npx vitest run
 ```
 Expected: 4 failures (module not found).
 
@@ -494,7 +494,7 @@ export type XeraConfig = z.infer<typeof XeraConfigSchema>;
 - [x] **Step 4: Run tests, confirm pass**
 
 ```bash
-cd packages/core && bun test
+cd packages/core && npx vitest run
 ```
 Expected: 4 passes.
 
@@ -526,7 +526,7 @@ export function defineConfig(config: XeraConfig): XeraConfig { return config; }
 `packages/core/test/config/load.test.ts`:
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -561,7 +561,7 @@ describe('loadConfig', () => {
 - [x] **Step 3: Run failing test**
 
 ```bash
-cd packages/core && bun test test/config/load.test.ts
+cd packages/core && npx vitest run test/config/load.test.ts
 ```
 Expected: 2 failures.
 
@@ -587,7 +587,7 @@ export async function loadConfig(cwd: string): Promise<XeraConfig> {
 - [x] **Step 5: Run tests, confirm pass**
 
 ```bash
-cd packages/core && bun test
+cd packages/core && npx vitest run
 ```
 Expected: all pass.
 
@@ -609,7 +609,7 @@ git commit -m "core: add defineConfig helper and loader"
 - [x] **Step 1: Write failing tests**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { resolveArtifactPaths } from '../../src/artifact/paths';
 
 describe('resolveArtifactPaths', () => {
@@ -648,7 +648,7 @@ describe('resolveArtifactPaths', () => {
 - [x] **Step 2: Run failing**
 
 ```bash
-cd packages/core && bun test test/artifact/paths.test.ts
+cd packages/core && npx vitest run test/artifact/paths.test.ts
 ```
 
 - [x] **Step 3: Implement**
@@ -721,7 +721,7 @@ export function generateRunId(now: Date = new Date()): string {
 - [x] **Step 4: Tests pass**
 
 ```bash
-cd packages/core && bun test
+cd packages/core && npx vitest run
 ```
 
 - [x] **Step 5: Commit**
@@ -742,7 +742,7 @@ git commit -m "core: add artifact path resolver with ticket key validation"
 - [x] **Step 1: Failing tests**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -772,7 +772,7 @@ describe('hash utilities', () => {
 - [x] **Step 2: Run failing**
 
 ```bash
-cd packages/core && bun test test/artifact/hash.test.ts
+cd packages/core && npx vitest run test/artifact/hash.test.ts
 ```
 
 - [x] **Step 3: Implement `hash.ts`**
@@ -798,7 +798,7 @@ export function hashFileIfExists(path: string): string | null {
 - [x] **Step 4: Tests pass + commit**
 
 ```bash
-cd packages/core && bun test
+cd packages/core && npx vitest run
 git add packages/core/src/artifact/hash.ts packages/core/test/artifact/hash.test.ts
 git commit -m "core: add sha256 hash utilities"
 ```
@@ -818,7 +818,7 @@ git commit -m "core: add sha256 hash utilities"
 `packages/core/test/artifact/meta.test.ts`:
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -850,7 +850,7 @@ describe('meta.json IO', () => {
 - [x] **Step 2: Run failing**
 
 ```bash
-cd packages/core && bun test test/artifact/meta.test.ts
+cd packages/core && npx vitest run test/artifact/meta.test.ts
 ```
 
 - [x] **Step 3: Implement `meta.ts`**
@@ -903,7 +903,7 @@ export function updateMeta(path: string, patch: Partial<MetaJson>): MetaJson {
 `packages/core/test/artifact/status.test.ts`:
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -958,7 +958,7 @@ describe('status.json IO', () => {
 - [x] **Step 5: Run failing**
 
 ```bash
-cd packages/core && bun test test/artifact/status.test.ts
+cd packages/core && npx vitest run test/artifact/status.test.ts
 ```
 
 - [x] **Step 6: Implement `status.ts`**
@@ -1024,7 +1024,7 @@ export function appendHistory(path: string, entry: HistoryEntry): StatusJson {
 - [x] **Step 7: Tests pass + commit**
 
 ```bash
-cd packages/core && bun test
+cd packages/core && npx vitest run
 git add packages/core/src/artifact/{meta,status}.ts packages/core/test/artifact/{meta,status}.test.ts
 git commit -m "core: add meta.json + status.json IO with history cap"
 ```
@@ -1040,7 +1040,7 @@ git commit -m "core: add meta.json + status.json IO with history cap"
 - [x] **Step 1: Failing test**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -1081,7 +1081,7 @@ describe('NdjsonLogger', () => {
 - [x] **Step 2: Run failing**
 
 ```bash
-cd packages/core && bun test test/logging/
+cd packages/core && npx vitest run test/logging/
 ```
 
 - [x] **Step 3: Implement**
@@ -1117,7 +1117,7 @@ export class NdjsonLogger {
 - [x] **Step 4: Tests pass + commit**
 
 ```bash
-cd packages/core && bun test
+cd packages/core && npx vitest run
 git add packages/core/src/logging packages/core/test/logging
 git commit -m "core: add append-only NDJSON logger"
 ```
@@ -1133,7 +1133,7 @@ git commit -m "core: add append-only NDJSON logger"
 - [x] **Step 1: Failing tests**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { mkdtempSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -1183,7 +1183,7 @@ describe('file-lock', () => {
 - [x] **Step 2: Run failing**
 
 ```bash
-cd packages/core && bun test test/lock/
+cd packages/core && npx vitest run test/lock/
 ```
 
 - [x] **Step 3: Implement**
@@ -1251,7 +1251,7 @@ export function forceUnlock(path: string): void {
 - [x] **Step 4: Tests pass + commit**
 
 ```bash
-cd packages/core && bun test
+cd packages/core && npx vitest run
 git add packages/core/src/lock packages/core/test/lock
 git commit -m "core: add file lock with stale detection"
 ```
@@ -1349,7 +1349,7 @@ export * from './lock/file-lock';
 - [x] **Step 3: Typecheck + commit**
 
 ```bash
-cd packages/core && bun run typecheck
+cd packages/core && npm run typecheck
 git add packages/core/src/adapter/types.ts packages/core/src/index.ts
 git commit -m "core: define TestAdapter interface and public re-exports"
 ```
@@ -1433,7 +1433,7 @@ git commit -m "core: add JiraClient interface and backend factory"
 - [x] **Step 1: Failing test using a mock fetch**
 
 ```ts
-import { describe, expect, test, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, expect, test, beforeEach, afterEach, mock } from 'vitest';
 import { createRestBackend } from '../../src/jira/rest-backend';
 
 const originalFetch = globalThis.fetch;
@@ -1482,7 +1482,7 @@ describe('rest-backend', () => {
 - [x] **Step 2: Run failing**
 
 ```bash
-cd packages/core && bun test test/jira/rest-backend.test.ts
+cd packages/core && npx vitest run test/jira/rest-backend.test.ts
 ```
 
 - [x] **Step 3: Implement**
@@ -1569,7 +1569,7 @@ export function createRestBackend(baseUrl: string, creds: RestCreds): JiraClient
 - [x] **Step 4: Tests pass + commit**
 
 ```bash
-cd packages/core && bun test
+cd packages/core && npx vitest run
 git add packages/core/src/jira/rest-backend.ts packages/core/test/jira/rest-backend.test.ts
 git commit -m "core: add Jira REST backend with auth + field mapping"
 ```
@@ -1583,7 +1583,7 @@ git commit -m "core: add Jira REST backend with auth + field mapping"
 
 - [x] **Step 1: Implement minimal MCP shim**
 
-The MCP integration runs only when xera is invoked from within a Claude Code session that exposes the Atlassian MCP. In `xera-internal` (Node/Bun process), MCP tools are not directly callable; instead the skill calls them and writes results to disk. So this backend, when used from `xera-internal`, simply detects MCP-ness via an env var the skill sets, and delegates by reading/writing well-known files.
+The MCP integration runs only when xera is invoked from within a Claude Code session that exposes the Atlassian MCP. In `xera-internal` (Node process), MCP tools are not directly callable; instead the skill calls them and writes results to disk. So this backend, when used from `xera-internal`, simply detects MCP-ness via an env var the skill sets, and delegates by reading/writing well-known files.
 
 ```ts
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -1646,7 +1646,7 @@ git commit -m "core: add MCP-backed Jira shim (file-handoff)"
 - [x] **Step 1: Failing test**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { rankStoryCandidates } from '../../src/jira/fields';
 
 describe('rankStoryCandidates', () => {
@@ -1672,7 +1672,7 @@ describe('rankStoryCandidates', () => {
 - [x] **Step 2: Run failing**
 
 ```bash
-cd packages/core && bun test test/jira/fields.test.ts
+cd packages/core && npx vitest run test/jira/fields.test.ts
 ```
 
 - [x] **Step 3: Implement**
@@ -1704,7 +1704,7 @@ export function rankStoryCandidates(fields: JiraFieldInfo[]): JiraFieldInfo[] {
 - [x] **Step 4: Tests pass + commit**
 
 ```bash
-cd packages/core && bun test
+cd packages/core && npx vitest run
 git add packages/core/src/jira/fields.ts packages/core/test/jira/fields.test.ts
 git commit -m "core: rank Jira field candidates for story/AC detection"
 ```
@@ -1720,7 +1720,7 @@ git commit -m "core: rank Jira field candidates for story/AC detection"
 - [x] **Step 1: Failing test**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { withRetry } from '../../src/jira/retry';
 
 describe('withRetry', () => {
@@ -1791,7 +1791,7 @@ export async function withRetry<T>(fn: () => Promise<T>, opts: RetryOptions): Pr
 - [x] **Step 3: Tests pass + commit**
 
 ```bash
-cd packages/core && bun test
+cd packages/core && npx vitest run
 git add packages/core/src/jira/retry.ts packages/core/test/jira/retry.test.ts
 git commit -m "core: add exponential-backoff retry helper"
 ```
@@ -1809,7 +1809,7 @@ git commit -m "core: add exponential-backoff retry helper"
 - [x] **Step 1: Failing tests**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { encrypt, decrypt, generateKey } from '../../src/auth/encrypt';
 
 describe('AES-256-GCM helpers', () => {
@@ -1850,7 +1850,7 @@ describe('AES-256-GCM helpers', () => {
 - [x] **Step 2: Run failing**
 
 ```bash
-cd packages/core && bun test test/auth/encrypt.test.ts
+cd packages/core && npx vitest run test/auth/encrypt.test.ts
 ```
 
 - [x] **Step 3: Implement**
@@ -1901,7 +1901,7 @@ export function decrypt(ciphertext: string, keyHex: string): string {
 - [x] **Step 4: Tests pass + commit**
 
 ```bash
-cd packages/core && bun test
+cd packages/core && npx vitest run
 git add packages/core/src/auth/encrypt.ts packages/core/test/auth/encrypt.test.ts
 git commit -m "core: add AES-256-GCM encrypt/decrypt with versioned envelope"
 ```
@@ -1917,7 +1917,7 @@ git commit -m "core: add AES-256-GCM encrypt/decrypt with versioned envelope"
 - [x] **Step 1: Failing test**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { resolveAuthKey, AUTH_KEY_ENV } from '../../src/auth/key';
 
 describe('resolveAuthKey', () => {
@@ -1963,7 +1963,7 @@ export function resolveAuthKey(): string {
 - [x] **Step 3: Tests pass + commit**
 
 ```bash
-cd packages/core && bun test
+cd packages/core && npx vitest run
 git add packages/core/src/auth/key.ts packages/core/test/auth/key.test.ts
 git commit -m "core: resolve XERA_AUTH_KEY from env with validation"
 ```
@@ -1979,7 +1979,7 @@ git commit -m "core: resolve XERA_AUTH_KEY from env with validation"
 - [x] **Step 1: Failing test**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -2021,7 +2021,7 @@ describe('auth state IO', () => {
 - [x] **Step 2: Run failing**
 
 ```bash
-cd packages/core && bun test test/auth/state.test.ts
+cd packages/core && npx vitest run test/auth/state.test.ts
 ```
 
 - [x] **Step 3: Implement**
@@ -2064,7 +2064,7 @@ export function readAuthState(authDir: string, role: string): AuthStateEntry | n
 - [x] **Step 4: Tests pass + commit**
 
 ```bash
-cd packages/core && bun test
+cd packages/core && npx vitest run
 git add packages/core/src/auth/state.ts packages/core/test/auth/state.test.ts
 git commit -m "core: add encrypted auth-state IO"
 ```
@@ -2080,7 +2080,7 @@ git commit -m "core: add encrypted auth-state IO"
 - [x] **Step 1: Failing tests**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { parseDuration, needsRefresh, type AuthStateEntry } from '../../src/auth/refresh';
 
 describe('parseDuration', () => {
@@ -2158,7 +2158,7 @@ export function needsRefresh(
 - [x] **Step 3: Tests pass + commit**
 
 ```bash
-cd packages/core && bun test
+cd packages/core && npx vitest run
 git add packages/core/src/auth/refresh.ts packages/core/test/auth/refresh.test.ts
 git commit -m "core: add auth refresh policy (TTL + buffer)"
 ```
@@ -2197,7 +2197,7 @@ export * from './auth/refresh';
 - [x] **Step 2: Typecheck + commit**
 
 ```bash
-cd packages/core && bun run typecheck
+cd packages/core && npm run typecheck
 git add packages/core/src/index.ts
 git commit -m "core: re-export jira + auth modules"
 ```
@@ -2211,9 +2211,9 @@ At this point `@xera-ai/core` has all foundation modules with passing tests. CI 
 Verify:
 
 ```bash
-bun run lint
-bun run typecheck
-bun test
+npm run lint
+npm run typecheck
+npx vitest run
 ```
 
 Tag and push:

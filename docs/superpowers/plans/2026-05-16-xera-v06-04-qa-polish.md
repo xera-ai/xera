@@ -14,7 +14,7 @@
 
 No new event types, no new prompt templates, no architectural changes. Pure UX polish on top of v0.6.0–v0.6.3.
 
-**Tech Stack:** Unchanged from v0.6.3 (Bun, TypeScript strict, zod 4.4.3, `bun:test`, vanilla DOM).
+**Tech Stack:** Unchanged from v0.6.3 (Node, TypeScript strict, zod 4.4.3, `vitest`, vanilla DOM).
 
 **Spec:** No new spec — addresses gaps identified in QA-usability review (post-v0.6.3) without revising the design.
 
@@ -157,7 +157,7 @@ Note: the conditional spread is used because of `exactOptionalPropertyTypes` —
 
 - [ ] **Step 6: Run tests**
 
-Run: `cd /home/user/xera/packages/web && bun test && bun run typecheck`
+Run: `cd /home/user/xera/packages/web && npx vitest run && npm run typecheck`
 Expected: all pass.
 
 - [ ] **Step 7: Commit**
@@ -186,7 +186,7 @@ If `exec.test.ts` exists, extend it. Otherwise create new.
 Add to (or create) `packages/core/test/bin-internal/exec.test.ts`:
 
 ```typescript
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 
 describe('execCmd --grep flag parsing', () => {
   test('parses --grep flag from argv and forwards to runPlaywright', async () => {
@@ -226,7 +226,7 @@ const result = await runPlaywright({
 
 - [ ] **Step 4: Run tests**
 
-Run: `cd /home/user/xera/packages/core && bun test test/bin-internal/exec.test.ts && bun run typecheck`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/bin-internal/exec.test.ts && npm run typecheck`
 Expected: pass.
 
 - [ ] **Step 5: Commit**
@@ -316,7 +316,7 @@ Scenario: User changes background color
 
 - [ ] **Step 2: Run to fail**
 
-Run: `cd /home/user/xera/packages/core && bun test test/bin-internal/graph-record.test.ts -t auto-detection`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/bin-internal/graph-record.test.ts -t auto-detection`
 Expected: FAIL — all 3 scenarios default to p1.
 
 - [ ] **Step 3: Modify `parseFeature` in `graph-record-script.ts`**
@@ -378,7 +378,7 @@ The key changes:
 
 - [ ] **Step 4: Run tests, verify pass**
 
-Run: `cd /home/user/xera/packages/core && bun test test/bin-internal/graph-record.test.ts && bun run typecheck`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/bin-internal/graph-record.test.ts && npm run typecheck`
 Expected: all existing tests still pass + 3 new tests pass.
 
 - [ ] **Step 5: Commit**
@@ -411,7 +411,7 @@ test('defaults to enabled=true, threshold=8.0', () => {
 
 - [ ] **Step 2: Run to fail**
 
-Run: `cd /home/user/xera/packages/core && bun test test/config/schema.test.ts -t 'defaults to'`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/config/schema.test.ts -t 'defaults to'`
 Expected: FAIL — still gets 6.0.
 
 - [ ] **Step 3: Update schema default**
@@ -420,7 +420,7 @@ In `packages/core/src/config/schema.ts`, find the RunSchema definition. Change `
 
 - [ ] **Step 4: Run tests**
 
-Run: `cd /home/user/xera/packages/core && bun test test/config/schema.test.ts`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/config/schema.test.ts`
 Expected: 4 tests pass.
 
 - [ ] **Step 5: Commit**
@@ -483,7 +483,7 @@ describe('deriveSnapshot dispute aggregation', () => {
 
 - [ ] **Step 2: Run to fail**
 
-Run: `cd /home/user/xera/packages/core && bun test test/graph/store.test.ts -t 'dispute aggregation'`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/graph/store.test.ts -t 'dispute aggregation'`
 Expected: FAIL — `disputed` field doesn't exist.
 
 - [ ] **Step 3: Add `disputed` to `FailureNode`**
@@ -523,7 +523,7 @@ This marks the failure as disputed only if the dispute event references the same
 
 - [ ] **Step 5: Run tests**
 
-Run: `cd /home/user/xera/packages/core && bun test test/graph/store.test.ts && bun run typecheck`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/graph/store.test.ts && npm run typecheck`
 Expected: 2 new tests pass + all existing store tests still pass.
 
 - [ ] **Step 6: Commit**
@@ -575,7 +575,7 @@ describe('renderHtml — disputed failure marker', () => {
 
 - [ ] **Step 2: Run to fail**
 
-Run: `cd /home/user/xera/packages/core && bun test test/graph/render.test.ts -t 'disputed failure marker'`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/graph/render.test.ts -t 'disputed failure marker'`
 Expected: FAIL.
 
 - [ ] **Step 3: Update `buildFailureNode` in `render.ts`**
@@ -617,7 +617,7 @@ export interface VisNode {
 
 - [ ] **Step 4: Run tests**
 
-Run: `cd /home/user/xera/packages/core && bun test test/graph/render.test.ts && bun run typecheck`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/graph/render.test.ts && npm run typecheck`
 Expected: 2 new tests pass + all existing render tests still pass.
 
 - [ ] **Step 5: Commit**
@@ -666,7 +666,7 @@ test('doctor without --auto-enrich shows prompt suggestion (existing behavior)',
 
 - [ ] **Step 3: Run to fail**
 
-Run: `cd /home/user/xera/packages/core && bun test test/bin-internal/doctor.test.ts -t 'auto-enrich'`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/bin-internal/doctor.test.ts -t 'auto-enrich'`
 Expected: FAIL.
 
 - [ ] **Step 4: Implement `--auto-enrich` in `doctor.ts`**
@@ -705,7 +705,7 @@ async function runDoctor(root: string, argv: string[] = []): Promise<{ stdout: s
 
 - [ ] **Step 5: Run tests**
 
-Run: `cd /home/user/xera/packages/core && bun test test/bin-internal/doctor.test.ts && bun run typecheck`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/bin-internal/doctor.test.ts && npm run typecheck`
 Expected: all tests pass including 2 new auto-enrich cases.
 
 - [ ] **Step 6: Commit**
@@ -729,7 +729,7 @@ git commit -m "core: doctor --auto-enrich runs non-interactive backfill (v0.6.4)
 Create `packages/core/test/bin-internal/disputes.test.ts`:
 
 ```typescript
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -807,7 +807,7 @@ describe('disputes subcommand', () => {
 
 - [ ] **Step 2: Run to fail**
 
-Run: `cd /home/user/xera/packages/core && bun test test/bin-internal/disputes.test.ts`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/bin-internal/disputes.test.ts`
 Expected: FAIL — cannot import.
 
 - [ ] **Step 3: Implement `disputes.ts`**
@@ -913,7 +913,7 @@ import { disputesCmd } from './disputes';
 
 - [ ] **Step 5: Run tests**
 
-Run: `cd /home/user/xera/packages/core && bun test test/bin-internal/disputes.test.ts && bun run typecheck`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/bin-internal/disputes.test.ts && npm run typecheck`
 Expected: 3 tests pass; typecheck clean.
 
 - [ ] **Step 6: Commit**
@@ -956,7 +956,7 @@ Replace the relevant section with this text.
 
 - [ ] **Step 2: Patch `xera-impact.md`**
 
-Open `packages/skills/xera-impact.md`. Find Step 4 (4-way prompt — `[Y/p/s/n]`). The current text describes invoking `bun run xera:exec <owner-ticket>` per owner ticket, running the entire spec.
+Open `packages/skills/xera-impact.md`. Find Step 4 (4-way prompt — `[Y/p/s/n]`). The current text describes invoking `npx xera-internal exec <owner-ticket>` per owner ticket, running the entire spec.
 
 Change the **[Y]** action to use `--grep`:
 
@@ -964,7 +964,7 @@ Change the **[Y]** action to use `--grep`:
 - **[Y]:** Group impacted scenarios by their owner ticket (`scenario.ticketId`). For each owner ticket, build a regex from the impacted scenario names — e.g. `"user signs in|user resets password"` — and invoke:
 
   ```bash
-  bun run xera:exec <owner-ticket> --grep "<NAME_REGEX>"
+  npx xera-internal exec <owner-ticket> --grep "<NAME_REGEX>"
   ```
 
   The `--grep` flag (added in v0.6.4) makes Playwright run **only the named scenarios**, not the entire spec. Build the regex by joining `impacted[].name` with `|` and escaping any regex special characters in the names. If a scenario name contains characters like `(`, `)`, or `|`, escape them with `\\`.
@@ -1048,15 +1048,15 @@ Append:
 **`xera-internal disputes`** lists `classification.disputed` events for review by the QA lead:
 
 ```bash
-bun run xera:disputes                       # all disputes, text format
-bun run xera:disputes --since 7d            # past week only
-bun run xera:disputes --format json         # machine-readable
+npx xera-internal disputes                       # all disputes, text format
+npx xera-internal disputes --since 7d            # past week only
+npx xera-internal disputes --format json         # machine-readable
 ```
 
 **`xera doctor --auto-enrich`** runs non-interactive backfill of unbackfilled tickets, intended for CI:
 
 ```bash
-bun run xera:doctor --auto-enrich           # cron-friendly
+npx xera-internal doctor --auto-enrich           # cron-friendly
 ```
 ```
 
@@ -1099,17 +1099,17 @@ git commit -m "release: bump versions to v0.6.4 + docs for threshold + disputes 
 
 - [ ] **Step 1: Lint**
 
-Run: `cd /home/user/xera && bun run lint`
-Expected: clean. If errors, `bun run lint:fix` + commit `chore: lint fixes for v0.6.4`.
+Run: `cd /home/user/xera && npm run lint`
+Expected: clean. If errors, `npm run lint:fix` + commit `chore: lint fixes for v0.6.4`.
 
 - [ ] **Step 2: Typecheck**
 
-Run: `cd /home/user/xera && bun run typecheck`
+Run: `cd /home/user/xera && npm run typecheck`
 Expected: clean.
 
 - [ ] **Step 3: All tests**
 
-Run: `cd /home/user/xera && bun test`
+Run: `cd /home/user/xera && npx vitest run`
 Expected: all pass (1 pre-existing integration fail).
 
 - [ ] **Step 4: Verify subcommand registration**
@@ -1123,7 +1123,7 @@ Expected: 8 (added `disputes`).
 
 ```bash
 cd /home/user/xera
-bun run --cwd packages/core xera-internal graph-render --out /tmp/xera-v064-test.html 2>&1
+npm run --cwd packages/core xera-internal graph-render --out /tmp/xera-v064-test.html 2>&1
 ls -la /tmp/xera-v064-test.html
 ```
 
@@ -1132,7 +1132,7 @@ Expected: file exists, > 100 KB.
 - [ ] **Step 6: Verify disputes subcommand reachable**
 
 ```bash
-bun run --cwd packages/core xera-internal disputes 2>&1 | head -3
+npm run --cwd packages/core xera-internal disputes 2>&1 | head -3
 ```
 
 Expected: prints either "No disputes recorded." or a non-error message.

@@ -13,7 +13,7 @@
 
 ### 1.1 Goal
 
-Today `xera init` scaffolds skills and commands for **Claude Code only**. A consumer project opened in Cursor or OpenAI Codex CLI gets no integration — the QA engineer can still run `bun run xera:*` scripts manually, but loses the orchestrated workflow (`/xera-run` chaining `/xera-fetch` → `/xera-feature` → `/xera-script` → ...).
+Today `xera init` scaffolds skills and commands for **Claude Code only**. A consumer project opened in Cursor or OpenAI Codex CLI gets no integration — the QA engineer can still run `npx xera-internal` scripts manually, but loses the orchestrated workflow (`/xera-run` chaining `/xera-fetch` → `/xera-feature` → `/xera-script` → ...).
 
 The goal: one `xera init` produces a project that works equivalently in any of the three editors a user might open it with. Adding a fourth editor later means adding one adapter file.
 
@@ -64,7 +64,7 @@ Key insight: **Claude and Codex use byte-identical `SKILL.md` files**; only the 
 Every doc that today says "Driven entirely by Claude Code skills" or implies Claude-only integration must be updated to reflect multi-editor support. Specifically:
 
 - `README.md` — top-of-file tagline ("Driven entirely by Claude Code skills" → "Driven by AI coding-agent skills (Claude Code, Cursor, OpenAI Codex CLI)"), Prereqs line (Claude Code → "Claude Code / Cursor / OpenAI Codex CLI"), Quick-start "Then open Claude Code" → editor-agnostic instruction with per-editor sub-bullet.
-- `CLAUDE.md` — "Skills vs prompts boundary" section + Codebase map's `packages/skills/` line: note that scaffolding now writes per-editor formats; update the example `bunx @xera-ai/cli init` snippet if it implies Claude-only.
+- `CLAUDE.md` — "Skills vs prompts boundary" section + Codebase map's `packages/skills/` line: note that scaffolding now writes per-editor formats; update the example `npx @xera-ai/cli init` snippet if it implies Claude-only.
 - `AGENTS.md` — `xera init` description should mention `--editor` flag and the per-editor outputs.
 - `docs/PROJECT_CONTEXT.md` — anywhere it lists the editor target.
 - `docs/ARCHITECTURE.md` — the Skills/Commands surface description.

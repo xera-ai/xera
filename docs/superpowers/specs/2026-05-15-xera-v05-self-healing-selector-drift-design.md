@@ -51,7 +51,7 @@ Refusal output is structured (fixed enum), not free-form prose. This keeps downs
 
 1. Heal proposes change (or refuses).
 2. If proposed: skill writes `newPomLine` to `pomFile:pomLine` (verbatim string-replace of `pomLineContent`).
-3. Skill runs `bun run xera:exec <TICKET>`.
+3. Skill runs `npx xera-internal exec <TICKET>`.
 4. Exit 0 → `git add <POM>`, skill reports success + suggests `git commit`.
 5. Exit 3 (test failed) → `git checkout HEAD -- <POM>`, skill reports new failure to QA, STOP.
 6. Exit 4 (Playwright crashed) → `git checkout HEAD -- <POM>`, skill reports crash, STOP.
@@ -70,10 +70,10 @@ Refusal output is structured (fixed enum), not free-form prose. This keeps downs
 
 From a clean checkout of xera, a maintainer can:
 
-1. `bun install`
-2. `bun run xera:doctor` — reports `ok` (validator now also checks `heal-locator.md` preamble).
-3. `bun run xera:verify-prompts` — reports `ok` standalone (3 in-scope prompts now).
-4. `bun test packages/core` — all green, including new `heal-prepare.test.ts`.
+1. `npm install`
+2. `npx xera-internal doctor` — reports `ok` (validator now also checks `heal-locator.md` preamble).
+3. `npx xera-internal verify-prompts` — reports `ok` standalone (3 in-scope prompts now).
+4. `npx vitest run packages/core` — all green, including new `heal-prepare.test.ts`.
 5. Open Claude Code in a scaffolded tryout project. Deliberately break a button label in the SUT (e.g. rename "Sign in" → "Log in"). Run `/xera-report <TICKET>`. Skill detects drift, proposes the new label, applies it to the POM, re-runs the test, and reports success with the POM change staged.
 6. Run `git diff --staged` to see the locator change.
 7. As a second smoke: delete the button entirely from the SUT. Run `/xera-report <TICKET>`. Skill detects, proposes nothing, reports `refusalCategory: element-removed`, suggests manual investigation.
@@ -96,7 +96,7 @@ If any of those breaks, v0.5.0 is not ready.
    │
    │     ┌──────────────────────────────────────────────────────────┐
    │     │ Phase A — Prepare                                         │
-   │     │   bun packages/core/bin/internal.ts heal-prepare \         │
+   │     │   npx xera-internal heal-prepare \         │
    │     │     <TICKET> <RUN_ID> <SCENARIO>                          │
    │     │   • Read trace.json + classifier-output.json              │
    │     │   • Extract failedLocator + locatorFileLine               │
@@ -121,7 +121,7 @@ If any of those breaks, v0.5.0 is not ready.
    │           │ Phase C — Apply + verify                          │
    │           │   • Skill replaces pomLineContent → newPomLine    │
    │           │     in pomFile (verbatim string-replace)          │
-   │           │   • Skill runs `bun run xera:exec <TICKET>`       │
+   │           │   • Skill runs `npx xera-internal exec <TICKET>`       │
    │           │     • exit 0 → `git add <pomFile>`;                │
    │           │                report success, suggest commit     │
    │           │     • exit 3 → `git checkout HEAD -- <pomFile>`;   │
@@ -168,7 +168,7 @@ If any of those breaks, v0.5.0 is not ready.
 | `packages/cli/src/commands/init-update.ts` | Same bump. |
 | `fixtures/golden-eval/EVAL-007-heal-label-change/` | **NEW directory.** `meta.json` declaring `stages: ["heal-locator"]`. Golden + rubric ship in v0.5.1. |
 
-No new root scripts. `xera:heal-prepare` is internal — called from inside the `xera-report` skill via the `bun packages/core/bin/internal.ts heal-prepare` path. Exposing as a root script tempts QA to call it directly, which would skip the LLM proposal step.
+No new root scripts. `xera:heal-prepare` is internal — called from inside the `xera-report` skill via the `npx xera-internal heal-prepare` path. Exposing as a root script tempts QA to call it directly, which would skip the LLM proposal step.
 
 ### 2.4 `heal-locator.md` prompt template structure
 
@@ -299,7 +299,7 @@ Full text lives in the plan; this section captures shape only.
      If text does not contain pomLineContent verbatim → STOP with
        "POM line drifted since heal was proposed; re-run /xera-report."
      Replace pomLineContent with newPomLine. Write back.
-     Run: bun run xera:exec <TICKET>.
+     Run: npx xera-internal exec <TICKET>.
        exit 0 → run `git add <pomFile>`. Report success + suggest commit.
        exit 3 → run `git checkout HEAD -- <pomFile>`. Read latest run's
                 classifier output, summarize new failure, STOP.

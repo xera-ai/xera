@@ -41,7 +41,7 @@ This directly addresses POSTMORTEM risk #1 (*"LLM non-determinism for spec gen �
 
 From a clean checkout of xera, a maintainer can:
 
-1. `bun install`
+1. `npm install`
 2. Open Claude Code in the repo root.
 3. Run `/xera-eval` in the session.
 4. Skill orchestrates gen + sub-agent-driven judge across 5 tickets × applicable stages.
@@ -66,7 +66,7 @@ xera repo (maintainer's Claude Code session)
     packages/skills/xera-eval.md
          │
          ├── Phase 1: PREPARE (deterministic)
-         │     bun run xera:eval-prepare
+         │     npx xera-internal eval-prepare
          │       → reads fixtures/golden-eval/*
          │       → copies story.md (and where needed test.feature) to
          │         .xera/eval/<run-id>/inputs/<ticket>/
@@ -89,7 +89,7 @@ xera repo (maintainer's Claude Code session)
          │           Produce classification.json → actual/<ticket>/classification.json
          │
          ├── Phase 3: DETERMINISTIC SCORE (CLI)
-         │     bun run xera:eval-deterministic
+         │     npx xera-internal eval-deterministic
          │       → For each actual:
          │           - gherkin: xera:validate-feature (existing v0.1)
          │           - spec: xera:typecheck + xera:lint + selector-rules + pom-scan
@@ -118,7 +118,7 @@ xera repo (maintainer's Claude Code session)
          │     critical mitigation for self-evaluation bias. See §2.2 #7 and §7 #1.
          │
          └── Phase 5: REPORT (CLI)
-               bun run xera:eval-report
+               npx xera-internal eval-report
                  → merge deterministic + judge scores
                  → render .xera/eval/<run-id>/report.md (human-readable table)
                  → write summary.json (machine-readable)
@@ -377,7 +377,7 @@ outputs:
 | `eval-deterministic` | Unit: given `actual/` with known-bad gherkin, returns correct `deterministic-scores.json` | `packages/core/test/bin-internal/eval-deterministic.test.ts` |
 | `eval-report` | Unit: given hand-built `deterministic-scores.json` + `judge-scores.json`, renders expected `report.md` + `summary.json` | `packages/core/test/bin-internal/eval-report.test.ts` |
 | Golden fixtures themselves | Snapshot: `golden/test.feature` validates with `xera:validate-feature`; `golden/spec.ts` typechecks + lints | `packages/core/test/fixtures/golden-eval.test.ts` |
-| Skill `.md` | Lint: frontmatter parses, all `bun run xera:eval-*` commands referenced exist as scripts | reuse existing skill-lint pattern |
+| Skill `.md` | Lint: frontmatter parses, all `npx xera-internal eval-*` commands referenced exist as scripts | reuse existing skill-lint pattern |
 | **End-to-end** | Integration: drive the full skill flow with a STUB session-LLM (pre-write known outputs into `actual/`), assert final `report.md` content. Does NOT require a real Claude Code session. | `packages/core/test/bin-internal/eval-e2e.test.ts` |
 
 The end-to-end test is the crucial one — it proves the deterministic plumbing works *without* needing a live session LLM. The skill's cognitive steps are stubbed by pre-writing files to `actual/`.
@@ -412,7 +412,7 @@ New `xera-internal doctor` subcommand. Lives in `@xera-ai/core`'s `xera-internal
 - `fixtures/golden-eval/` exists and contains ≥ 3 ticket dirs
 - Each golden ticket dir has the files declared in its `meta.json#stages` (e.g., `feature-from-story` stage → `golden/test.feature` required; `script-from-feature` stage → `golden/spec-requirements.md` required)
 - `packages/prompts/eval-rubric.md` parses (frontmatter + version)
-- `bun run xera:eval-prepare`, `xera:eval-deterministic`, `xera:eval-report` scripts all exist in root `package.json`
+- `npx xera-internal eval-prepare`, `xera:eval-deterministic`, `xera:eval-report` scripts all exist in root `package.json`
 - `packages/skills/xera-eval.md` parses (frontmatter)
 
 The public `xera doctor` CLI shipped to end users via `@xera-ai/cli` is **not modified**. Eval is strictly maintainer-only, so end users never need any of these checks. Adding them to the public CLI would create dead code in 100% of end-user installs (no consumer project has `fixtures/golden-eval/`).

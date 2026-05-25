@@ -201,14 +201,14 @@ In `packages/core/src/bin-internal/verify-prompts.ts`, find the constant `IN_SCO
 
 - [ ] **Step 3: Run verify-prompts**
 
-Run: `bun run xera:verify-prompts`
+Run: `npx xera-internal verify-prompts`
 Expected: reports `ok` with the new list (8 prompts).
 
 - [ ] **Step 4: Update test**
 
 Look at `packages/core/test/bin-internal/verify-prompts.test.ts` (or wherever). If it asserts a specific count or contains a hardcoded list, update it.
 
-Run: `cd packages/core && bun test test/bin-internal/verify-prompts.test.ts`
+Run: `cd packages/core && npx vitest run test/bin-internal/verify-prompts.test.ts`
 Expected: green.
 
 - [ ] **Step 5: Commit**
@@ -308,7 +308,7 @@ Add a step describing adapter dispatch (parallel to xera-script). Same template 
 
 - [ ] **Step 4: Run tests**
 
-Run: `cd packages/core && bun test` and `cd ../web && bun test`
+Run: `cd packages/core && npx vitest run` and `cd ../web && npx vitest run`
 Expected: green.
 
 - [ ] **Step 5: Commit**
@@ -332,7 +332,7 @@ git commit -m "skills: xera-exec dispatches WebAdapter or HttpAdapter by meta.ad
 
 - [ ] **Step 3: Run lint + typecheck**
 
-Run: `bun run lint && bun run typecheck`
+Run: `npm run lint && npm run typecheck`
 Expected: green.
 
 - [ ] **Step 4: Commit**
@@ -381,7 +381,7 @@ export { normalizeHttpRun } from './trace-normalizer/normalize';
 
 - [ ] **Step 4: Test (smoke)**
 
-Manually: create a fake run dir with `http-trace.jsonl` + `raw-report.json`, set up a meta with `adapter: 'http'`, run `bun run xera:normalize <TICKET> <RUN_ID>`. Confirm `normalized.json` appears.
+Manually: create a fake run dir with `http-trace.jsonl` + `raw-report.json`, set up a meta with `adapter: 'http'`, run `npx xera-internal normalize <TICKET> <RUN_ID>`. Confirm `normalized.json` appears.
 
 - [ ] **Step 5: Commit**
 
@@ -465,7 +465,7 @@ git commit -m "core: xera:report loads openapi + authFiles for http classifier"
 
 - [ ] **Step 1: Run everything**
 
-Run: `bun test && bun run typecheck && bun run lint && bun run xera:verify-prompts`
+Run: `npx vitest run && npm run typecheck && npm run lint && npx xera-internal verify-prompts`
 Expected: all green.
 
 - [ ] **Step 2: Commit milestone marker**

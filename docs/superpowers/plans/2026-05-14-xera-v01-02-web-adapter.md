@@ -26,7 +26,7 @@
 - [x] **Step 1: Failing test**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { buildPlaywrightArgs } from '../../src/executor/playwright-args';
 
 describe('buildPlaywrightArgs', () => {
@@ -70,7 +70,7 @@ export function buildPlaywrightArgs(input: PlaywrightArgsInput): string[] {
 - [x] **Step 3: Tests pass + commit**
 
 ```bash
-cd packages/web && bun test
+cd packages/web && npx vitest run
 git add packages/web/src/executor/playwright-args.ts packages/web/test/executor/playwright-args.test.ts
 git commit -m "web: build Playwright CLI args"
 ```
@@ -123,7 +123,7 @@ git commit -m "web: export defineAuthSetup helper"
 The runner is the most subtle piece because it orchestrates: load setup script → run headless browser → capture storageState → encrypt + persist. For the unit test we mock the setup function and a fake "browser context" that returns deterministic state.
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { mkdtempSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -217,7 +217,7 @@ export async function runAuthSetup(input: RunAuthSetupInput): Promise<void> {
 - [x] **Step 3: Tests pass + commit**
 
 ```bash
-cd packages/web && bun test
+cd packages/web && npx vitest run
 git add packages/web/src/auth-setup packages/web/test/auth-setup
 git commit -m "web: auth-setup runner persists encrypted storageState"
 ```
@@ -235,7 +235,7 @@ The Playwright config receives a path to a storageState JSON file. We can't hand
 - [x] **Step 1: Failing test**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -287,7 +287,7 @@ export function stagePlaywrightState(authDir: string, role: string): string {
 - [x] **Step 3: Tests pass + commit**
 
 ```bash
-cd packages/web && bun test
+cd packages/web && npx vitest run
 git add packages/web/src/auth-setup/playwright-state.ts packages/web/test/auth-setup/playwright-state.test.ts
 git commit -m "web: stage decrypted Playwright storageState to .cache"
 ```
@@ -303,7 +303,7 @@ git commit -m "web: stage decrypted Playwright storageState to .cache"
 - [x] **Step 1: Failing test using a mocked spawn**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -365,11 +365,12 @@ export interface RunPlaywrightResult {
   exitCode: number;
 }
 
-const defaultSpawn: SpawnFn = async (cmd, args, env) => {
-  const proc = Bun.spawn([cmd, ...args], { env, stdout: 'inherit', stderr: 'inherit' });
-  const exitCode = await proc.exited;
-  return { exitCode };
-};
+const defaultSpawn: SpawnFn = (cmd, args, env) =>
+  new Promise((resolve) => {
+    const child = spawn(cmd, args, { env, stdio: 'inherit' });
+    child.on('error', () => resolve({ exitCode: 1 }));
+    child.on('close', (code) => resolve({ exitCode: code ?? 1 }));
+  });
 
 export async function runPlaywright(input: RunPlaywrightInput): Promise<RunPlaywrightResult> {
   const args = buildPlaywrightArgs({
@@ -390,7 +391,7 @@ export async function runPlaywright(input: RunPlaywrightInput): Promise<RunPlayw
 - [x] **Step 3: Tests pass + commit**
 
 ```bash
-cd packages/web && bun test
+cd packages/web && npx vitest run
 git add packages/web/src/executor/index.ts packages/web/test/executor/runner.test.ts
 git commit -m "web: runPlaywright subprocess wrapper"
 ```
@@ -410,7 +411,7 @@ The scrub rules are deterministic regexes. We test every rule individually with 
 - [x] **Step 1: Failing tests (positive + adversarial)**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import {
   SENSITIVE_HEADERS,
   SENSITIVE_BODY_KEYS,
@@ -489,7 +490,7 @@ describe('scrubFreeText', () => {
 - [x] **Step 2: Run failing**
 
 ```bash
-cd packages/web && bun test test/trace-normalizer/scrub-rules.test.ts
+cd packages/web && npx vitest run test/trace-normalizer/scrub-rules.test.ts
 ```
 
 - [x] **Step 3: Implement**
@@ -557,7 +558,7 @@ export function scrubFreeText(s: string): string {
 - [x] **Step 4: Tests pass + commit**
 
 ```bash
-cd packages/web && bun test
+cd packages/web && npx vitest run
 git add packages/web/src/trace-normalizer/scrub-rules.ts packages/web/test/trace-normalizer/scrub-rules.test.ts
 git commit -m "web: scrub-rules catalog with regex tests"
 ```
@@ -573,7 +574,7 @@ git commit -m "web: scrub-rules catalog with regex tests"
 - [x] **Step 1: Failing test**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { scrub, type NormalizedNetworkEntry, type NormalizedRun } from '../../src/trace-normalizer/scrub';
 
 describe('scrub(normalizedRun)', () => {
@@ -703,7 +704,7 @@ export function scrub(run: NormalizedRun): NormalizedRun {
 - [x] **Step 3: Tests pass + commit**
 
 ```bash
-cd packages/web && bun test
+cd packages/web && npx vitest run
 git add packages/web/src/trace-normalizer/scrub.ts packages/web/test/trace-normalizer/scrub.test.ts
 git commit -m "web: scrub() pass over normalized run with field count"
 ```
@@ -720,7 +721,7 @@ Real production tokens hide in awkward places. This test suite acts as the regre
 - [x] **Step 1: Write adversarial cases**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { scrub, type NormalizedRun } from '../../src/trace-normalizer/scrub';
 
 function runWithError(msg: string): NormalizedRun {
@@ -786,7 +787,7 @@ describe('scrub adversarial', () => {
 - [x] **Step 2: Tests pass + commit**
 
 ```bash
-cd packages/web && bun test
+cd packages/web && npx vitest run
 git add packages/web/test/trace-normalizer/scrub-adversarial.test.ts
 git commit -m "web: scrubber adversarial regression suite"
 ```
@@ -845,7 +846,7 @@ Playwright's JSON reporter format has a defined shape. We extract just the scena
 - [x] **Step 3: Failing test**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parsePlaywrightReport } from '../../src/trace-normalizer/parse';
@@ -918,7 +919,7 @@ export function parsePlaywrightReport(report: PWReport, runId: string): Normaliz
 - [x] **Step 5: Tests pass + commit**
 
 ```bash
-cd packages/web && bun test
+cd packages/web && npx vitest run
 git add packages/web/src/trace-normalizer/parse.ts packages/web/test/trace-normalizer
 git commit -m "web: parse Playwright JSON report into NormalizedRun"
 ```
@@ -932,13 +933,13 @@ git commit -m "web: parse Playwright JSON report into NormalizedRun"
 - Create: `packages/web/src/trace-normalizer/normalize.ts`
 - Create: `packages/web/test/trace-normalizer/normalize.test.ts`
 
-Playwright's trace.zip contains `trace.network` (NDJSON), `trace.trace` (NDJSON of events), and resources. For v0.1 we only enrich the FAILED scenarios with network + console events near the failure step. We use Bun's built-in unzip via `Bun.file(path).arrayBuffer()` + a small JS unzip.
+Playwright's trace.zip contains `trace.network` (NDJSON), `trace.trace` (NDJSON of events), and resources. For v0.1 we only enrich the FAILED scenarios with network + console events near the failure step. We unzip the trace.zip with `fflate` (read via `readFileSync`).
 
 - [x] **Step 1: Implement unzip helper using `fflate`**
 
 Add dependency:
 ```bash
-cd packages/web && bun add fflate@0.8.2
+cd packages/web && npm install fflate@0.8.2
 ```
 
 Implementation:
@@ -969,7 +970,7 @@ export function unzipTrace(tracePath: string): TraceEntries {
 - [x] **Step 2: Failing test for normalize**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync, cpSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -1085,7 +1086,7 @@ export async function normalizeRun(input: NormalizeRunInput): Promise<Normalized
 - [x] **Step 4: Tests pass + commit**
 
 ```bash
-cd packages/web && bun test
+cd packages/web && npx vitest run
 git add packages/web/src/trace-normalizer packages/web/test/trace-normalizer/normalize.test.ts
 git commit -m "web: trace normalizer with network + console enrichment"
 ```
@@ -1103,7 +1104,7 @@ git commit -m "web: trace normalizer with network + console enrichment"
 - [x] **Step 1: Failing test**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { validateGherkin } from '../../src/generator/gherkin-validate';
 
 describe('validateGherkin', () => {
@@ -1159,7 +1160,7 @@ export function validateGherkin(content: string): GherkinValidateResult {
 - [x] **Step 3: Tests pass + commit**
 
 ```bash
-cd packages/web && bun test
+cd packages/web && npx vitest run
 git add packages/web/src/generator/gherkin-validate.ts packages/web/test/generator/gherkin-validate.test.ts
 git commit -m "web: Gherkin validator with line-aware errors"
 ```
@@ -1175,7 +1176,7 @@ git commit -m "web: Gherkin validator with line-aware errors"
 - [x] **Step 1: Failing test**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -1224,7 +1225,7 @@ export async function typecheckTicket(ticketDir: string): Promise<TypecheckResul
 - [x] **Step 3: Tests pass + commit**
 
 ```bash
-cd packages/web && bun test
+cd packages/web && npx vitest run
 git add packages/web/src/generator/typecheck.ts packages/web/test/generator/typecheck.test.ts
 git commit -m "web: typecheck wrapper using tsc --noEmit"
 ```
@@ -1242,7 +1243,7 @@ We don't pull in a full AST tool for MVP; a simple regex visitor on `.ts` conten
 - [x] **Step 1: Failing tests**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { lintSelectors } from '../../src/generator/selector-rules';
 
 describe('lintSelectors', () => {
@@ -1307,7 +1308,7 @@ export function lintSelectors(source: string): { warnings: SelectorWarning[] } {
 - [x] **Step 3: Tests pass + commit**
 
 ```bash
-cd packages/web && bun test
+cd packages/web && npx vitest run
 git add packages/web/src/generator/selector-rules.ts packages/web/test/generator/selector-rules.test.ts
 git commit -m "web: selector lint rules (no auto-class, prefer-role, no-xpath)"
 ```
@@ -1323,7 +1324,7 @@ git commit -m "web: selector lint rules (no auto-class, prefer-role, no-xpath)"
 - [x] **Step 1: Failing test**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -1386,7 +1387,7 @@ export async function lintTicket(ticketDir: string): Promise<LintResult> {
 - [x] **Step 3: Tests pass + commit**
 
 ```bash
-cd packages/web && bun test
+cd packages/web && npx vitest run
 git add packages/web/src/generator/lint.ts packages/web/test/generator/lint.test.ts
 git commit -m "web: lintTicket walks ticket dir and runs selector rules"
 ```
@@ -1404,7 +1405,7 @@ git commit -m "web: lintTicket walks ticket dir and runs selector rules"
 - [x] **Step 1: Failing test for pom-scan**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -1456,7 +1457,7 @@ export function scanSharedPoms(repoRoot: string): SharedPom[] {
 - [x] **Step 3: Failing test for promote**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -1540,7 +1541,7 @@ export async function promotePom(input: PromoteInput): Promise<void> {
 - [x] **Step 5: Tests pass + commit**
 
 ```bash
-cd packages/web && bun test
+cd packages/web && npx vitest run
 git add packages/web/src/generator/{pom-scan,promote}.ts packages/web/test/generator/{pom-scan,promote}.test.ts
 git commit -m "web: scan shared POMs + explicit promote with rewrite"
 ```
@@ -1567,7 +1568,7 @@ export const WebAdapter: TestAdapter = {
   async generate(_input: GenerateInput): Promise<GenerateResult> {
     // Generation itself is LLM-driven via skills + prompts; the adapter
     // exposes helpers (validateGherkin, typecheckTicket, lintTicket) that
-    // the skills call via `bun run xera:*`. No direct artifact writing here.
+    // the skills call via `npx xera-internal`. No direct artifact writing here.
     return { artifacts: [], warnings: [] };
   },
 
@@ -1593,7 +1594,7 @@ export const WebAdapter: TestAdapter = {
       await import('@playwright/test');
       checks.push({ name: '@playwright/test installed', ok: true });
     } catch {
-      checks.push({ name: '@playwright/test installed', ok: false, message: 'Run `bun add -D @playwright/test`.' });
+      checks.push({ name: '@playwright/test installed', ok: false, message: 'Run `npm install -D @playwright/test`.' });
     }
     return { ok: checks.every(c => c.ok), checks };
   },
@@ -1625,7 +1626,7 @@ export * from './generator/promote';
 - [x] **Step 3: Typecheck + commit**
 
 ```bash
-cd packages/web && bun run typecheck
+cd packages/web && npm run typecheck
 git add packages/web/src/adapter.ts packages/web/src/index.ts
 git commit -m "web: WebAdapter implementation + public exports"
 ```
@@ -1637,9 +1638,9 @@ git commit -m "web: WebAdapter implementation + public exports"
 Verify across the workspace:
 
 ```bash
-bun run lint
-bun run typecheck
-bun test
+npm run lint
+npm run typecheck
+npx vitest run
 ```
 
 All packages should be green. Continue with [Plan 03: Classifier + CLI](2026-05-14-xera-v01-03-classifier-and-cli.md).

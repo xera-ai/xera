@@ -31,7 +31,7 @@
 
 A QA on a real product team can:
 
-1. Run `bunx xera init` in a fresh project and answer ≤ 5 prompts.
+1. Run `npx xera init` in a fresh project and answer ≤ 5 prompts.
 2. Open Claude Code, type `/xera-run SAMPLE-001`, see a green E2E pass against a seeded sample.
 3. Run `/xera-run <real-jira-key>` against their own Jira ticket — story is fetched, Gherkin generated, Playwright spec generated, test executed against their staging app (with login), failure diagnosed if any, comment posted to Jira.
 4. Iterate on the same ticket — re-run, edit Gherkin manually, re-generate spec, see updated status.
@@ -53,30 +53,30 @@ If any of those breaks for a typical user, MVP is not ready.
 │         ▼                                                       │
 │  Skill xera-run.md      ◄── prompts session LLM to orchestrate  │
 │         │                                                       │
-│         ├──► bun run xera:fetch JIRA-123    ──► story.md        │
+│         ├──► npx xera-internal fetch JIRA-123    ──► story.md        │
 │         │       (deterministic, calls Jira via MCP or REST)     │
 │         │                                                       │
 │         ├──► session LLM writes test.feature from story.md      │
 │         │       (uses @xera-ai/prompts/feature-from-story.md)      │
 │         │                                                       │
-│         ├──► bun run xera:validate-feature                      │
+│         ├──► npx xera-internal validate-feature                      │
 │         │                                                       │
 │         ├──► session LLM writes spec.ts + page-objects/         │
 │         │       (uses @xera-ai/prompts/script-from-feature.md)     │
 │         │                                                       │
-│         ├──► bun run xera:typecheck + xera:lint                 │
+│         ├──► npx xera-internal typecheck + xera:lint                 │
 │         │                                                       │
-│         ├──► bun run xera:exec    ──► runs/<ts>/...             │
+│         ├──► npx xera-internal exec    ──► runs/<ts>/...             │
 │         │       (Playwright runs; auth state refresh inside)    │
 │         │                                                       │
-│         ├──► bun run xera:normalize ──► normalized.json         │
+│         ├──► npx xera-internal normalize ──► normalized.json         │
 │         │       (parse trace.zip + deterministic secret scrub)  │
 │         │                                                       │
 │         ├──► session LLM classifies failure(s) + writes         │
 │         │       status.json + Jira comment text                 │
 │         │       (uses @xera-ai/prompts/diagnose-failure.md)        │
 │         │                                                       │
-│         └──► bun run xera:post     ──► Jira comment posted      │
+│         └──► npx xera-internal post     ──► Jira comment posted      │
 │                                                                 │
 │  All artifacts live in: .xera/JIRA-123/                         │
 └─────────────────────────────────────────────────────────────────┘
@@ -96,15 +96,15 @@ If any of those breaks for a typical user, MVP is not ready.
 | **Public CLI** | Bootstrap project, health check | `@xera-ai/cli` — only `xera init` and `xera doctor` |
 | **Skills** | Primary user interface; orchestrate AI + deterministic steps | `@xera-ai/skills` — `.md` files copied to project's `.claude/skills/` |
 | **Prompt templates** | Versioned LLM instructions for each AI step | `@xera-ai/prompts` — independently versioned package |
-| **Internal CLI** | Deterministic helpers invoked by skills via `bun run xera:*`; also available for advanced/recovery use (replay, unlock, prune) | `@xera-ai/core` — `xera-internal` binary |
+| **Internal CLI** | Deterministic helpers invoked by skills via `npx xera-internal`; also available for advanced/recovery use (replay, unlock, prune) | `@xera-ai/core` — `xera-internal` binary |
 | **Adapter implementations** | Test-type-specific generation, execution, parsing | `@xera-ai/web` for v0.1 |
 | **Adapter interface** | Contract for new adapters | `TestAdapter` interface in `@xera-ai/core` |
 
 ### 2.3 Why this split
 
 - **AI invocation problem solved:** The Claude Code session that runs the skill IS the LLM. Skills do not call out to `claude` binary; deterministic helpers do not call LLM.
-- **No surface ambiguity:** End users invoke `xera init` once and skills from then on. There is no `bunx xera feature` or similar in the public CLI; `xera-internal` is callable directly for advanced/recovery cases (replay, unlock, prune) but is not the primary workflow.
-- **Single source of truth per concern:** Each `bun run xera:*` script wraps one focused function in `@xera-ai/core`. Skills orchestrate by composing them.
+- **No surface ambiguity:** End users invoke `xera init` once and skills from then on. There is no `npx xera feature` or similar in the public CLI; `xera-internal` is callable directly for advanced/recovery cases (replay, unlock, prune) but is not the primary workflow.
+- **Single source of truth per concern:** Each `npx xera-internal` script wraps one focused function in `@xera-ai/core`. Skills orchestrate by composing them.
 - **Testability:** `xera-internal` is pure functions wrapped in a bin. Unit-testable without LLM.
 
 ---
@@ -128,7 +128,7 @@ xera/
 │   │   │   ├── logging/            # NDJSON xera.log writer
 │   │   │   ├── lock/               # concurrent run lock
 │   │   │   └── auth/               # storageState manager, encryption
-│   │   ├── bin/internal.ts         # `xera-internal` (called by `bun run xera:*`)
+│   │   ├── bin/internal.ts         # `xera-internal` (called by `npx xera-internal`)
 │   │   └── test/
 │   │
 │   ├── cli/                        # @xera-ai/cli — public CLI: init + doctor only
@@ -173,7 +173,7 @@ xera/
 │   ├── ci.yml                      # unit + snapshot + integration on every PR
 │   └── nightly-e2e.yml             # full E2E against sample-app
 │
-├── package.json                    # bun workspace root
+├── package.json                    # npm workspace root
 ├── bunfig.toml
 ├── tsconfig.base.json
 └── README.md
@@ -181,7 +181,7 @@ xera/
 
 ### 3.2 `xera-ai/xera-starter` (template repo, separate)
 
-Boilerplate consumed via `gh repo create --template`. Contains a pre-`init`'d project (Playwright config, tsconfig, sample `.xera/SAMPLE-001/`). Optional — `bunx xera init` in an empty project does the same.
+Boilerplate consumed via `gh repo create --template`. Contains a pre-`init`'d project (Playwright config, tsconfig, sample `.xera/SAMPLE-001/`). Optional — `npx xera init` in an empty project does the same.
 
 ### 3.3 Project repo (after `xera init`)
 
@@ -213,13 +213,13 @@ my-test-project/
 
 | Command | Purpose |
 |---|---|
-| `bunx xera init` | Interactive scaffold of a new project (generates config, installs deps, copies skills, seeds sample ticket, optionally generates auth setup) |
-| `bunx xera init --update` | Non-destructive refresh of an existing project: bump deps, refresh skills with 3-way merge, update prompts version; never overwrite `xera.config.ts`, `.xera/`, `shared/` |
-| `bunx xera doctor` | Read-only health check: bun + Playwright + browsers + config validity + Jira reachability + MCP detection + skill versions vs `@xera-ai/skills` |
-| `bunx xera doctor --strict [TICKET]` | Same as doctor but exits non-zero on any failing check. `--strict` alone: env-only strict (invoked by `xera-run` skill Step 0). `--strict <TICKET>`: env + ticket-specific strict (invoked by Step 1.6 after fetch materializes `.xera/<TICKET>/`). |
-| `bunx xera doctor --logs <TICKET>` | Pretty-print `.xera/<TICKET>/xera.log` |
+| `npx xera init` | Interactive scaffold of a new project (generates config, installs deps, copies skills, seeds sample ticket, optionally generates auth setup) |
+| `npx xera init --update` | Non-destructive refresh of an existing project: bump deps, refresh skills with 3-way merge, update prompts version; never overwrite `xera.config.ts`, `.xera/`, `shared/` |
+| `npx xera doctor` | Read-only health check: node + Playwright + browsers + config validity + Jira reachability + MCP detection + skill versions vs `@xera-ai/skills` |
+| `npx xera doctor --strict [TICKET]` | Same as doctor but exits non-zero on any failing check. `--strict` alone: env-only strict (invoked by `xera-run` skill Step 0). `--strict <TICKET>`: env + ticket-specific strict (invoked by Step 1.6 after fetch materializes `.xera/<TICKET>/`). |
+| `npx xera doctor --logs <TICKET>` | Pretty-print `.xera/<TICKET>/xera.log` |
 
-### 4.2 Internal CLI (invoked only by skills via `bun run xera:*`)
+### 4.2 Internal CLI (invoked only by skills via `npx xera-internal`)
 
 | npm script | Binary | Purpose |
 |---|---|---|
@@ -236,7 +236,7 @@ my-test-project/
 ### 4.3 Init flow
 
 ```
-$ bunx xera init
+$ npx xera init
 xera v0.1.0 — project setup
 
 ? Project name: my-tests
@@ -282,10 +282,10 @@ Next steps:
 ### 4.4 Doctor output
 
 ```
-$ bunx xera doctor
+$ npx xera doctor
 xera v0.1.0
 ─────────────────────────────────────────────────
-✓ bun 1.x
+✓ node 22.x
 ✓ playwright 1.x + chromium installed
 ✓ xera.config.ts found and valid
 ✓ Atlassian MCP connected (Jira reachable)
@@ -313,7 +313,7 @@ Each skill is a Claude Code `.md` file shipped in `@xera-ai/skills`, copied to `
 | `xera-fetch` | Pull a ticket from Jira → `story.md`. Standalone or invoked by `xera-run`. |
 | `xera-feature` | Read `story.md` → write `test.feature` (Gherkin). Standalone or invoked. |
 | `xera-script` | Read `test.feature` + `shared/page-objects/` → write `spec.ts` + new POMs. |
-| `xera-exec` | Run `bun run xera:exec`, summarize result. |
+| `xera-exec` | Run `npx xera-internal exec`, summarize result. |
 | `xera-report` | Read normalized trace + history → classify, write `status.json`, draft Jira comment, post. |
 | `xera-run` | Orchestrator running all of the above in sequence with health gate. |
 | `xera-promote` | Explicit promotion of a POM from `.xera/<TICKET>/page-objects/` to `shared/page-objects/`, with reuse audit. |
@@ -329,18 +329,18 @@ description: Run the full xera pipeline for a Jira ticket end-to-end — fetch s
 You will run the xera pipeline for ticket {{TICKET}}.
 
 Step 0 — Health gate (environment only)
-  Run: `bunx xera doctor --strict`
-  Env-level checks only (bun, xera.config.ts, baseUrl reachability, auth files, OpenAPI, .env, editor skill layout). The ticket-specific gate runs as Step 1.6 below; Step 0 must not require `.xera/{{TICKET}}/` since that dir doesn't exist on the very first invocation (chicken-and-egg, see #149).
+  Run: `npx xera doctor --strict`
+  Env-level checks only (node, xera.config.ts, baseUrl reachability, auth files, OpenAPI, .env, editor skill layout). The ticket-specific gate runs as Step 1.6 below; Step 0 must not require `.xera/{{TICKET}}/` since that dir doesn't exist on the very first invocation (chicken-and-egg, see #149).
   If non-zero exit → STOP. Show the doctor output to the user and ask them to fix env before retrying.
 
 Step 1 — Fetch
-  Run: `bun run xera:fetch {{TICKET}}`
+  Run: `npx xera-internal fetch {{TICKET}}`
   On success, .xera/{{TICKET}}/story.md and meta.json now exist.
   On exit 1 (Jira auth / config): show error, ask user to fix .env or xera.config.ts; STOP.
   On exit 4 (Jira reachable but ticket not found): confirm ticket key with user; STOP.
 
 Step 1.6 — Ticket health gate
-  Run: `bunx xera doctor --strict {{TICKET}}`
+  Run: `npx xera doctor --strict {{TICKET}}`
   Re-runs doctor with the ticket arg now that `/xera-fetch` has materialized `.xera/{{TICKET}}/`. Validates artifact dir present, graph-input.json parses with valid modifiesAreas array, and story.md frontmatter has acceptanceCriteria.
   If non-zero exit → STOP. Most failures are recoverable in-place by re-running a single substep of `/xera-fetch`.
 
@@ -353,7 +353,7 @@ Step 2 — Generate test.feature
   Update meta.json with feature_generated_from_story_hash, prompts_version.
 
 Step 3 — Validate Gherkin
-  Run: `bun run xera:validate-feature {{TICKET}}`
+  Run: `npx xera-internal validate-feature {{TICKET}}`
   On non-zero: re-read error, fix test.feature in place, retry. Max 2 retries; on 3rd failure, escalate to user.
 
 Step 4 — Generate spec + POMs
@@ -363,16 +363,16 @@ Step 4 — Generate spec + POMs
   Write spec.ts and any new POMs to .xera/{{TICKET}}/.
 
 Step 5 — Type-check + lint
-  Run: `bun run xera:typecheck {{TICKET}}` → fix loop (max 2 retries).
-  Run: `bun run xera:lint {{TICKET}}` → fix loop (max 2 retries).
+  Run: `npx xera-internal typecheck {{TICKET}}` → fix loop (max 2 retries).
+  Run: `npx xera-internal lint {{TICKET}}` → fix loop (max 2 retries).
 
 Step 6 — Execute
-  Run: `bun run xera:exec {{TICKET}}`
+  Run: `npx xera-internal exec {{TICKET}}`
   This refreshes auth state if needed, then runs Playwright.
   Capture the run timestamp from output.
 
 Step 7 — Normalize
-  Run: `bun run xera:normalize {{TICKET}}`
+  Run: `npx xera-internal normalize {{TICKET}}`
   Read .xera/{{TICKET}}/runs/<latest>/normalized.json.
 
 Step 8 — Classify and report
@@ -382,7 +382,7 @@ Step 8 — Classify and report
 
 Step 9 — Post to Jira
   If xera.config.ts has reporting.postToJira === true:
-    Run: `bun run xera:post {{TICKET}}`
+    Run: `npx xera-internal post {{TICKET}}`
   Else: print "Jira posting disabled in config" + show the drafted comment.
 
 Step 10 — Summarize to user
@@ -477,7 +477,7 @@ Other skills follow the same prompt-and-orchestrate pattern, scoped to a single 
 {"ts":"2026-05-14T10:30:30Z","step":"normalize","scrubbed_fields":4,"ms":900}
 ```
 
-`bunx xera doctor --logs JIRA-123` pretty-prints this.
+`npx xera doctor --logs JIRA-123` pretty-prints this.
 
 ### 6.5 Data flow
 
@@ -550,7 +550,7 @@ Auto-generated class names (Tailwind hash, MUI `MuiButton-root-xyz`) are always 
 - On `xera-script`, scan `shared/page-objects/` for class names referenced in the Gherkin (e.g., "login page" → LoginPage).
 - If matching POM found and its interface satisfies needed actions → reuse via import.
 - If mismatch or absent → generate new POM under `.xera/<TICKET>/page-objects/`.
-- Promotion to `shared/` is **explicit only**: `bunx xera-internal promote <TICKET> <POM>` via `/xera-promote` skill, with a diff shown to user for review. Never automatic.
+- Promotion to `shared/` is **explicit only**: `npx xera-internal promote <TICKET> <POM>` via `/xera-promote` skill, with a diff shown to user for review. Never automatic.
 
 ### 7.5 Live page snapshot (default on)
 
@@ -673,7 +673,7 @@ LLM does steps 1–4 reasoning; classifier framework in `@xera-ai/core` provides
 
 ### Reproduce locally
 ```
-bunx xera-internal exec JIRA-123 --replay=2026-05-14T10-30
+npx xera-internal exec JIRA-123 --replay=2026-05-14T10-30
 ```
 
 ---
@@ -862,7 +862,7 @@ If SAMPLE-001 passes, the user knows their environment is set up correctly befor
 `xera:exec` and `xera-run` skill check for the lock at start:
 
 - If absent → create lock, proceed.
-- If present and PID alive on this host → error: "Run already in progress (PID 12345). Wait or `bunx xera-internal unlock JIRA-123` if confident stale."
+- If present and PID alive on this host → error: "Run already in progress (PID 12345). Wait or `npx xera-internal unlock JIRA-123` if confident stale."
 - If present but PID dead or hostname different from this host → warn, ask user to confirm before unlocking.
 
 Lock is removed on completion (success or failure).
@@ -871,7 +871,7 @@ Lock is removed on completion (success or failure).
 
 ## 13. Update Flow (should-have #11)
 
-`bunx xera init --update` performs a non-destructive refresh:
+`npx xera init --update` performs a non-destructive refresh:
 
 - Compare installed versions of `@xera-ai/core`, `@xera-ai/cli`, `@xera-ai/web`, `@xera-ai/skills`, `@xera-ai/prompts` against latest.
 - For deps: bump `package.json` to latest minor (semver-respecting).
@@ -888,7 +888,7 @@ Run `xera doctor` after update to verify.
 
 `xera.log` records `tokens_in` and `tokens_out` per LLM-invoking step (skills append to log).
 
-`bunx xera doctor --usage` shows aggregated last-30-days estimate:
+`npx xera doctor --usage` shows aggregated last-30-days estimate:
 
 ```
 Recent xera-run token usage (best effort from local logs):
@@ -907,8 +907,8 @@ Skills include guidance for handling very large stories (truncate, summarize, as
 
 - `.xera/<TICKET>/xera.log` NDJSON, append-only, every skill and every `xera-internal` command emits a line.
 - Schema covers: timestamp, step name, command (if any), exit code, duration, LLM token counts, prompt version, scrubber field count.
-- `bunx xera doctor --logs <TICKET>` pretty-prints in chronological table view.
-- `bunx xera doctor --logs <TICKET> --since=24h` filters.
+- `npx xera doctor --logs <TICKET>` pretty-prints in chronological table view.
+- `npx xera doctor --logs <TICKET> --since=24h` filters.
 
 ---
 
@@ -941,7 +941,7 @@ Skills interpret exit codes to decide retry vs escalate.
 
 Ship with `xera-ai/xera`:
 
-- **README.md** — 30-second pitch, install (`bunx xera init`), 5-minute quickstart (SAMPLE-001 + first real ticket), config snippet, links.
+- **README.md** — 30-second pitch, install (`npx xera init`), 5-minute quickstart (SAMPLE-001 + first real ticket), config snippet, links.
 - **docs/CONFIGURATION.md** — every `xera.config.ts` option documented with type, default, example.
 - **docs/TROUBLESHOOTING.md** — top 10 errors with cause + fix:
   1. Jira 401 / missing token
@@ -967,10 +967,10 @@ xera is a testing framework, so it must be testable to a high standard.
 
 | Layer | Tool | What it covers |
 |---|---|---|
-| **Unit** | `bun test` | Pure functions in `@xera-ai/core`: config parse, artifact paths, hash compare, lock logic, log writer, scrubber rules, Gherkin mapping helpers |
-| **Snapshot** | `bun test` | `xera-internal` commands against canned fixtures: feed story → assert feature output matches snapshot; feed feature → assert spec output matches snapshot. Snapshots are smoke-level (structural), not exact-match (LLM is non-deterministic) |
-| **Classifier golden** | `bun test` | Curated set of `runs/<ts>/normalized.json` fixtures with known correct classification → assert classifier reaches correct verdict. Most important suite — guards diagnose-failure prompt regressions |
-| **Integration** | `bun test` + real Playwright | Run actual `xera-internal` pipeline against fixture sample-app (Next.js) with mocked Jira |
+| **Unit** | `npx vitest run` | Pure functions in `@xera-ai/core`: config parse, artifact paths, hash compare, lock logic, log writer, scrubber rules, Gherkin mapping helpers |
+| **Snapshot** | `npx vitest run` | `xera-internal` commands against canned fixtures: feed story → assert feature output matches snapshot; feed feature → assert spec output matches snapshot. Snapshots are smoke-level (structural), not exact-match (LLM is non-deterministic) |
+| **Classifier golden** | `npx vitest run` | Curated set of `runs/<ts>/normalized.json` fixtures with known correct classification → assert classifier reaches correct verdict. Most important suite — guards diagnose-failure prompt regressions |
+| **Integration** | `npx vitest run` + real Playwright | Run actual `xera-internal` pipeline against fixture sample-app (Next.js) with mocked Jira |
 | **E2E** | GitHub Action nightly | Clone xera-starter, run `xera init` + `/xera-run SAMPLE-001` end-to-end, assert PASS |
 | **AI gen quality** | Custom harness (deferred to v0.2) | Rubric-based scoring of generated Gherkin / spec; LLM-as-judge with reference outputs |
 
@@ -1082,7 +1082,7 @@ Adding a new adapter is a new package + spec; v0.1 does not pre-create placehold
 3. **Live page snapshot requires accessible staging URL** — for protected pages, the auth setup must run first. If staging is offline at init time, fallback warnings flag the risk.
 4. **Atlassian MCP feature parity with REST** — if MCP can't post comments or transition statuses, REST fallback covers it; both paths kept in `@xera-ai/core/jira`.
 5. **Claude Code skill API stability** — skill format is relatively new; if format breaks, `xera init --update` regenerates skills.
-6. **`.xera/` repo growth** — over time `.xera/` accumulates many tickets. `runs/` is gitignored but `screenshots/` from last run might be kept for context. Track size; document cleanup pattern (`bunx xera-internal prune --older-than=90d`).
+6. **`.xera/` repo growth** — over time `.xera/` accumulates many tickets. `runs/` is gitignored but `screenshots/` from last run might be kept for context. Track size; document cleanup pattern (`npx xera-internal prune --older-than=90d`).
 7. **Local-only MVP means no enforcement of "must run before merge"** — QAs can ignore xera. This is intentional: v0.2 CI mode enables enforcement.
 
 ---
@@ -1091,7 +1091,7 @@ Adding a new adapter is a new package + spec; v0.1 does not pre-create placehold
 
 ```
 $ cd ~/projects/my-app-tests
-$ bunx xera init
+$ npx xera init
 # answers ~5 prompts; gets a working project in 2 minutes
 $ cp .env.example .env
 $ vim .env  # fill in credentials
