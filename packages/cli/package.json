@@ -29,6 +29,7 @@
     "@xera-ai/skills": "^0.20.1",
     "@clack/prompts": "1.4.0",
     "cac": "7.0.0",
+    "dotenv": "^16.0.0",
     "picocolors": "1.1.1",
     "yaml": "2.9.0"
   }

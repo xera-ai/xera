@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module';
+import { ensureTsRuntime } from '@xera-ai/core';
 import { cac } from 'cac';
 import pc from 'picocolors';
 import { doctorCommand } from './commands/doctor';
@@ -59,6 +60,11 @@ function unknownCommand(input: string): never {
 }
 
 export default async function main(): Promise<void> {
+  // Re-exec with a TS loader on Node versions that can't import xera.config.ts
+  // natively, before any command (notably `doctor`) tries to load it. (#203)
+  const reexecCode = ensureTsRuntime();
+  if (reexecCode !== null) process.exit(reexecCode);
+
   const cli = cac('xera');
   cli.help();
   cli.version(VERSION);

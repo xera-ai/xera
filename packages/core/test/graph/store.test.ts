@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
   appendEvents,
   deriveSnapshot,
@@ -113,6 +113,25 @@ describe('appendEvents', () => {
     const events = loadAllEvents(root);
     expect(events).toHaveLength(2);
   });
+
+  test('rejects an invalid event before writing, naming the bad field (#204)', () => {
+    const bad = mkEvent({
+      event_id: '01H7BX2NXY3R8YQR6F9TKE0099',
+      payload: {
+        ticketId: 'ABC-100',
+        summary: 'login',
+        ac: ['AC1'],
+        jiraLinks: [],
+        storyHash: 'h1',
+        modifiesAreas: ['auth/login'], // slash violates the slug regex
+      },
+    });
+    expect(() => appendEvents(root, [bad], { skill: 'xera-fetch', ticketId: 'ABC-100' })).toThrow(
+      /modifiesAreas/,
+    );
+    // Nothing was persisted — the write is refused, not partially applied.
+    expect(loadAllEvents(root)).toHaveLength(0);
+  });
 });
 
 describe('loadAllEvents', () => {
@@ -126,6 +145,42 @@ describe('loadAllEvents', () => {
     );
     const events = loadAllEvents(root);
     expect(events).toHaveLength(1);
+  });
+
+  test('skip-line warning names the event_id and failing field path (#204)', () => {
+    const dir = join(root, '.xera/graph/events/2026-05');
+    mkdirSync(dir, { recursive: true });
+    // Write a schema-violating event directly, bypassing appendEvents' guard,
+    // to simulate a file produced by an older/buggy writer.
+    const invalid = {
+      event_id: '01H7BX2NXY3R8YQR6F9TKE0042',
+      schema_version: 1,
+      ts: '2026-05-16T08:23:14Z',
+      actor: 'xera-fetch',
+      type: 'ticket.fetched',
+      payload: {
+        ticketId: 'ABC-100',
+        summary: 's',
+        ac: [],
+        jiraLinks: [],
+        storyHash: 'h',
+        modifiesAreas: ['auth/login'],
+      },
+    };
+    writeFileSync(
+      join(dir, '01H7BX2NXY3R8YQR6F9TKE0042-xera-fetch-ABC-100.jsonl'),
+      `${JSON.stringify(invalid)}\n`,
+    );
+    const warnings: string[] = [];
+    const spy = vi.spyOn(console, 'warn').mockImplementation((m: unknown) => {
+      warnings.push(String(m));
+    });
+    const events = loadAllEvents(root);
+    spy.mockRestore();
+    expect(events).toHaveLength(0);
+    const joined = warnings.join('\n');
+    expect(joined).toContain('01H7BX2NXY3R8YQR6F9TKE0042');
+    expect(joined).toContain('modifiesAreas');
   });
 
   test('replays events in ULID order across files', () => {

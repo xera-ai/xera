@@ -258,6 +258,18 @@ describe('verifyPrompts (pure)', () => {
   });
 });
 
+describe('verifyPrompts (consumer install resolution #199)', () => {
+  test('resolves the installed @xera-ai/prompts package when no packages/prompts dir exists', () => {
+    // cwd is a fresh temp dir with no packages/prompts — mimics a consumer
+    // install where prompts live in node_modules/@xera-ai/prompts. Before the
+    // fix, every in-scope prompt was reported as "file missing at
+    // packages/prompts/...". After it, the files resolve from the installed
+    // package, so no result is a "file missing" error.
+    const results = verifyPrompts(cwd);
+    expect(results.some((r) => r.message.includes('file missing'))).toBe(false);
+  });
+});
+
 describe('verifyPromptsCmd (CLI)', () => {
   test('exits 0 on valid prompts and prints ok', async () => {
     seedPrompts(cwd);

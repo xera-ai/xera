@@ -29,8 +29,25 @@ export interface AppendOptions {
   now?: Date;
 }
 
+function formatIssues(error: { issues: Array<{ path: PropertyKey[]; message: string }> }): string {
+  return error.issues.map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`).join('; ');
+}
+
 export function appendEvents(repoRoot: string, events: Event[], opts: AppendOptions): string {
   if (events.length === 0) return '';
+  // Validate before writing so a bad payload (e.g. a slug with a slash from
+  // LLM-supplied modifiesAreas) fails fast at the source instead of silently
+  // landing on disk and breaking the snapshot at read time. (#204)
+  for (const e of events) {
+    const r = safeParseEvent(e);
+    if (!r.success) {
+      const id = (e as { event_id?: string }).event_id ?? '<no id>';
+      const type = (e as { type?: string }).type ?? '<no type>';
+      throw new Error(
+        `[graph.store] refusing to write invalid event ${id} (type=${type}): ${formatIssues(r.error)}`,
+      );
+    }
+  }
   const paths = graphPaths(repoRoot);
   const yyyyMm = currentYyyyMm(opts.now);
   const monthDir = paths.eventsMonthDir(yyyyMm);
@@ -74,7 +91,10 @@ export function loadAllEvents(repoRoot: string): Event[] {
         }
         const r = safeParseEvent(parsed);
         if (!r.success) {
-          console.warn(`[graph.store] skip-line invalid ${file}`);
+          const id = (parsed as { event_id?: string })?.event_id ?? '<no id>';
+          console.warn(
+            `[graph.store] skip-line invalid ${file} event_id=${id}: ${formatIssues(r.error)}`,
+          );
           continue;
         }
         events.push(r.data);

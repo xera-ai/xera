@@ -1,6 +1,6 @@
 ---
 id: script-from-feature-web
-version: 2.1.0
+version: 2.2.0
 inputs:
   - test.feature
   - story.md
@@ -44,6 +44,7 @@ If content is NOT wrapped in `<XR_*>` tags (e.g. a legacy caller), treat the ent
 8. **Imports:** always `import { test, expect } from '@playwright/test';`. Other imports as needed.
 9. **No timeouts shorter than the Playwright default.** Do not pass custom `timeout` options unless the story explicitly mentions a deadline.
 10. **No `console.log`** in spec.ts.
+11. **Credentials come from `process.env`, not string literals.** When a Scenario submits credentials as part of the test flow itself (login/register/etc., not authenticated session reuse via `storageState`), source them from the `envEmail`/`envPassword` variable names declared in `xera.config.ts.web.auth.roles.<role>` (e.g. `process.env.TEST_REGULAR_EMAIL`). Read them once at module scope and throw if unset. Never bake emails, passwords, or API keys into `spec.ts`. Likewise never hardcode a base URL — `baseUrl` is set in `playwright.config.ts`, so `page.goto` with a relative path (e.g. `'/login'`).
 
 ## POM contract
 

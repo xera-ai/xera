@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { loadConfig, readAuthState } from '@xera-ai/core';
+import { config as loadDotenv } from 'dotenv';
 import { parse as parseYaml } from 'yaml';
 import { editors } from './editors';
 import { detectEditors } from './editors/detect';
@@ -143,6 +144,13 @@ function pushTicketChecks(
 
 export async function runChecks(cwd: string, opts: RunChecksOptions = {}): Promise<Check[]> {
   const checks: Check[] = [];
+
+  // Load the project's .env so checks that resolve encrypted state (e.g. the
+  // http auth-file readability check via readAuthState → resolveAuthKey) see
+  // the same XERA_AUTH_KEY the `.env`-content check reads. Without this the CLI
+  // ran with only the parent shell's env, producing contradictory results on a
+  // clean shell. override:false keeps any caller-exported values winning. (#202)
+  loadDotenv({ path: join(cwd, '.env'), override: false });
 
   // Node
   const nodeMajor = Number(process.versions.node.split('.')[0]);
