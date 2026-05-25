@@ -125,3 +125,31 @@ describe('.env.example tracker variants', () => {
     expect(github).toContain('gh auth login');
   });
 });
+
+// Issue #190: render() leaked nested {{#if}}/{{/if}} tags into output,
+// producing a syntactically-broken xera.config.ts on every fresh init.
+describe('xera.config.ts.tmpl nested {{#if}} handling (issue #190)', () => {
+  test('github tracker leaves no orphaned template tags', () => {
+    const out = render('xera.config.ts.tmpl', githubVars());
+    expect(out).not.toContain('{{');
+    expect(out).not.toContain('}}');
+  });
+
+  test('jira tracker with empty acceptanceCriteriaField (inner-false, outer-true) leaves no orphaned tags', () => {
+    const out = render('xera.config.ts.tmpl', jiraVars({ acceptanceCriteriaField: '' }));
+    expect(out).not.toContain('{{');
+    expect(out).not.toContain('}}');
+    // The inner block's body must be gone too — no orphan `acceptanceCriteria:` key.
+    expect(out).not.toContain('acceptanceCriteria:');
+  });
+
+  test('jira tracker with acceptanceCriteriaField set (inner-true, outer-true) emits the field and no tags', () => {
+    const out = render(
+      'xera.config.ts.tmpl',
+      jiraVars({ acceptanceCriteriaField: 'customfield_10010' }),
+    );
+    expect(out).not.toContain('{{');
+    expect(out).not.toContain('}}');
+    expect(out).toContain("acceptanceCriteria: 'customfield_10010'");
+  });
+});
