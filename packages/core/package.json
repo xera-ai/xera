@@ -1,6 +1,6 @@
 {
   "name": "@xera-ai/core",
-  "version": "0.20.1",
+  "version": "0.20.2",
   "type": "module",
   "license": "Apache-2.0",
   "repository": {
@@ -42,8 +42,8 @@
   },
   "dependencies": {
     "zod": "4.4.3",
-    "@xera-ai/web": "^0.20.1",
-    "@xera-ai/http": "^0.20.1",
+    "@xera-ai/web": "^0.20.2",
+    "@xera-ai/http": "^0.20.2",
     "@playwright/test": "1.60.0",
     "dotenv": "^16.0.0",
     "fflate": "0.8.3",

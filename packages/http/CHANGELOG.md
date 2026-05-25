@@ -1,5 +1,16 @@
 # @xera-ai/http
 
+## 0.20.2
+
+### Patch Changes
+
+- [#196](https://github.com/xera-ai/xera/pull/196) [`af33596`](https://github.com/xera-ai/xera/commit/af335966957b8e5ae6c60dfa1e9bd0420bbaa20b) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - CONTRACT_DRIFT URL matching + apiPath helper ([#193](https://github.com/xera-ai/xera/issues/193), [#194](https://github.com/xera-ai/xera/issues/194)) (auto-generated from [#196](https://github.com/xera-ai/xera/issues/196))
+
+- [#206](https://github.com/xera-ai/xera/pull/206) [`f3b6df3`](https://github.com/xera-ai/xera/commit/f3b6df322e9503b5b3c9485b1bf1bef7f048706b) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - resolve nine triaged bugs across http/core/cli/prompts (auto-generated from [#206](https://github.com/xera-ai/xera/issues/206))
+
+- Updated dependencies [[`f3b6df3`](https://github.com/xera-ai/xera/commit/f3b6df322e9503b5b3c9485b1bf1bef7f048706b)]:
+  - @xera-ai/core@0.20.2
+
 ## 0.20.1
 
 ### Patch Changes
