@@ -6,4 +6,4 @@
 '@xera-ai/skills': patch
 ---
 
-resolve seven triaged bugs across http/core/cli/prompts (auto-generated from #206)
+resolve nine triaged bugs across http/core/cli/prompts (auto-generated from #206)
