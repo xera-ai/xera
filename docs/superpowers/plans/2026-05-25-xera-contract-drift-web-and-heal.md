@@ -17,12 +17,12 @@
 ### Task 1.1: config — `web.spec` + `resolveOpenApiSpec`
 - Create: failing test in `packages/core/test/config/` (or extend existing) asserting `resolveOpenApiSpec` returns `http.spec ?? web.spec`.
 - `packages/core/src/config/schema.ts`: add `spec: z.string().optional()` to `WebSchema`.
-- Add + export `resolveOpenApiSpec(config)`. Run `cd packages/core && bun test config && bun run typecheck`.
+- Add + export `resolveOpenApiSpec(config)`. Run `cd packages/core && npx vitest run config && npm run typecheck`.
 
 ### Task 1.2: web network recorder — TDD
 - Create `packages/web/src/network-recorder/index.ts` with a **pure** `formatNetworkLine(entry)` + `recordResponseLine(logPath, entry)` (testable without a browser) and the `xeraNetwork` fixture wrapping them + `stripBase(url, baseUrl)`.
 - Create `packages/web/test/network-recorder/recorder.test.ts`: `stripBase` strips configured base → path; `recordResponseLine` appends one scrubbed JSONL line; secrets in body scrubbed; non-JSON body → `respBody` omitted; **no write when logPath falsy**.
-- Export from `packages/web/src/index.ts`. Run `cd packages/web && bun test network-recorder && bun run typecheck`.
+- Export from `packages/web/src/index.ts`. Run `cd packages/web && npx vitest run network-recorder && npm run typecheck`.
 
 ### Task 1.3: exec sets `XERA_NETWORK_LOG`
 - In the exec runner (core exec subcommand / `packages/web/src/executor`), set `XERA_NETWORK_LOG=<runDir>/network.jsonl` alongside `XERA_BASE_URL`. Extend the exec test to assert the env var is set.
@@ -43,8 +43,8 @@
 - `CONFIGURATION.md` (`web.spec`, recorder, `XERA_NETWORK_LOG`), `TROUBLESHOOTING.md` (web CONTRACT_DRIFT not firing → configure spec + enable recorder), `CLAUDE.md`, `AGENTS.md`.
 
 ### Phase 1 verification
-- [ ] `bun run typecheck` + `bun run lint` clean.
-- [ ] `bun test packages/core packages/web` green.
+- [ ] `npm run typecheck` + `npm run lint` clean.
+- [ ] `npx vitest run packages/core packages/web` green.
 - [ ] CLI scaffold tests green (build CLI first for spawn tests).
 
 ---
@@ -71,8 +71,8 @@
 - Docs: note the CONTRACT_DRIFT heal in `xera-report` (CLAUDE.md/AGENTS.md), `TROUBLESHOOTING.md` heal refusal categories.
 
 ### Phase 2 verification
-- [ ] `bun run typecheck` + `bun run lint` clean.
-- [ ] `bun test packages/core` green incl. `contract-heal-prepare`, `verify-prompts`, `doctor`.
+- [ ] `npm run typecheck` + `npm run lint` clean.
+- [ ] `npx vitest run packages/core` green incl. `contract-heal-prepare`, `verify-prompts`, `doctor`.
 - [ ] `feat:`-titled PR(s) → `auto-changeset.yml`; no hand-edited versions.
 
 ---

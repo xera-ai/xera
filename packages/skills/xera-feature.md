@@ -16,7 +16,7 @@ a. Determine `<KEY>`. It must look like `API-PETS-001` (matches `LETTERS-…-NUM
 b. Run, passing through any filter flags the user gave (`--tag`, `--operation`, `--path`, repeatable) and `--spec` if they overrode the configured spec:
 
    ```bash
-   bun run xera:feature-spec-prepare <KEY> [--tag T]... [--operation OPID]... [--path P]... [--spec PATH_OR_URL]
+   npx xera-internal feature-spec-prepare <KEY> [--tag T]... [--operation OPID]... [--path P]... [--spec PATH_OR_URL]
    ```
 
    Then read `.xera/<KEY>/spec-input.json`. If its `operations` array is empty, show the `reason` field to the user (e.g. "no OpenAPI spec configured", "spec unreachable", "filter matched no operations") and STOP.
@@ -30,7 +30,7 @@ e. Read the prompt template from `node_modules/@xera-ai/prompts/feature-from-ope
 f. Mint a fresh per-invocation nonce by running:
 
    ```bash
-   bun -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"
+   node -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"
    ```
 
    Capture the single-line output as the nonce for this invocation. Do NOT persist it, log it, or include it in `test.feature`.
@@ -45,7 +45,7 @@ g. Read `.xera/<KEY>/spec-input.json`. When its content is part of your generati
 
    Then generate `.xera/<KEY>/test.feature` per the prompt. Do NOT include the nonce markers or any text outside the Gherkin body in the written file.
 
-h. Run `bun run xera:validate-feature <KEY>`. Exit 0 → success. Exit 2 → read the line/message, fix `test.feature`, re-run (at most 2 retries). If still failing, show the parser output and stop.
+h. Run `npx xera-internal validate-feature <KEY>`. Exit 0 → success. Exit 2 → read the line/message, fix `test.feature`, re-run (at most 2 retries). If still failing, show the parser output and stop.
 
 i. Update `.xera/<KEY>/meta.json`: set `feature_generated_at` = now (ISO) and `feature_generated_from_story_hash` = the current `story_hash` (which equals `spec_hash`).
 

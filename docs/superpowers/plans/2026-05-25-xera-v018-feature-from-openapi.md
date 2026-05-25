@@ -6,7 +6,7 @@
 
 **Architecture:** A new deterministic `xera-internal feature-spec-prepare <KEY> [filters]` subcommand loads the OpenAPI spec (`config.http.spec` or `--spec`), flattens it via a new `extractOperations` function in `@xera-ai/http`, computes a stable `spec_hash`, and writes `spec-input.json` + a synthetic `story.md` + `meta.json` (`source: 'openapi'`). The `/xera-feature` skill gains a top `--from-spec` branch: it runs the prepare command, nonce-wraps `spec-input.json` as untrusted input (v0.3 defense), follows a new `feature-from-openapi.md` prompt to write `test.feature`, validates it, and stamps meta. No LLM runs inside any binary.
 
-**Tech Stack:** Bun runtime, TypeScript (`exactOptionalPropertyTypes` + `noUncheckedIndexedAccess` on), `bun:test`, `@apidevtools/json-schema-ref-parser` (via existing `loadOpenApi`), `yaml`, markdown prompt templates, `xera-internal` CLI.
+**Tech Stack:** Node runtime, TypeScript (`exactOptionalPropertyTypes` + `noUncheckedIndexedAccess` on), `vitest`, `@apidevtools/json-schema-ref-parser` (via existing `loadOpenApi`), `yaml`, markdown prompt templates, `xera-internal` CLI.
 
 **Spec:** `docs/superpowers/specs/2026-05-25-xera-v018-feature-from-openapi-design.md`
 
@@ -55,7 +55,7 @@
 
 - [ ] **Step 1 — failing test.** Write `extract.test.ts`: load `fixtures/mock-api/openapi.yaml` via `loadOpenApi` (relative to repo root; resolve path explicitly), call `extractOperations(doc)`. Assert: expected operation count; two successive calls produce identical `JSON.stringify`; `--tag`/`operationId`/`path` filters narrow correctly; an op without `operationId`/`tags`/`requestBody` is returned with those fields omitted (not `undefined`). Assert `extractInfo(doc)` → `{ title, version }`.
 - [ ] **Step 2 — implement.** Write `extract.ts` per spec §2.2: loose local doc shape, sorted iteration (paths asc, methods in `['get','post','put','patch','delete']`, params by `(in,name)`, responses by status). Build objects with conditional assignment (no `undefined`). `requestBodySchema`/`requestBodyExample` from the first `content` media type. `responses[]` = `{ status, description?, schema? }`.
-- [ ] **Step 3 — export.** Add exports to `packages/http/src/index.ts`. Run `cd packages/http && bun test && bun run typecheck`.
+- [ ] **Step 3 — export.** Add exports to `packages/http/src/index.ts`. Run `cd packages/http && npx vitest run && npm run typecheck`.
 
 ## Task 2: `feature-spec-prepare` subcommand — TDD
 
@@ -63,13 +63,13 @@
 
 - [ ] **Step 1 — failing test.** Seed a temp repo with `xera.config.ts` (http.spec → a fixture openapi) or inject via the same pattern `fetch.ts` uses; or pass `--spec <abs path to fixtures/mock-api/openapi.yaml>`. Assert: writes `spec-input.json` (with `key`, `source:'openapi'`, `specRef`, `info`, `operations`, `spec_hash`), synthetic `story.md` (frontmatter `acceptanceCriteriaSource: openapi`, `storyHash === spec_hash`), `meta.json` (`adapter:'http'`, `source:'openapi'`, `spec_hash`, `story_hash === spec_hash`). Idempotency: 2nd run prints "current", content stable. Drift: different `--tag` → different `spec_hash`, rewrites. No-spec/unreachable → `operations:[]` + `reason`, exit 0. Invalid key (`foo`) → non-zero via `run()`. `afterEach` restores `process.cwd()`.
 - [ ] **Step 2 — implement.** Write `feature-spec-prepare.ts` per spec §2.3–§2.6: arg parse (`<KEY>` + repeatable `--tag/--operation/--path` + `--spec`), `resolveArtifactPaths` (validates key), `loadConfig`, resolve spec source, `import('@xera-ai/http')` → `loadOpenApi` + `extractOperations` (lazy import like `openapi-resolve.ts:49`), `hashString` for `spec_hash`, idempotency check via `readMeta`, write `spec-input.json` + `renderSyntheticStory` + `writeMeta`. Use `XERA_VERSION`/`PROMPTS_VERSION` from `../versions`.
-- [ ] **Step 3 — register.** Add to `bin-internal/index.ts` `COMMANDS`. Run `cd packages/core && bun test bin-internal/feature-spec-prepare.test.ts && bun run typecheck`.
+- [ ] **Step 3 — register.** Add to `bin-internal/index.ts` `COMMANDS`. Run `cd packages/core && npx vitest run bin-internal/feature-spec-prepare.test.ts && npm run typecheck`.
 
 ## Task 3: `meta.json` schema extension
 
 **Files:** `packages/core/src/artifact/meta.ts` (+ rely on Task 2 tests).
 
-- [ ] Add `'openapi'` (and `'github'` if missing) to the `source` enum; add `spec_hash: z.string().optional()`. Confirm existing meta fixtures still parse: `cd packages/core && bun test artifact`.
+- [ ] Add `'openapi'` (and `'github'` if missing) to the `source` enum; add `spec_hash: z.string().optional()`. Confirm existing meta fixtures still parse: `cd packages/core && npx vitest run artifact`.
 
 ## Task 4: `feature-from-openapi.md` prompt (NEW v1.0.0)
 
@@ -77,7 +77,7 @@
 
 - [ ] Write the prompt per spec §5.2 — copy the v0.3 untrusted-input preamble verbatim from `feature-from-story.md:14-25`, then API-Gherkin hard rules, quality bar, output format. **This is user-facing LLM copy — match the spec's rule list exactly; do not paraphrase.**
 - [ ] Bump `version.json` to `2.7.0` and append `"feature-from-openapi.md"` to `templates`.
-- [ ] `cd packages/core && bun test bin-internal/verify-prompts.test.ts` (will fail until Task 5 seeds it — sequence Task 5 alongside).
+- [ ] `cd packages/core && npx vitest run bin-internal/verify-prompts.test.ts` (will fail until Task 5 seeds it — sequence Task 5 alongside).
 
 ## Task 5: prompt governance (verify-prompts + doctor)
 
@@ -85,7 +85,7 @@
 
 - [ ] Add `'feature-from-openapi.md'` to `IN_SCOPE_PROMPTS`.
 - [ ] Extend `seedPrompts` (verify-prompts test) + `seedGoodRepo` (doctor test) to write a valid `feature-from-openapi.md` (frontmatter + untrusted-input preamble so the preamble check passes). Add a 1-line in-scope assertion.
-- [ ] `cd packages/core && bun test bin-internal/verify-prompts.test.ts bin-internal/doctor.test.ts`.
+- [ ] `cd packages/core && npx vitest run bin-internal/verify-prompts.test.ts bin-internal/doctor.test.ts`.
 
 ## Task 6: skill + CLI wiring
 
@@ -93,7 +93,7 @@
 
 - [ ] Insert the `--from-spec` branch as step 0 in `xera-feature.md` per spec §5.1; preserve steps 1–8 verbatim below. Update the frontmatter `description` to mention `--from-spec`. **User-facing copy — follow the spec wording.**
 - [ ] Add `xera:feature-spec-prepare` script (gated on `wantsHttp`) in `init.ts` (next to line 382) and `init-update.ts`. No caret edit (prompts dep is `^${CLI_VERSION}`, lockstep).
-- [ ] `cd packages/cli && bun test && bun run typecheck`.
+- [ ] `cd packages/cli && npx vitest run && npm run typecheck`.
 
 ## Task 7: integration + CLI scaffold tests
 
@@ -111,8 +111,8 @@
 
 ## Final verification
 
-- [ ] `bun run typecheck` (workspace) — clean.
-- [ ] `bun run lint` — clean (vendored `vis-network.min.js` excluded; don't touch).
-- [ ] `bun test` (workspace) — green.
+- [ ] `npm run typecheck` (workspace) — clean.
+- [ ] `npm run lint` — clean (vendored `vis-network.min.js` excluded; don't touch).
+- [ ] `npx vitest run` (workspace) — green.
 - [ ] Manual smoke (optional, outside CI): scaffold `/tmp` api project, run `/xera-feature API-PETS-001 --from-spec`, confirm a valid `test.feature` and that `/xera-script API-PETS-001` consumes it.
 - [ ] Confirm the synthetic `story.md` frontmatter keys match `fetch.ts:renderStory` output (invariant test from Task 2).

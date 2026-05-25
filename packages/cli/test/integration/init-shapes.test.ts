@@ -113,14 +113,10 @@ describe('AGENTS.md scaffolding (never clobber)', () => {
     const sentinel = '# My own AGENTS.md\n\nHand-curated — do not touch.\n';
     writeFileSync(join(cwd, 'AGENTS.md'), sentinel);
 
-    const proc = spawn(['bun', 'run', '--cwd', cwd, xeraBin, 'init', '--yes', '--shape', 'web'], {
-      cwd,
-      stderr: 'pipe',
-      stdout: 'pipe',
-    });
+    const proc = run(['node', xeraBin, 'init', '--yes', '--shape', 'web'], { cwd, pipe: true });
     const exitCode = await proc.exited;
     if (exitCode !== 0) {
-      const err = await new Response(proc.stderr).text();
+      const err = await proc.stderr;
       throw new Error(`init exited ${exitCode}: ${err}`);
     }
 

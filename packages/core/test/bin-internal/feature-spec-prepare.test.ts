@@ -1,11 +1,11 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { featureSpecPrepareCmd } from '../../src/bin-internal/feature-spec-prepare';
 import { validateFeatureCmd } from '../../src/bin-internal/validate-feature';
 
-const MOCK_SPEC = join(import.meta.dir, '../../../../fixtures/mock-api/openapi.yaml');
+const MOCK_SPEC = join(import.meta.dirname, '../../../../fixtures/mock-api/openapi.yaml');
 const originalCwd = process.cwd();
 
 let root: string;
