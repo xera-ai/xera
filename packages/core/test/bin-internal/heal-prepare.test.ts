@@ -146,6 +146,57 @@ describe('healPrepare (pure)', () => {
     expect(result.domSnapshotAtFailure).toContain('<button>Log in</button>');
   });
 
+  test('resolves trace.zip from a per-test subdir via report.json attachments (#200)', () => {
+    const { runDir } = seedTicket(cwd, 'JIRA-200', 'r1');
+    // Playwright writes the trace under a per-test subdir, NOT runDir/trace.zip.
+    const testDir = join(runDir, 'JIRA-200-spec-ts-User-can-sign-in-chromium');
+    mkdirSync(testDir, { recursive: true });
+    const tracePath = join(testDir, 'trace.zip');
+    writeFileSync(
+      tracePath,
+      zipSync({
+        'resources/abc.html': strToU8('<html><body><button>Log in</button></body></html>'),
+        'trace.trace': strToU8(
+          JSON.stringify({ type: 'snapshot', snapshot: { resourceName: 'resources/abc.html' } }),
+        ),
+      }),
+    );
+    writeFileSync(
+      join(runDir, 'report.json'),
+      JSON.stringify({
+        suites: [
+          {
+            specs: [
+              {
+                title: 'User can sign in',
+                tests: [{ results: [{ attachments: [{ name: 'trace', path: tracePath }] }] }],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    const result = healPrepare(cwd, 'JIRA-200', 'r1', 'User can sign in');
+    expect(result.domSnapshotAtFailure).toContain('<button>Log in</button>');
+  });
+
+  test('resolves trace.zip by globbing a per-test subdir when report.json is absent (#200)', () => {
+    const { runDir } = seedTicket(cwd, 'JIRA-201', 'r1');
+    const testDir = join(runDir, 'some-test-dir');
+    mkdirSync(testDir, { recursive: true });
+    writeFileSync(
+      join(testDir, 'trace.zip'),
+      zipSync({
+        'resources/abc.html': strToU8('<html><body><button>Glob hit</button></body></html>'),
+        'trace.trace': strToU8(
+          JSON.stringify({ type: 'snapshot', snapshot: { resourceName: 'resources/abc.html' } }),
+        ),
+      }),
+    );
+    const result = healPrepare(cwd, 'JIRA-201', 'r1', 'User can sign in');
+    expect(result.domSnapshotAtFailure).toContain('<button>Glob hit</button>');
+  });
+
   test('classifies kind=test-id when locator uses getByTestId', () => {
     seedTicket(cwd, 'JIRA-123', 'r1', {
       normalizedScenarios: [

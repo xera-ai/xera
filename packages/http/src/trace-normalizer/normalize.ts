@@ -101,9 +101,15 @@ export async function normalizeHttpRun(input: NormalizeHttpRunInput): Promise<No
     if (walkSuite(top, scenarios)) anyFail = true;
   }
 
+  // No collected scenarios means Playwright never ran a test — a spec.ts that
+  // failed to import (e.g. a missing export), a missing raw-report.json, or
+  // "No tests found". Treat that as FAIL, never PASS, so a broken suite can't
+  // report a false-green pipeline. Mirrors the web adapter's #137 guard.
+  const noTests = scenarios.length === 0;
+
   const out: NormalizedHttpRun = {
     runId: input.runId,
-    outcome: anyFail ? 'FAIL' : 'PASS',
+    outcome: anyFail || noTests ? 'FAIL' : 'PASS',
     scenarios,
     http: { calls },
   };

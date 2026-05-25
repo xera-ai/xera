@@ -1,5 +1,6 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { loadConfig } from '../config/load';
 import type { ImpactOpts, ImpactReport } from '../graph/impact';
 import { renderImpactMarkdown, walkImpact } from '../graph/impact';
 import { deriveSnapshot, loadAllEvents } from '../graph/store';
@@ -44,6 +45,15 @@ export async function impactPrepareCmd(argv: string[]): Promise<number> {
 
   const opts: ImpactOpts = { depth };
   if (minPriority) opts.minPriority = minPriority;
+
+  // Pull the route → area map from config when present. Tolerate a missing or
+  // invalid config (e.g. test fixtures) — impact then uses route-slug areas.
+  try {
+    const config = await loadConfig(repoRoot);
+    if (config.web?.routeAreas) opts.routeAreas = config.web.routeAreas;
+  } catch {
+    // no config / not a consumer project — proceed with legacy route-slug areas
+  }
 
   const scenarios = walkImpact(graph, target, opts);
 

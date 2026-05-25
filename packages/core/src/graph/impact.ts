@@ -1,3 +1,4 @@
+import { resolvePomArea } from './route-area';
 import type { EdgeKind, Priority, Snapshot, TicketNode } from './types';
 
 export interface ImpactEdge {
@@ -21,6 +22,10 @@ export interface ImpactScenario {
 export interface ImpactOpts {
   depth: 1 | 2 | 3;
   minPriority?: Priority;
+  // Optional route → area-label map from xera.config.ts.web.routeAreas. Lets a
+  // POM whose route is `/` resolve to area `dashboard` so it reconciles with a
+  // ticket's `modifiesAreas`. Absent → route-slug areas (legacy behavior). (#197)
+  routeAreas?: Record<string, string>;
 }
 
 export interface ImpactReport {
@@ -84,10 +89,13 @@ export function walkImpact(
   // Areas the target modifies
   const targetAreas = new Set(target.modifiesAreas);
 
-  // POMs covering any of those areas
-  const pomIds = graph.edges
-    .filter((e) => e.kind === 'covers' && targetAreas.has(e.to))
-    .map((e) => e.from);
+  // POMs covering any of those areas. A POM's area is resolved from its route
+  // through `routeAreas` (falling back to the route slug, which equals the
+  // legacy `covers`-edge target), so ticket areas and POM areas share one
+  // namespace. (#197)
+  const pomIds = Object.values(graph.poms)
+    .filter((p) => targetAreas.has(resolvePomArea(p.route, opts.routeAreas)))
+    .map((p) => p.id);
 
   // Scenarios using any of those POMs (depth 1 — direct collision)
   const directScenarios = graph.edges

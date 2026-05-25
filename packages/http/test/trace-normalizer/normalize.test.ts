@@ -92,4 +92,20 @@ describe('normalizeHttpRun', () => {
     const out = await normalizeHttpRun({ runId: 'RUN-3', runDir: dir });
     expect(out.http.calls).toEqual([]);
   });
+
+  // #201: a spec.ts that fails to import produces an empty Playwright report
+  // (no suites collected). The old code left outcome=PASS — a false green.
+  test('zero collected scenarios is FAIL, never PASS (import error)', async () => {
+    writeFileSync(join(dir, 'http-trace.jsonl'), '');
+    writeFileSync(join(dir, 'raw-report.json'), JSON.stringify({ suites: [] }));
+    const out = await normalizeHttpRun({ runId: 'RUN-4', runDir: dir });
+    expect(out.outcome).toBe('FAIL');
+    expect(out.scenarios).toEqual([]);
+  });
+
+  test('missing raw-report.json is FAIL, never PASS', async () => {
+    writeFileSync(join(dir, 'http-trace.jsonl'), '');
+    const out = await normalizeHttpRun({ runId: 'RUN-5', runDir: dir });
+    expect(out.outcome).toBe('FAIL');
+  });
 });

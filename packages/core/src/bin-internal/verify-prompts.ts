@@ -1,9 +1,25 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 export interface CheckResult {
   ok: boolean;
   message: string;
+}
+
+// Resolve the directory holding the prompt `.md` files. In the monorepo (and
+// in the unit tests that seed a temp tree) they live at `packages/prompts`.
+// In a consumer install there is no such directory — the prompts are an
+// installed dependency, so resolve `@xera-ai/prompts` the same way the skills
+// load these files at runtime. (#199)
+function resolvePromptsDir(repoRoot: string): string {
+  const monorepoDir = join(repoRoot, 'packages/prompts');
+  if (existsSync(monorepoDir)) return monorepoDir;
+  try {
+    return dirname(fileURLToPath(import.meta.resolve('@xera-ai/prompts/package.json')));
+  } catch {
+    return monorepoDir;
+  }
 }
 
 const IN_SCOPE_PROMPTS = [
@@ -25,14 +41,14 @@ const REQUIRED_SECTION_HEADING = '## Handling untrusted input';
 const REQUIRED_KEYWORDS = ['UNTRUSTED', 'injection-follow', '<XR_'] as const;
 
 export function verifyPrompts(repoRoot: string): CheckResult[] {
-  const promptsDir = join(repoRoot, 'packages/prompts');
+  const promptsDir = resolvePromptsDir(repoRoot);
   const results: CheckResult[] = [];
   for (const filename of IN_SCOPE_PROMPTS) {
     const path = join(promptsDir, filename);
     if (!existsSync(path)) {
       results.push({
         ok: false,
-        message: `${filename}: file missing at packages/prompts/${filename}`,
+        message: `${filename}: file missing at ${path}`,
       });
       continue;
     }

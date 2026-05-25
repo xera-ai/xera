@@ -149,6 +149,60 @@ function findPomLine(
   throw new Error(`POM line not found for locator: ${rawLocator}`);
 }
 
+interface PwAttachment {
+  name: string;
+  path?: string;
+}
+interface PwReportSuite {
+  specs?: Array<{
+    title: string;
+    tests?: Array<{ results?: Array<{ attachments?: PwAttachment[] }> }>;
+  }>;
+  suites?: PwReportSuite[];
+}
+
+function collectTracePaths(suite: PwReportSuite, scenarioName: string, out: string[]): void {
+  for (const spec of suite.specs ?? []) {
+    if (spec.title !== scenarioName) continue;
+    for (const t of spec.tests ?? []) {
+      for (const r of t.results ?? []) {
+        for (const a of r.attachments ?? []) {
+          if (a.name === 'trace' && a.path) out.push(a.path);
+        }
+      }
+    }
+  }
+  for (const sub of suite.suites ?? []) collectTracePaths(sub, scenarioName, out);
+}
+
+// Playwright writes each test's trace under a per-test subdirectory
+// (runDir/<slug>/trace.zip), never at runDir/trace.zip. Resolve the trace for
+// the failing scenario from the JSON report's attachment paths, falling back
+// to a one-level glob, then the legacy top-level path. (#200)
+function findTraceZip(runDir: string, scenarioName: string): string | null {
+  const reportPath = join(runDir, 'report.json');
+  if (existsSync(reportPath)) {
+    try {
+      const report = JSON.parse(readFileSync(reportPath, 'utf8')) as { suites?: PwReportSuite[] };
+      const found: string[] = [];
+      for (const top of report.suites ?? []) collectTracePaths(top, scenarioName, found);
+      const hit = found.find((p) => existsSync(p));
+      if (hit) return hit;
+    } catch {
+      // Malformed report — fall through to globbing.
+    }
+  }
+  if (existsSync(runDir)) {
+    for (const entry of readdirSync(runDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const candidate = join(runDir, entry.name, 'trace.zip');
+      if (existsSync(candidate)) return candidate;
+    }
+  }
+  const legacy = join(runDir, 'trace.zip');
+  return existsSync(legacy) ? legacy : null;
+}
+
 function findGherkinStep(featureText: string, rawLocator: string): string {
   // Best-effort: find the first step line that mentions a quoted string
   // appearing in the locator (e.g. a button name). Falls back to the
@@ -197,7 +251,8 @@ export function healPrepare(
   const featureText = readFileSync(paths.featurePath, 'utf8');
   const gherkinStep = findGherkinStep(featureText, raw);
 
-  const domSnapshotAtFailure = extractDomSnapshot(join(runDir, 'trace.zip'));
+  const tracePath = findTraceZip(runDir, scenarioName);
+  const domSnapshotAtFailure = tracePath ? extractDomSnapshot(tracePath) : '';
 
   return {
     ticket,

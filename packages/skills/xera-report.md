@@ -39,7 +39,7 @@ Step 4 below is *cognitive work that YOU, the session, must do*. It is not a she
        {
          "name": "<scenario name>",
          "outcome": "PASS" | "FAIL" | "SKIPPED",
-         "class": "PASS" | "SKIPPED" | "REAL_BUG" | "SELECTOR_DRIFT" | "FLAKY" | "TEST_BUG",
+         "class": "PASS" | "SKIPPED" | "REAL_BUG" | "SELECTOR_DRIFT" | "FLAKY" | "TEST_BUG" | "CONTRACT_DRIFT",
          "confidence": "low" | "medium" | "high",
          "rationale": "..."
        }
@@ -49,6 +49,21 @@ Step 4 below is *cognitive work that YOU, the session, must do*. It is not a she
    ```
 
    **Do not skip this step.** If you find yourself about to call `npx xera-internal report` without having written this file, stop and write the file first.
+
+   `CONTRACT_DRIFT` is the one class you do NOT decide yourself — it is detected deterministically against the OpenAPI spec in the next step. Pick from the six taxonomy classes above when writing the file; the next step overrides specific scenarios.
+
+## Step 4-drift — deterministic CONTRACT_DRIFT stamp (http; before any heal)
+
+Right after writing `classifier-input.json`, run the deterministic OpenAPI drift check (no LLM reasoning — it reuses the same rule `xera-internal report` applies at the end):
+
+```bash
+npx xera-internal classify-drift {{TICKET}}
+```
+
+Read `.xera/{{TICKET}}/runs/<latest>/contract-drift.json`:
+
+- If its `class` is `"CONTRACT_DRIFT"`, then for every scenario whose `name` is in its `scenarios` array, set that scenario's `class` to `"CONTRACT_DRIFT"` in `classifier-input.json` (overriding your taxonomy choice for those scenarios — the deterministic OpenAPI rule wins). This is what makes the CONTRACT_DRIFT heal sub-flow below actually fire.
+- If its `class` is `null`, leave `classifier-input.json` unchanged.
 
 ## Step 4b — TEST_OUTDATED pre-check (v0.6.1)
 

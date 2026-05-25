@@ -115,6 +115,17 @@ export default defineConfig({
       prod:    'https://example.com',
     },
     defaultEnv: 'staging',
+    // Optional: map POM routes to the area labels you use in tickets
+    // (modifiesAreas). /xera-impact uses this to reconcile route-derived POM
+    // areas with ticket areas so scenarios link across tickets that touch the
+    // same UI. Without it, a POM's area is its first route segment
+    // ('/' → 'root', '/settings/profile' → 'settings'). Exact routes win;
+    // otherwise the longest path-prefix key matches.
+    routeAreas: {
+      '/': 'dashboard',
+      '/settings/profile': 'profile',
+      '/settings/api-keys': 'api-keys',
+    },
     auth: {
       strategy: 'storageState',
       ttl: '8h',

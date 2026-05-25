@@ -1,6 +1,6 @@
 ---
 name: script-from-feature-http
-version: 1.1.0
+version: 1.2.0
 inputs:
   - feature: string         # the Gherkin feature.md content
   - story: string           # the Jira story text
@@ -56,6 +56,8 @@ For each Scenario, pick the role from the Gherkin step language:
 - If no role is implied, use the first role listed under `config.auth.roles` (deterministic).
 
 Never read `process.env.XERA_TOKEN_*` or any auth file directly. `newAuthedContext` handles decrypt + header attach.
+
+Credentials that a Scenario submits in a request body (login / register / refresh / logout flows — distinct from the authenticated session `newAuthedContext` provides) come from `process.env`, never string literals. Read the `<ROLE>_EMAIL` / `<ROLE>_PWD` (or equivalent) names declared under `xera.config.ts.http.auth.roles`, resolve them once at module scope, and throw if unset. Never hardcode a `baseURL` either — request paths go through `apiPath('/...')`, which resolves against the injected `process.env.XERA_BASE_URL`; never pass an absolute URL or a literal host to `api.get/post/...`.
 
 ## Request body construction
 

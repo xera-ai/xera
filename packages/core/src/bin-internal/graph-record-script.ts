@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
+import { routeToAreaSlug } from '../graph/route-area';
 import { appendEvents } from '../graph/store';
 import type {
   EdgeDiscoveredPayload,
@@ -215,12 +216,7 @@ export async function recordScriptImpl(repoRoot: string, ticket: string): Promis
     if (!pom) continue;
     const route = (pom.payload as PomGeneratedPayload).route;
     if (!route) continue;
-    const slug =
-      route
-        .replace(/^\//, '')
-        .split('/')[0]!
-        .replace(/[^a-z0-9-]/gi, '-')
-        .toLowerCase() || 'root';
+    const slug = routeToAreaSlug(route);
     const ep: EdgeDiscoveredPayload = { kind: 'covers', from: id, to: slug, source: 'xera-script' };
     events.push(mk('xera-script', 'edge.discovered', ep));
   }

@@ -21,4 +21,5 @@ export * from './logging/ndjson-logger';
 export * from './providers/factory';
 export type * from './providers/types';
 export * from './scrub';
+export * from './ts-runtime';
 export { XERA_VERSION as VERSION } from './versions';

@@ -88,6 +88,31 @@ describe('doctor http checks', () => {
     expect(stale?.message).toContain('expired');
   });
 
+  test('loads .env so auth-file check agrees with XERA_AUTH_KEY check on a clean shell (#202)', async () => {
+    writeMinHttpConfig(dir);
+    mkdirSync(join(dir, '.xera', '.auth', 'http'), { recursive: true });
+    // Encrypted with the key in process.env (set by beforeEach), which equals
+    // the key writeMinHttpConfig writes into .env.
+    writeAuthState(join(dir, '.xera', '.auth', 'http'), {
+      role: 'user',
+      strategy: 'apiToken',
+      created_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + 3600_000).toISOString(),
+      payload: { token: 't', type: 'bearer', header: 'Authorization', scheme: 'Bearer' },
+    });
+    // Simulate a fresh shell that never sourced .env.
+    delete process.env.XERA_AUTH_KEY;
+
+    const checks = await runChecks(dir);
+
+    // The auth-file check must not fail with "XERA_AUTH_KEY not set"...
+    expect(checks.find((c) => c.name === 'http auth file readable: user')).toBeUndefined();
+    expect(checks.some((c) => (c.message ?? '').includes('XERA_AUTH_KEY not set'))).toBe(false);
+    // ...and it must agree with the .env-content check.
+    expect(checks.find((c) => c.name === 'XERA_AUTH_KEY set')?.ok).toBe(true);
+    expect(checks.find((c) => c.name === 'http auth file present: user')?.ok).toBe(true);
+  });
+
   test('reports OpenAPI not configured (soft ok) when http.spec absent', async () => {
     writeMinHttpConfig(dir, false);
     const checks = await runChecks(dir);
