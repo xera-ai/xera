@@ -38,6 +38,8 @@ packages/
                                 v0.18: feature-spec-prepare (OpenAPI → synthetic
                                       story + spec-input.json for /xera-feature
                                       --from-spec; http only)
+                                v0.19: contract-heal-prepare (web CONTRACT_DRIFT
+                                      detection wiring + spec.ts assertion heal)
                                 universal: verify-prompts, doctor (--auto-enrich,
                                   --strict [ticket] split since v0.16)
     src/adapter/types.ts        TestAdapter interface — extension point
@@ -87,12 +89,14 @@ packages/
                                 xera-coverage (v0.8.0), xera-fill-gap (v0.8.2),
                                 xera-explore (v0.9.0 — experimental, opt-in,
                                   not auto-chained from /xera-run))
-  prompts/   @xera-ai/prompts   versioned LLM prompt templates (13 templates:
+  prompts/   @xera-ai/prompts   versioned LLM prompt templates (14 templates:
                                 diagnose-failure, feature-from-story,
                                 feature-from-openapi (v0.18 — API Gherkin from
                                 an OpenAPI slice),
                                 script-from-feature-web, script-from-feature-http,
-                                heal-locator, extract-areas, similarity-match,
+                                heal-locator, contract-heal (v0.19 — rewrite a
+                                spec.ts assertion to the OpenAPI contract),
+                                extract-areas, similarity-match,
                                 classify-outdated, eval-rubric,
                                 map-ac-to-scenarios (v0.8), propose-scenarios (v0.8),
                                 adversarial-scenarios (v0.9 — experimental))

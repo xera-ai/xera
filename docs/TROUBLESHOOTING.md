@@ -130,6 +130,8 @@ Soft warning when `http.spec` is unset. CONTRACT_DRIFT detection and schema-deri
 - **Recorder not attached / no `network.jsonl`** — the web CONTRACT_DRIFT path needs the `xeraNetwork` recorder (see CONFIGURATION → `web`). Without it, no calls are captured to match. Confirm `.xera/<TICKET>/runs/<runId>/network.jsonl` exists after a run.
 - **The drifting call isn't a documented endpoint** — web drift only flags **documented** endpoints (a status/schema mismatch on a path that exists in OpenAPI). Calls to undocumented endpoints (and page/asset loads) are intentionally ignored to avoid false positives.
 
+**Contract self-heal refused.** When `/xera-report` classifies CONTRACT_DRIFT it may try to rewrite the `spec.ts` assertion to the OpenAPI contract. It refuses (and reports a category) when: `web-no-assertion` (UI test — nothing to rewrite); `no-spec` (no OpenAPI configured); `unsupported-edit` (the fix needs more than one assertion line); `real-bug` (the server response violates the contract — rewriting the test would hide a real bug); `low-confidence`. A `real-bug` refusal means investigate the backend, not the test. Heal is http-focused and never auto-commits — it stages with `git add` on a verified pass.
+
 ## 14. `XERA_AUTH_KEY mismatch — cannot decrypt`
 
 You either regenerated the key in `.env` or deleted `.env`. The auth state cache is unreadable. Fix:
