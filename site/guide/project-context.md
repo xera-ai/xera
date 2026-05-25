@@ -30,7 +30,7 @@ That is xera.
 | **Dev** | Sees Jira / GitHub issue comments posted by xera; occasionally chases a `CONTRACT_DRIFT` finding against an OpenAPI change. |
 | **xera contributor (this repo)** | Edits skills, prompts, deterministic helpers, adapters — see `AGENTS.md` and `CLAUDE.md`. |
 
-End users **never** install xera via `npm install @xera-ai/core`. They use `bunx @xera-ai/cli init` once and from then on interact through `/xera-*` slash commands.
+End users **never** install xera via `npm install @xera-ai/core`. They use `npx @xera-ai/cli init` once and from then on interact through `/xera-*` slash commands.
 
 ## 4. System at a glance
 
@@ -52,7 +52,7 @@ xera is built on a deliberate split between **what to do**, **how to think**, an
    │   "Here is how to generate Gherkin / diagnose a          │
    │    failure / classify outdatedness."                     │
    └────────────────┬─────────────────────────────────────────┘
-                    │ skill also calls ↓ via `bun run xera:*`
+                    │ skill also calls ↓ via `npx xera-internal`
    ┌────────────────▼─────────────────────────────────────────┐
    │ xera-internal (packages/core/src/bin-internal/)          │
    │   Deterministic file-in / file-out binaries.             │

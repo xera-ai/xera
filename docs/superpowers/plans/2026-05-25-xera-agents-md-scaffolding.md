@@ -45,7 +45,7 @@
 - [ ] Update `docs/CONFIGURATION.md`, `CLAUDE.md`, and this repo's `AGENTS.md` per the File Structure list.
 
 ## Final verification
-- [ ] `cd packages/cli && bun run typecheck && bun run build` (build needed for spawn-based integration tests).
-- [ ] `bun test packages/cli` — green (excluding the environmental live-fixture `init-and-run`).
-- [ ] `bun run lint` — clean.
+- [ ] `cd packages/cli && npm run typecheck && npm run build` (build needed for spawn-based integration tests).
+- [ ] `npx vitest run packages/cli` — green (excluding the environmental live-fixture `init-and-run`).
+- [ ] `npm run lint` — clean.
 - [ ] `feat:`-titled PR so `auto-changeset.yml` infers the `@xera-ai/cli` patch/minor; do not hand-edit versions.

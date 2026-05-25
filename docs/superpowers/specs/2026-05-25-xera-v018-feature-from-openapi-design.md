@@ -30,7 +30,7 @@ The goal: `/xera-feature <KEY> --from-spec` produces the same `.xera/<KEY>/` art
 
 1. **`extractOperations` in `@xera-ai/http`** (`packages/http/src/openapi/extract.ts`): a pure, deterministic function that flattens a dereferenced OpenAPI document into a normalized, hashable list of operations (method, path, operationId, summary, description, tags, parameters, request-body schema/example, documented responses). Plus `extractInfo(doc)` → `{ title, version }`. This is the richer companion to the existing `findOperation` (single lookup) — `extractOperations` enumerates *all* matching operations.
 
-2. **`feature-spec-prepare` internal subcommand** (`packages/core/src/bin-internal/feature-spec-prepare.ts`), dispatched via `bun run xera:feature-spec-prepare <KEY> [filters]`. Deterministic data assembly only — **no LLM**. It loads the OpenAPI spec (`config.http.spec` or `--spec` override) via `loadOpenApi`, applies filters, computes a stable `spec_hash`, and writes:
+2. **`feature-spec-prepare` internal subcommand** (`packages/core/src/bin-internal/feature-spec-prepare.ts`), dispatched via `npx xera-internal feature-spec-prepare <KEY> [filters]`. Deterministic data assembly only — **no LLM**. It loads the OpenAPI spec (`config.http.spec` or `--spec` override) via `loadOpenApi`, applies filters, computes a stable `spec_hash`, and writes:
    - `.xera/<KEY>/spec-input.json` — the generation context for the prompt.
    - `.xera/<KEY>/story.md` — a synthetic, human-readable story (so `/xera-script`, graph, and coverage have a story node + frontmatter).
    - `.xera/<KEY>/meta.json` — `adapter: 'http'`, `source: 'openapi'`, `spec_hash`, `story_hash` (= `spec_hash`).
@@ -63,7 +63,7 @@ The artifact directory, the graph `ticket` node id, coverage rows, and any futur
 
 ### 1.6 Success criteria
 
-- `bunx @xera-ai/cli init --shape api` then `/xera-feature API-PETS-001 --from-spec` produces a valid `test.feature` that `xera:validate-feature` accepts, with one Scenario per operation happy-path and per documented error response.
+- `npx @xera-ai/cli init --shape api` then `/xera-feature API-PETS-001 --from-spec` produces a valid `test.feature` that `xera:validate-feature` accepts, with one Scenario per operation happy-path and per documented error response.
 - Re-running with no spec change reports "up to date" and does nothing (drift-skip), exactly like the story path.
 - `/xera-script API-PETS-001` then `/xera-exec` then `/xera-report` work on the synthetic ticket with zero from-spec-specific code.
 - `feature-spec-prepare` is fully deterministic and unit-tested against `fixtures/mock-api/openapi.yaml`; no LLM in the binary.
@@ -141,7 +141,7 @@ Determinism rules (critical for stable `spec_hash`):
 
 ### 2.3 `feature-spec-prepare` subcommand
 
-`bun run xera:feature-spec-prepare <KEY> [--tag T]… [--operation OPID]… [--path P]… [--spec PATH_OR_URL]`
+`npx xera-internal feature-spec-prepare <KEY> [--tag T]… [--operation OPID]… [--path P]… [--spec PATH_OR_URL]`
 
 ```
 1. Validate <KEY> via resolveArtifactPaths (throws on bad key → caught by run() → exit 4).
@@ -270,17 +270,17 @@ Insert a branch **before** current step 1. Pseudocode of the added section:
 ```
 0. If the invocation includes `--from-spec`:
    a. Determine <KEY>. If missing, ask for one (must look like API-PETS-001).
-   b. Run: bun run xera:feature-spec-prepare <KEY> [--tag…] [--operation…] [--path…] [--spec…]
+   b. Run: npx xera-internal feature-spec-prepare <KEY> [--tag…] [--operation…] [--path…] [--spec…]
       - Read .xera/<KEY>/spec-input.json. If `operations` is empty, show the
         `reason` and STOP (e.g. "no spec configured", "spec unreachable",
         "filter matched no operations").
    c. If feature-spec-prepare printed "current" AND test.feature exists, ask
       "test.feature is up-to-date with the current spec. Regenerate? (y/N)".
    d. Read prompt node_modules/@xera-ai/prompts/feature-from-openapi.md.
-   e. Mint a fresh v0.3 nonce (the existing `bun -e crypto.randomUUID` line).
+   e. Mint a fresh v0.3 nonce (the existing `node -e crypto.randomUUID` line).
    f. Wrap the *contents of spec-input.json* between two identical <NONCE> tags
       as UNTRUSTED input, generate .xera/<KEY>/test.feature per the prompt.
-   g. Run bun run xera:validate-feature <KEY> (retry ≤ 2 on exit 2).
+   g. Run npx xera-internal validate-feature <KEY> (retry ≤ 2 on exit 2).
    h. Stamp meta: feature_generated_at, feature_generated_from_story_hash = story_hash.
    i. Summarize scenarios; suggest "/xera-script <KEY>". STOP (do not fall through).
 

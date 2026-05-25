@@ -1,8 +1,8 @@
-import { describe, expect, test } from 'bun:test';
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { describe, expect, test } from 'vitest';
 import { coveragePrepareCmd } from '../../src/bin-internal/coverage-prepare';
 
 const here = dirname(fileURLToPath(import.meta.url));

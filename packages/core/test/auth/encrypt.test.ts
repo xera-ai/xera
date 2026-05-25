@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { decrypt, encrypt, generateKey } from '../../src/auth/encrypt';
 
 describe('AES-256-GCM helpers', () => {

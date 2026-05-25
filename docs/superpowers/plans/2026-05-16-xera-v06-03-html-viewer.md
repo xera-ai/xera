@@ -6,7 +6,7 @@
 
 **Architecture:** New module `packages/core/src/graph/render.ts` transforms a `Snapshot` into a `vis-network`–compatible node/edge dataset, then injects it into a templated HTML shell with vendored `vis-network.min.js` (Apache-2.0, ~200 KB) inlined. New `bin-internal/graph-render.ts` subcommand wraps the module: reads snapshot, applies optional filters (`--since`, `--ticket`, `--depth`), writes `.xera/graph.html` (atomic). Vanilla JS interaction handlers (click → ego-graph highlight, right-click → context menu, filter pane) live in a separate template file inlined at render time. A new GitHub Actions step in `.github/workflows/ci.yml` runs the render, uploads `.xera/graph.html` as an artifact, and posts a sticky PR comment with the artifact link. A scaffold template `packages/cli/templates/xera-graph.yml.template` ships the same workflow snippet to consumer projects via `xera init`.
 
-**Tech Stack:** Bun runtime, TypeScript strict, `bun:test`, vanilla DOM JS (no framework), vendored `vis-network@9.x` (Apache-2.0), GitHub Actions (`actions/upload-artifact@v4`, `actions/github-script@v7`).
+**Tech Stack:** Node runtime, TypeScript strict, `vitest`, vanilla DOM JS (no framework), vendored `vis-network@9.x` (Apache-2.0), GitHub Actions (`actions/upload-artifact@v4`, `actions/github-script@v7`).
 
 **Spec:** `docs/superpowers/specs/2026-05-16-xera-v06-project-knowledge-graph-design.md` §7 (HTML viewer), §11.5 (CI artifact), §11.6 (disputed runs visual marker)
 
@@ -61,7 +61,7 @@
 - `packages/cli/package.json` — Patch bump + caret bumps to ^0.4.3.
 - `packages/cli/src/commands/init.ts` — Bump `@xera-ai/core` caret to `^0.4.3`.
 - `packages/cli/src/commands/init-update.ts` — Same.
-- `docs/CONFIGURATION.md` — Append "HTML viewer" section explaining `bun run xera:graph-render` flags.
+- `docs/CONFIGURATION.md` — Append "HTML viewer" section explaining `npx xera-internal graph-render` flags.
 - `docs/TROUBLESHOOTING.md` — Append "Viewer too slow / blank" entry.
 - `README.md` — Update v0.6 roadmap: mark v0.6.3 as shipped (the project knowledge graph rollout completes).
 
@@ -81,11 +81,11 @@ mkdir -p /home/user/xera/packages/core/src/graph/templates
 
 - [ ] **Step 2: Download `vis-network@9.1.10` UMD bundle**
 
-Use `bun add` to fetch the package locally then copy the dist file (we don't make `vis-network` a runtime dep — we vendor a snapshot):
+Use `npm install` to fetch the package locally then copy the dist file (we don't make `vis-network` a runtime dep — we vendor a snapshot):
 
 ```bash
 cd /tmp && rm -rf vis-fetch && mkdir vis-fetch && cd vis-fetch
-bun add vis-network@9.1.10
+npm install vis-network@9.1.10
 cp node_modules/vis-network/standalone/umd/vis-network.min.js \
    /home/user/xera/packages/core/src/graph/templates/vis-network.min.js
 ```
@@ -145,7 +145,7 @@ git commit -m "core: vendor vis-network@9.1.10 UMD bundle + Apache-2.0 license (
 Create `packages/core/test/graph/render.test.ts`:
 
 ```typescript
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { transformForVisNetwork } from '../../src/graph/render';
 import type { Snapshot } from '../../src/graph/types';
 
@@ -270,7 +270,7 @@ describe('transformForVisNetwork', () => {
 
 - [ ] **Step 2: Run to fail**
 
-Run: `cd /home/user/xera/packages/core && bun test test/graph/render.test.ts`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/graph/render.test.ts`
 Expected: FAIL — cannot import.
 
 - [ ] **Step 3: Implement `render.ts`**
@@ -544,7 +544,7 @@ export function transformForVisNetwork(snap: Snapshot, opts: RenderOpts): {
 
 - [ ] **Step 4: Run tests, verify pass**
 
-Run: `cd /home/user/xera/packages/core && bun test test/graph/render.test.ts && bun run typecheck`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/graph/render.test.ts && npm run typecheck`
 Expected: 10 tests pass; typecheck clean.
 
 - [ ] **Step 5: Commit**
@@ -799,7 +799,7 @@ describe('renderHtml', () => {
 
 - [ ] **Step 2: Run to fail**
 
-Run: `cd /home/user/xera/packages/core && bun test test/graph/render.test.ts -t renderHtml`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/graph/render.test.ts -t renderHtml`
 Expected: FAIL.
 
 - [ ] **Step 3: Implement `renderHtml`**
@@ -868,7 +868,7 @@ export type {
 
 - [ ] **Step 5: Run tests, verify pass**
 
-Run: `cd /home/user/xera/packages/core && bun test test/graph/render.test.ts && bun run typecheck`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/graph/render.test.ts && npm run typecheck`
 Expected: 14 tests pass (10 transform + 4 renderHtml); typecheck clean.
 
 - [ ] **Step 6: Commit**
@@ -894,7 +894,7 @@ git commit -m "core: add renderHtml template substitution + barrel exports (v0.6
 Create `packages/core/test/bin-internal/graph-render.test.ts`:
 
 ```typescript
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -970,7 +970,7 @@ describe('graph-render', () => {
 
 - [ ] **Step 2: Run to fail**
 
-Run: `cd /home/user/xera/packages/core && bun test test/bin-internal/graph-render.test.ts`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/bin-internal/graph-render.test.ts`
 Expected: FAIL — cannot import.
 
 - [ ] **Step 3: Implement `graph-render.ts`**
@@ -1053,7 +1053,7 @@ import { graphRenderCmd } from './graph-render';
 
 - [ ] **Step 5: Run tests, verify pass**
 
-Run: `cd /home/user/xera/packages/core && bun test test/bin-internal/graph-render.test.ts && bun run typecheck`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/bin-internal/graph-render.test.ts && npm run typecheck`
 Expected: 4 tests pass.
 
 - [ ] **Step 6: Commit**
@@ -1090,14 +1090,14 @@ Append a new job to `.github/workflows/ci.yml` (preserve existing `test` job):
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-        with: { bun-version: '1.3.x' }
-      - run: bun install --frozen-lockfile
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm ci
       - name: Build graph snapshot
-        run: bun run --cwd packages/core xera-internal graph-snapshot
+        run: npm run --cwd packages/core xera-internal graph-snapshot
         continue-on-error: true
       - name: Render graph viewer
-        run: bun run --cwd packages/core xera-internal graph-render --out ${{ github.workspace }}/graph.html
+        run: npm run --cwd packages/core xera-internal graph-render --out ${{ github.workspace }}/graph.html
         continue-on-error: true
       - name: Upload viewer
         uses: actions/upload-artifact@v4
@@ -1127,7 +1127,7 @@ Append a new job to `.github/workflows/ci.yml` (preserve existing `test` job):
 - [ ] **Step 3: Validate YAML**
 
 ```bash
-cd /home/user/xera && bunx --bun yaml-lint .github/workflows/ci.yml 2>&1 || \
+cd /home/user/xera && npx yaml-lint .github/workflows/ci.yml 2>&1 || \
   python3 -c "import yaml; yaml.safe_load(open('.github/workflows/ci.yml'))"
 ```
 
@@ -1168,14 +1168,14 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-        with: { bun-version: '1.3.x' }
-      - run: bun install --frozen-lockfile
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm ci
       - name: Build graph snapshot
-        run: bun run xera:graph-snapshot
+        run: npx xera-internal graph-snapshot
         continue-on-error: true
       - name: Render viewer
-        run: bun run xera:graph-render --out graph.html
+        run: npx xera-internal graph-render --out graph.html
         continue-on-error: true
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -1287,10 +1287,10 @@ Append to `docs/CONFIGURATION.md`:
 Generate a single self-contained HTML file visualizing the project knowledge graph:
 
 ```bash
-bun run xera:graph-render                            # full snapshot
-bun run xera:graph-render --since 90d                # filter to recent activity
-bun run xera:graph-render --ticket ABC-200 --depth 2 # ego-graph centered on one ticket
-bun run xera:graph-render --out custom-path.html     # custom output location
+npx xera-internal graph-render                            # full snapshot
+npx xera-internal graph-render --since 90d                # filter to recent activity
+npx xera-internal graph-render --ticket ABC-200 --depth 2 # ego-graph centered on one ticket
+npx xera-internal graph-render --out custom-path.html     # custom output location
 ```
 
 The viewer is a single self-contained HTML file (~700 KB total — vendored vis-network is the bulk). Open it in any browser; works offline. The file is automatically gitignored.
@@ -1312,8 +1312,8 @@ Append to `docs/TROUBLESHOOTING.md`:
 
 If `.xera/graph.html` opens but renders slowly or appears blank:
 
-1. Check graph size: `bun run xera:graph-query --format text | head` — if you have > 500 nodes, the renderer auto-switches to ticket-only mode.
-2. Filter the view: `bun run xera:graph-render --since 30d` or `--ticket <SOME_ID>` to narrow the rendered subset.
+1. Check graph size: `npx xera-internal graph-query --format text | head` — if you have > 500 nodes, the renderer auto-switches to ticket-only mode.
+2. Filter the view: `npx xera-internal graph-render --since 30d` or `--ticket <SOME_ID>` to narrow the rendered subset.
 3. Check browser console for errors (vis-network may fail to initialize on very old browsers; Chrome/Firefox/Safari from the past 3 years all work).
 
 ### Viewer artifact not appearing on PRs
@@ -1323,7 +1323,7 @@ Verify the workflow file was scaffolded:
 ls .github/workflows/xera-graph.yml
 ```
 
-If missing, run `bunx @xera-ai/cli init --update` to refresh the scaffold (v0.6.3+).
+If missing, run `npx @xera-ai/cli init --update` to refresh the scaffold (v0.6.3+).
 ```
 
 - [ ] **Step 4: README.md — mark v0.6 complete**
@@ -1351,17 +1351,17 @@ git commit -m "release: bump versions to v0.6.3 + viewer docs + roadmap update"
 
 - [ ] **Step 1: Lint**
 
-Run: `cd /home/user/xera && bun run lint`
-Expected: zero errors. If errors, run `bun run lint:fix` and commit `chore: lint fixes for v0.6.3`.
+Run: `cd /home/user/xera && npm run lint`
+Expected: zero errors. If errors, run `npm run lint:fix` and commit `chore: lint fixes for v0.6.3`.
 
 - [ ] **Step 2: Typecheck**
 
-Run: `cd /home/user/xera && bun run typecheck`
+Run: `cd /home/user/xera && npm run typecheck`
 Expected: zero errors.
 
 - [ ] **Step 3: All tests**
 
-Run: `cd /home/user/xera && bun test`
+Run: `cd /home/user/xera && npx vitest run`
 Expected: all unit tests pass; pre-existing `init-and-run` integration test still fails (live-server requirement, expected).
 
 - [ ] **Step 4: Verify subcommand registration**
@@ -1373,8 +1373,8 @@ Expected: 7.
 
 ```bash
 cd /home/user/xera
-bun run --cwd packages/core xera-internal graph-snapshot 2>&1 || echo "skip if no graph events"
-bun run --cwd packages/core xera-internal graph-render --out /tmp/xera-test-graph.html 2>&1
+npm run --cwd packages/core xera-internal graph-snapshot 2>&1 || echo "skip if no graph events"
+npm run --cwd packages/core xera-internal graph-render --out /tmp/xera-test-graph.html 2>&1
 ls -la /tmp/xera-test-graph.html
 ```
 

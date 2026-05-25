@@ -22,7 +22,7 @@ export function buildComment(input: CommentInput): string {
     )
     .join('\n\n');
 
-  const reproduce = `### Reproduce locally\n\n\`\`\`\nbunx xera-internal exec ${input.ticket} --replay=${input.runId}\n\`\`\``;
+  const reproduce = `### Reproduce locally\n\n\`\`\`\nnpx xera-internal exec ${input.ticket} --replay=${input.runId}\n\`\`\``;
 
   const next =
     input.overall === 'PASS'

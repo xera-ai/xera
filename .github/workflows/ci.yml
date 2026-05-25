@@ -19,14 +19,16 @@ jobs:
               - '!*.md'
               - '!.changeset/**'
               - '!**/CHANGELOG.md'
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
         if: steps.filter.outputs.code == 'true'
-        with: { bun-version: '1.3.x' }
+        with:
+          node-version: 22
+          cache: npm
       - if: steps.filter.outputs.code == 'true'
-        run: bun install --frozen-lockfile
+        run: npm ci
       - if: steps.filter.outputs.code == 'true'
-        run: bun run lint
+        run: npm run lint
       - if: steps.filter.outputs.code == 'true'
-        run: bun run typecheck
+        run: npm run typecheck
       - if: steps.filter.outputs.code == 'true'
-        run: bun run test
+        run: npm run test

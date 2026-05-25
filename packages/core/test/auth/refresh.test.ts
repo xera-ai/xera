@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { type AuthStateEntry, needsRefresh, parseDuration } from '../../src/auth/refresh';
 
 describe('parseDuration', () => {

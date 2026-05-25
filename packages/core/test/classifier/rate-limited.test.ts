@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { classifyRateLimited, type HttpCallSummary } from '../../src/classifier/rate-limited';
 
 describe('classifyRateLimited', () => {

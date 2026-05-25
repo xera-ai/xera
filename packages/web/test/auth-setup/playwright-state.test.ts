@@ -1,8 +1,8 @@
-import { describe, expect, test } from 'bun:test';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { AUTH_KEY_ENV, generateKey, writeAuthState } from '@xera-ai/core';
+import { describe, expect, test } from 'vitest';
 import { stagePlaywrightState } from '../../src/auth-setup/playwright-state';
 
 describe('stagePlaywrightState', () => {

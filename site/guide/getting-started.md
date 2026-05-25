@@ -4,7 +4,7 @@ xera is an AI-native test framework: a QA engineer scaffolds it into their own p
 
 ## Prerequisites
 
-- **Bun** ≥ 1.1.0 — [installation](https://bun.sh/docs/installation)
+- **Node** ≥ 22 — [installation](https://nodejs.org/)
 - A supported AI coding agent:
   - [Claude Code](https://claude.ai/code)
   - [Cursor](https://cursor.com) ≥ 1.6
@@ -15,10 +15,10 @@ xera is an AI-native test framework: a QA engineer scaffolds it into their own p
 ## Install the CLI
 
 ```bash
-bun add -g @xera-ai/cli
+npm install -g @xera-ai/cli
 ```
 
-Or skip the install and run via `bunx @xera-ai/cli init`.
+Or skip the install and run via `npx @xera-ai/cli init`.
 
 ## Scaffold a project
 
@@ -79,9 +79,9 @@ xera init -y --shape mixed --tracker github \
   --au http://localhost:3000 \
   --as bearer
 cp .env.example .env        # set FlowBoard credentials per the sample-app README
-bun install
-bunx playwright install chromium
-bun run xera:auth-setup
+npm install
+npx playwright install chromium
+npx xera-internal auth-setup
 ```
 
 Now `/xera-run SAMPLE-001` and `/xera-run SAMPLE-HTTP-001` will run against FlowBoard.
@@ -101,9 +101,9 @@ FlowBoard ships intentional security surfaces (stored XSS, JWT handling edge cas
 
 ```bash
 cp .env.example .env            # fill in credentials
-bun install
-bunx playwright install chromium  # web shape only
-bun run xera:auth-setup           # encrypted storageState for each role
+npm install
+npx playwright install chromium  # web shape only
+npx xera-internal auth-setup           # encrypted storageState for each role
 ```
 
 Then open your coding agent in the project directory:

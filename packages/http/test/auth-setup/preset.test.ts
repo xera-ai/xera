@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, test } from 'bun:test';
 import type { XeraConfig } from '@xera-ai/core';
+import { beforeEach, describe, expect, test } from 'vitest';
 import { presetHttpAuth } from '../../src/auth-setup/preset';
 
 const fakeRequest = {} as unknown as Parameters<typeof presetHttpAuth>[0]['request'];

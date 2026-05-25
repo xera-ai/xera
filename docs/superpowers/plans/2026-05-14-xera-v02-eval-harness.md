@@ -6,7 +6,7 @@
 
 **Architecture:** New skill orchestrates a 5-phase flow (prepare → gen → deterministic → judge → report). Deterministic phases are CLI subcommands in `@xera-ai/core`'s `xera-internal` binary. Gen runs as session-LLM cognitive work (matching v0.1 skill pattern). **Judge runs in fresh-context sub-agents spawned via the Task tool** — deliberate exception to CLAUDE.md's no-sub-agent rule, justified by self-evaluation bias mitigation. Outputs land in `.xera/eval/<run-id>/`.
 
-**Tech Stack:** TypeScript (ESM, strict, `exactOptionalPropertyTypes`), `bun:test`, zod for schemas, existing `@xera-ai/core` infra (`lock`, `validate-feature`, `typecheck`, `lint`, `selector-rules`).
+**Tech Stack:** TypeScript (ESM, strict, `exactOptionalPropertyTypes`), `vitest`, zod for schemas, existing `@xera-ai/core` infra (`lock`, `validate-feature`, `typecheck`, `lint`, `selector-rules`).
 
 ---
 
@@ -91,7 +91,7 @@ Tasks are ordered so each one ships independently runnable + testable code:
 Create `packages/core/test/eval/types.test.ts`:
 
 ```typescript
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import {
   ManifestSchema,
   JudgmentSchema,
@@ -201,7 +201,7 @@ describe('eval types', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd packages/core && bun test test/eval/types.test.ts`
+Run: `cd packages/core && npx vitest run test/eval/types.test.ts`
 Expected: FAIL with "Cannot find module '../../src/eval/types'".
 
 - [ ] **Step 3: Create directory + types module**
@@ -311,12 +311,12 @@ export type Summary = z.infer<typeof SummarySchema>;
 
 - [ ] **Step 4: Run test to verify pass**
 
-Run: `cd packages/core && bun test test/eval/types.test.ts`
+Run: `cd packages/core && npx vitest run test/eval/types.test.ts`
 Expected: PASS — all 6 tests green.
 
 - [ ] **Step 5: Typecheck**
 
-Run: `cd packages/core && bun run typecheck`
+Run: `cd packages/core && npm run typecheck`
 Expected: no errors.
 
 - [ ] **Step 6: Commit**
@@ -341,7 +341,7 @@ git commit -m "core: add eval zod schemas + types"
 Create `packages/core/test/eval/run-id.test.ts`:
 
 ```typescript
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { generateRunId } from '../../src/eval/run-id';
 
 describe('generateRunId', () => {
@@ -365,7 +365,7 @@ describe('generateRunId', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd packages/core && bun test test/eval/run-id.test.ts`
+Run: `cd packages/core && npx vitest run test/eval/run-id.test.ts`
 Expected: FAIL with "Cannot find module".
 
 - [ ] **Step 3: Implement run-id**
@@ -405,7 +405,7 @@ export function generateRunId(opts: RunIdOpts = {}): string {
 
 - [ ] **Step 4: Run run-id tests**
 
-Run: `cd packages/core && bun test test/eval/run-id.test.ts`
+Run: `cd packages/core && npx vitest run test/eval/run-id.test.ts`
 Expected: PASS, 3/3.
 
 - [ ] **Step 5: Write the failing test for paths**
@@ -413,7 +413,7 @@ Expected: PASS, 3/3.
 Create `packages/core/test/eval/paths.test.ts`:
 
 ```typescript
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { resolveEvalPaths } from '../../src/eval/paths';
 
 describe('resolveEvalPaths', () => {
@@ -440,7 +440,7 @@ describe('resolveEvalPaths', () => {
 
 - [ ] **Step 6: Run paths test to verify it fails**
 
-Run: `cd packages/core && bun test test/eval/paths.test.ts`
+Run: `cd packages/core && npx vitest run test/eval/paths.test.ts`
 Expected: FAIL with "Cannot find module".
 
 - [ ] **Step 7: Implement paths**
@@ -484,12 +484,12 @@ export function resolveEvalPaths(cwd: string, runId: string): EvalPaths {
 
 - [ ] **Step 8: Run all eval tests**
 
-Run: `cd packages/core && bun test test/eval/`
+Run: `cd packages/core && npx vitest run test/eval/`
 Expected: PASS — paths + run-id + types all green.
 
 - [ ] **Step 9: Typecheck**
 
-Run: `cd packages/core && bun run typecheck`
+Run: `cd packages/core && npm run typecheck`
 Expected: no errors.
 
 - [ ] **Step 10: Commit**
@@ -583,7 +583,7 @@ statements the judge checks individually. Example:
 4. Hand-author `golden/test.feature` for stages that include `feature-from-story`.
 5. Hand-author `golden/spec-requirements.md` for stages that include
    `script-from-feature`. Keep bullets concrete and checkable.
-6. Run `bun run xera:doctor` to validate the fixture shape.
+6. Run `npx xera-internal doctor` to validate the fixture shape.
 7. Run `/xera-eval --ticket=EVAL-NNN` from a Claude Code session in this repo
    to smoke-test before opening a PR.
 
@@ -709,7 +709,7 @@ the actual generated `spec.ts`.
 
 - [ ] **Step 5: Sanity-check Gherkin parses**
 
-Run: `cd packages/core && bun -e "import {validateGherkin} from './src/validate-feature/gherkin'; const fs = require('node:fs'); console.log(validateGherkin(fs.readFileSync('../../fixtures/golden-eval/EVAL-001-simple-login/golden/test.feature','utf8')))"`
+Run: `cd packages/core && node -e "import {validateGherkin} from './src/validate-feature/gherkin'; const fs = require('node:fs'); console.log(validateGherkin(fs.readFileSync('../../fixtures/golden-eval/EVAL-001-simple-login/golden/test.feature','utf8')))"`
 
 (If the exact module path differs, use `grep -r "export function validateGherkin" packages/core/src` to locate it.)
 
@@ -1175,7 +1175,7 @@ The subcommand:
 Create `packages/core/test/bin-internal/eval-prepare.test.ts`:
 
 ```typescript
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -1304,7 +1304,7 @@ describe('eval-prepare', () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd packages/core && bun test test/bin-internal/eval-prepare.test.ts`
+Run: `cd packages/core && npx vitest run test/bin-internal/eval-prepare.test.ts`
 Expected: FAIL with "Cannot find module '../../src/bin-internal/eval-prepare'".
 
 - [ ] **Step 3: Implement eval-prepare**
@@ -1492,12 +1492,12 @@ export async function evalPrepareCmd(argv: string[], opts: EvalPrepareOpts = {})
 
 - [ ] **Step 4: Run eval-prepare tests**
 
-Run: `cd packages/core && bun test test/bin-internal/eval-prepare.test.ts`
+Run: `cd packages/core && npx vitest run test/bin-internal/eval-prepare.test.ts`
 Expected: PASS, all 6 tests green.
 
 - [ ] **Step 5: Typecheck**
 
-Run: `cd packages/core && bun run typecheck`
+Run: `cd packages/core && npm run typecheck`
 Expected: no errors. (If `exactOptionalPropertyTypes` complains about flag spreading, the conditional `...(opts.now ? {now: opts.now} : {})` pattern is the fix already used above.)
 
 - [ ] **Step 6: Commit**
@@ -1541,7 +1541,7 @@ If `actual/<ticket>/*` does not exist for a stage, mark it as `passed: false, er
 Create `packages/core/test/bin-internal/eval-deterministic.test.ts`:
 
 ```typescript
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -1704,7 +1704,7 @@ describe('eval-deterministic', () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd packages/core && bun test test/bin-internal/eval-deterministic.test.ts`
+Run: `cd packages/core && npx vitest run test/bin-internal/eval-deterministic.test.ts`
 Expected: FAIL with "Cannot find module '../../src/bin-internal/eval-deterministic'".
 
 - [ ] **Step 3: Implement eval-deterministic**
@@ -1836,14 +1836,14 @@ export async function evalDeterministicCmd(argv: string[], opts: EvalDeterminist
 
 - [ ] **Step 4: Run eval-deterministic tests**
 
-Run: `cd packages/core && bun test test/bin-internal/eval-deterministic.test.ts`
+Run: `cd packages/core && npx vitest run test/bin-internal/eval-deterministic.test.ts`
 Expected: PASS, 6/6 tests green.
 
 If the `validateGherkin` import path is wrong, find the correct path with: `grep -rn "export function validateGherkin\|export const validateGherkin" packages/core/src`. Adjust the import accordingly.
 
 - [ ] **Step 5: Typecheck**
 
-Run: `cd packages/core && bun run typecheck`
+Run: `cd packages/core && npm run typecheck`
 Expected: no errors.
 
 - [ ] **Step 6: Commit**
@@ -1877,7 +1877,7 @@ For each (ticket, stage):
 Create `packages/core/test/bin-internal/eval-report.test.ts`:
 
 ```typescript
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -2069,7 +2069,7 @@ describe('eval-report', () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd packages/core && bun test test/bin-internal/eval-report.test.ts`
+Run: `cd packages/core && npx vitest run test/bin-internal/eval-report.test.ts`
 Expected: FAIL with "Cannot find module '../../src/bin-internal/eval-report'".
 
 - [ ] **Step 3: Implement eval-report**
@@ -2240,12 +2240,12 @@ export async function evalReportCmd(argv: string[], opts: EvalReportOpts = {}): 
 
 - [ ] **Step 4: Run eval-report tests**
 
-Run: `cd packages/core && bun test test/bin-internal/eval-report.test.ts`
+Run: `cd packages/core && npx vitest run test/bin-internal/eval-report.test.ts`
 Expected: PASS, 5/5 tests green.
 
 - [ ] **Step 5: Typecheck**
 
-Run: `cd packages/core && bun run typecheck`
+Run: `cd packages/core && npm run typecheck`
 Expected: no errors.
 
 - [ ] **Step 6: Commit**
@@ -2278,7 +2278,7 @@ Exit 0 on pass, 1 on any check failure (with all failures listed).
 Create `packages/core/test/bin-internal/doctor.test.ts`:
 
 ```typescript
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -2417,7 +2417,7 @@ describe('doctor', () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd packages/core && bun test test/bin-internal/doctor.test.ts`
+Run: `cd packages/core && npx vitest run test/bin-internal/doctor.test.ts`
 Expected: FAIL with "Cannot find module '../../src/bin-internal/doctor'".
 
 - [ ] **Step 3: Implement doctor**
@@ -2535,12 +2535,12 @@ export async function doctorCmd(_argv: string[], opts: DoctorOpts = {}): Promise
 
 - [ ] **Step 4: Run doctor tests**
 
-Run: `cd packages/core && bun test test/bin-internal/doctor.test.ts`
+Run: `cd packages/core && npx vitest run test/bin-internal/doctor.test.ts`
 Expected: PASS, 6/6 tests green.
 
 - [ ] **Step 5: Typecheck**
 
-Run: `cd packages/core && bun run typecheck`
+Run: `cd packages/core && npm run typecheck`
 Expected: no errors.
 
 - [ ] **Step 6: Commit**
@@ -2598,10 +2598,10 @@ Edit `package.json` at the repo root. Inside the existing `scripts` object, add 
 
 - [ ] **Step 4: Smoke-test via the binary**
 
-Run: `cd packages/core && bun run typecheck`
+Run: `cd packages/core && npm run typecheck`
 Expected: no errors.
 
-Run from repo root: `bun run xera:doctor` (after fixtures are created in Tasks 3–8; if you haven't authored EVAL-005 yet, expect "≥ 3" error — fine, that proves wiring works).
+Run from repo root: `npx xera-internal doctor` (after fixtures are created in Tasks 3–8; if you haven't authored EVAL-005 yet, expect "≥ 3" error — fine, that proves wiring works).
 
 Expected: command runs, prints either `[xera:doctor] ok` or `[xera:doctor] <reason>` lines on stderr. Either output proves wiring.
 
@@ -2721,7 +2721,7 @@ Output JSON only. No prose. No code fences. Exactly the schema above.
 
 - [ ] **Step 2: Verify frontmatter parses (doctor check)**
 
-Run: `bun run xera:doctor`
+Run: `npx xera-internal doctor`
 Expected: the `eval-rubric` related check passes (other checks may still fail until skill is written; that's fine).
 
 - [ ] **Step 3: Commit**
@@ -2741,14 +2741,14 @@ git commit -m "prompts: add eval-rubric judge prompt template"
 The skill drives the 5-phase flow inside the maintainer's Claude Code session. It is the FIRST xera skill that spawns sub-agents — the frontmatter explicitly documents this exception to CLAUDE.md.
 
 The skill instructs the session LLM to:
-1. Run `bun run xera:eval-prepare` and capture `RUN_ID=...` from stdout.
+1. Run `npx xera-internal eval-prepare` and capture `RUN_ID=...` from stdout.
 2. Read `.xera/eval/<RUN_ID>/manifest.json` to learn which (ticket, stage) pairs to process.
 3. For each (ticket, stage) — interleaved gen + judge:
    - **Gen** (direct session work): read appropriate prompt + input files; write to `actual/<ticket>/*`.
-   - **Deterministic** (after all gen done): run `bun run xera:eval-deterministic <RUN_ID>`.
+   - **Deterministic** (after all gen done): run `npx xera-internal eval-deterministic <RUN_ID>`.
    - **Judge** (sub-agent via Task tool): invoke a fresh-context sub-agent with the rubric + actual + golden as text payload. Parse its JSON. Accumulate into an in-memory array.
 4. After all judges return, write the array to `.xera/eval/<RUN_ID>/judge-scores.json`.
-5. Run `bun run xera:eval-report <RUN_ID>`.
+5. Run `npx xera-internal eval-report <RUN_ID>`.
 
 For `--judge-only`: skip phases 1–3; locate the most recent `.xera/eval/<run-id>/` dir; re-run only the judge sub-agents using existing `actual/` files; overwrite `judge-scores.json`; re-run report.
 
@@ -2787,7 +2787,7 @@ The flow has 5 phases. Phases 1, 3, 5 are deterministic CLI calls. Phase 2 (gen)
 
 If `--judge-only` is set, SKIP phases 1, 2, 3 and jump to "Judge-only flow" below.
 
-Run: `bun run xera:eval-prepare {{FLAGS}}`
+Run: `npx xera-internal eval-prepare {{FLAGS}}`
 
 `{{FLAGS}}` is the user's pass-through flags (e.g. `--ticket=EVAL-001 --force`). If no flags are given, pass none.
 
@@ -2882,7 +2882,7 @@ Append the parsed JSON object to an in-memory array of judgments.
 
 After all (ticket, stage) iterations have completed (gen + judge), run the deterministic phase:
 
-Run: `bun run xera:eval-deterministic {{RUN_ID}}`
+Run: `npx xera-internal eval-deterministic {{RUN_ID}}`
 
 Exit code 0 → continue. Any non-zero → fail; surface stderr.
 
@@ -2901,7 +2901,7 @@ Write the in-memory judgments array to `.xera/eval/{{RUN_ID}}/judge-scores.json`
 
 ### Phase 5 — Report
 
-Run: `bun run xera:eval-report {{RUN_ID}}`
+Run: `npx xera-internal eval-report {{RUN_ID}}`
 
 Exit code 0 → success. The command prints a one-line summary to stdout (e.g. `12/15 PASS (avg 80%)`). The full report is at `.xera/eval/{{RUN_ID}}/report.md`.
 
@@ -2919,14 +2919,14 @@ If `--judge-only` was passed:
 3. Apply any `--prompt` / `--ticket` filters from the user against the manifest's scope (do not extend beyond it).
 4. For each (ticket, stage) in scope: spawn a judge sub-agent using the existing `actual/<ticket>/*` files. Same Task-tool template as Phase 2.
 5. Overwrite `.xera/eval/<run-id>/judge-scores.json` with the new array.
-6. Re-run `bun run xera:eval-report <run-id>`.
+6. Re-run `npx xera-internal eval-report <run-id>`.
 
 Do NOT re-run `xera:eval-prepare` or `xera:eval-deterministic` in judge-only mode.
 
 ## Exit conditions
 
 - Exit 0 → report.md exists and was rendered. Tell the maintainer the path and the summary line.
-- Any non-zero exit from any `bun run xera:*` call → stop, print the stderr, and ask the maintainer how to proceed. Do not invent fallbacks.
+- Any non-zero exit from any `npx xera-internal` call → stop, print the stderr, and ask the maintainer how to proceed. Do not invent fallbacks.
 - A sub-agent returning persistently-invalid JSON (after 1 retry) is NOT a stop condition — record FAIL placeholder and continue, so the report still renders for the other tickets.
 
 ## What NOT to do
@@ -2939,7 +2939,7 @@ Do NOT re-run `xera:eval-prepare` or `xera:eval-deterministic` in judge-only mod
 
 - [ ] **Step 2: Doctor validates the skill**
 
-Run: `bun run xera:doctor`
+Run: `npx xera-internal doctor`
 Expected: exits 0 (assuming Tasks 3–8 produced ≥ 3 fixtures and Task 14 produced eval-rubric.md). Surface any remaining `[xera:doctor]` failures and fix them before continuing.
 
 - [ ] **Step 3: Commit**
@@ -2966,7 +2966,7 @@ The fixture-validity test asserts every shipped `golden/test.feature` parses wit
 Create `packages/core/test/fixtures/golden-eval.test.ts`:
 
 ```typescript
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { validateGherkin } from '../../src/validate-feature/gherkin';
@@ -3017,7 +3017,7 @@ describe('fixtures/golden-eval/', () => {
 
 - [ ] **Step 2: Run fixture-validity test**
 
-Run: `cd packages/core && bun test test/fixtures/golden-eval.test.ts`
+Run: `cd packages/core && npx vitest run test/fixtures/golden-eval.test.ts`
 Expected: PASS for every fixture authored in Tasks 4–8.
 
 - [ ] **Step 3: Write the e2e test**
@@ -3025,7 +3025,7 @@ Expected: PASS for every fixture authored in Tasks 4–8.
 Create `packages/core/test/bin-internal/eval-e2e.test.ts`:
 
 ```typescript
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -3178,22 +3178,22 @@ describe('eval pipeline e2e (stubbed session LLM)', () => {
 
 - [ ] **Step 4: Run e2e tests**
 
-Run: `cd packages/core && bun test test/bin-internal/eval-e2e.test.ts`
+Run: `cd packages/core && npx vitest run test/bin-internal/eval-e2e.test.ts`
 Expected: PASS, 3/3 tests green.
 
 - [ ] **Step 5: Run the FULL package test suite to confirm no regressions**
 
-Run: `cd packages/core && bun test`
+Run: `cd packages/core && npx vitest run`
 Expected: PASS, all tests green (pre-existing + new).
 
 - [ ] **Step 6: Typecheck whole workspace**
 
-Run: `bun run typecheck`
+Run: `npm run typecheck`
 Expected: no errors.
 
 - [ ] **Step 7: Lint**
 
-Run: `bun run lint`
+Run: `npm run lint`
 Expected: no warnings or errors. (If a few warnings are pre-existing, ensure none of them are in the new files.)
 
 - [ ] **Step 8: Commit**
@@ -3215,11 +3215,11 @@ This task is a checklist proving §1.4 of the spec is satisfied. No code changes
 Verify the state from a clean perspective:
 
 Run: `git status` — expected: clean working tree (all commits from prior tasks landed).
-Run: `bun install` — expected: no errors.
-Run: `bun test` — expected: all green.
-Run: `bun run typecheck` — expected: no errors.
-Run: `bun run lint` — expected: clean.
-Run: `bun run xera:doctor` — expected: `[xera:doctor] ok`.
+Run: `npm install` — expected: no errors.
+Run: `npx vitest run` — expected: all green.
+Run: `npm run typecheck` — expected: no errors.
+Run: `npm run lint` — expected: clean.
+Run: `npx xera-internal doctor` — expected: `[xera:doctor] ok`.
 
 - [ ] **Step 2: Document the live-session check**
 
@@ -3229,12 +3229,12 @@ Run: `git log --oneline -20` to see the work.
 
 Write a short paragraph to the maintainer (in the final hand-off message, NOT into a doc file unless requested) capturing:
 - All unit + e2e tests pass.
-- `bun run xera:doctor` is green.
+- `npx xera-internal doctor` is green.
 - Manual live-session `/xera-eval` should be exercised separately by the maintainer; the e2e test stubs the session LLM portion.
 
 - [ ] **Step 3: Final commit (if anything moved)**
 
-If `bun test` or `lint` revealed anything that needed a touch-up in earlier tasks, commit it now with a `fixup:` prefix. Otherwise no commit.
+If `npx vitest run` or `lint` revealed anything that needed a touch-up in earlier tasks, commit it now with a `fixup:` prefix. Otherwise no commit.
 
 ```bash
 # (only if needed)
@@ -3266,7 +3266,7 @@ After implementation, before declaring done, the executor should confirm:
   - `xera-internal doctor` (Task 12) ✓
   - unit tests + e2e test (Tasks 9–11, 16) ✓
 
-- [ ] §1.4 success criteria executable: `bun install` + `bun test` + `bun run xera:doctor` all pass after Task 16.
+- [ ] §1.4 success criteria executable: `npm install` + `npx vitest run` + `npx xera-internal doctor` all pass after Task 16.
 - [ ] §2.2 design decision #7 (sub-agent for judge) is embedded in `packages/skills/xera-eval.md` Task 15.
 - [ ] §2.2 design decision #2 (script stage uses GOLDEN feature as input) is embedded in skill Task 15 ("Stage = script-from-feature").
 - [ ] §3.2 dimension wording matches verbatim in `packages/prompts/eval-rubric.md` Task 14.
@@ -3278,6 +3278,6 @@ After implementation, before declaring done, the executor should confirm:
 
 ## Notes on test execution caveats
 
-- Several tests use `process.chdir`. The `afterEach` blocks restore `process.cwd()`, but if you run a single test in isolation and it fails before reaching afterEach, subsequent tests in the same run may see leaked cwd. If you see unrelated test failures after touching eval files, run `bun test test/bin-internal/eval-*` in isolation to rule it out.
+- Several tests use `process.chdir`. The `afterEach` blocks restore `process.cwd()`, but if you run a single test in isolation and it fails before reaching afterEach, subsequent tests in the same run may see leaked cwd. If you see unrelated test failures after touching eval files, run `npx vitest run test/bin-internal/eval-*` in isolation to rule it out.
 - `validateGherkin` import path in `eval-deterministic.ts` and `golden-eval.test.ts` assumes `packages/core/src/validate-feature/gherkin`. If the actual path differs in this repo, grep for the export and adjust the import. Spec §3.1 says the validator already exists in v0.1, so locate, don't reimplement.
 - The e2e test's stubbed session LLM writes a `actual/test.feature` that exactly matches the golden. This is intentional — the test proves the plumbing, not the LLM quality. Real eval runs will see drift between actual and golden, which is what the judge catches.

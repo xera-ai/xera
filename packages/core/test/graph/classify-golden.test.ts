@@ -1,11 +1,11 @@
-import { describe, expect, test } from 'bun:test';
 import { cpSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { describe, expect, test } from 'vitest';
 import { enhanceClassification } from '../../src/graph/classify';
 import { deriveSnapshot, loadAllEvents } from '../../src/graph/store';
 
-const FIXTURES = join(import.meta.dir, '../../../../fixtures/golden-graph');
+const FIXTURES = join(import.meta.dirname, '../../../../fixtures/golden-graph');
 
 const SCENARIOS = [
   {

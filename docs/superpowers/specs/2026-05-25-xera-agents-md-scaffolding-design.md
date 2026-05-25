@@ -23,7 +23,7 @@ Goal: `xera init` writes a concise, shape-aware `AGENTS.md` **iff** one does not
 
 ### 1.2 In-scope deliverables
 
-1. **`packages/cli/templates/AGENTS.md.tmpl`** — editor-agnostic stub describing xera, the `/xera-*` skills, the `bun run xera:*` scripts, and project conventions. Shape-aware via the existing `render()` `{{#if wantsWeb}}` / `{{#if wantsHttp}}` blocks. Ends with a provenance marker comment.
+1. **`packages/cli/templates/AGENTS.md.tmpl`** — editor-agnostic stub describing xera, the `/xera-*` skills, the `npx xera-internal` scripts, and project conventions. Shape-aware via the existing `render()` `{{#if wantsWeb}}` / `{{#if wantsHttp}}` blocks. Ends with a provenance marker comment.
 2. **`xera init`** — after the existing file scaffolds, write `AGENTS.md` guarded by `!existsSync` (same pattern as the `openapi.yaml` placeholder, `init.ts:270-274`). Log "scaffolded AGENTS.md" or "kept existing AGENTS.md".
 3. **`xera init --update`** — create `AGENTS.md` if missing; never overwrite. (Additive, consistent with init.)
 4. **`xera doctor`** — one informational check: `AGENTS.md present` (ok when the file exists; not-ok with an actionable message when missing). Non-strict, so it never fails `doctor` by itself.
@@ -64,8 +64,8 @@ This file orients any AI agent (Claude Code, Cursor, OpenAI Codex CLI).
 
 ## Scripts (deterministic plumbing the skills call)
 
-You rarely run these directly: `bun run xera:fetch`, `xera:exec`, `xera:report`,
-`xera:doctor`, etc. Health check: `bunx @xera-ai/cli doctor`.
+You rarely run these directly: `npx xera-internal fetch`, `xera:exec`, `xera:report`,
+`xera:doctor`, etc. Health check: `npx @xera-ai/cli doctor`.
 
 ## Project conventions
 
@@ -73,7 +73,7 @@ You rarely run these directly: `bun run xera:fetch`, `xera:exec`, `xera:report`,
 {{/if}}{{#if wantsHttp}}- HTTP API tests (`@xera-ai/http`), OpenAPI-aware when `http.spec` is set.
 {{/if}}- Generated artifacts live under `.xera/<TICKET>/` — do not hand-edit; re-run the skill.
 - Configuration is in `xera.config.ts`. Secrets go in `.env` (never commit it).
-- Run `bunx @xera-ai/cli doctor` if anything looks misconfigured.
+- Run `npx @xera-ai/cli doctor` if anything looks misconfigured.
 
 <!-- Scaffolded by `xera init`. Safe to edit — xera will not overwrite this file. -->
 ```

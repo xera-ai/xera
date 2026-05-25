@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { AUTH_KEY_ENV, resolveAuthKey } from '../../src/auth/key';
 
 describe('resolveAuthKey', () => {

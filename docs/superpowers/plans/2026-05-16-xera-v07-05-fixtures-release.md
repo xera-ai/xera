@@ -4,7 +4,7 @@
 
 **Goal:** Build the `mock-api` fixture, five `golden-tickets-http` fixtures, the `sample-app-http` integration scaffold, the bundled mock script for `SAMPLE-HTTP-001`, integration tests for `init --shape api|mixed`, docs updates, the nightly E2E branch, and final version bumps.
 
-**Architecture:** `mock-api` is a small Bun.serve target with an `openapi.yaml`, parallel to the existing `mock-jira`. Golden tickets are minimal `.xera/<TICKET>/` directories with `expected-classification.json` for classifier unit tests. The bundled `sample-mock.ts` is auto-started by `playwright.config.ts.webServer` in scaffolded projects.
+**Architecture:** `mock-api` is a small node:http target with an `openapi.yaml`, parallel to the existing `mock-jira`. Golden tickets are minimal `.xera/<TICKET>/` directories with `expected-classification.json` for classifier unit tests. The bundled `sample-mock.ts` is auto-started by `playwright.config.ts.webServer` in scaffolded projects.
 
 **Prereqs:** Plans 01–04 complete.
 
@@ -28,7 +28,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "start": "bun run server.ts"
+    "start": "npm run server.ts"
   }
 }
 ```
@@ -53,6 +53,7 @@ function validateEmail(email: unknown): { ok: true } | { ok: false; reason: stri
   return { ok: true };
 }
 
+// NOTE: current fixtures use node:http (createServer) — see fixtures/mock-*/server.ts
 Bun.serve({
   port: PORT,
   async fetch(req) {
@@ -175,7 +176,7 @@ paths:
 - [ ] **Step 4: Test the mock starts and responds**
 
 ```bash
-bun run --cwd fixtures/mock-api server.ts &
+npm run --cwd fixtures/mock-api server.ts &
 sleep 1
 curl -s -X POST http://localhost:4100/users -H 'Authorization: Bearer test-token-001' -H 'Content-Type: application/json' -d '{"name":"A","email":"bad"}'
 # expect: {"errors":["email must be valid"]}
@@ -298,7 +299,7 @@ Each ticket dir has:
 
 ```ts
 // packages/core/test/classifier/golden-http.test.ts
-import { test, expect } from 'bun:test';
+import { test, expect } from 'vitest';
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { classify } from '../../src/classifier';
@@ -342,7 +343,7 @@ And add `fixtures/golden-tickets-http/GOLD-HTTP-003-contract-drift/openapi.json`
 
 - [ ] **Step 7: Run**
 
-Run: `cd packages/core && bun test test/classifier/golden-http.test.ts`
+Run: `cd packages/core && npx vitest run test/classifier/golden-http.test.ts`
 Expected: 5 green.
 
 - [ ] **Step 8: Commit**
@@ -369,6 +370,7 @@ git commit -m "fixtures: 5 golden http tickets + classifier test"
 const PORT = Number(process.env.MOCK_PORT ?? 4111);
 const TOKEN = 'Bearer test-token-001';
 
+// NOTE: current fixtures use node:http (createServer) — see fixtures/mock-*/server.ts
 Bun.serve({
   port: PORT,
   async fetch(req) {
@@ -395,7 +397,7 @@ In `packages/cli/src/scaffold.ts`, when shape is `api` or `mixed`, copy `scripts
 
 ```ts
 webServer: {
-  command: 'bun run scripts/sample-mock.ts',
+  command: 'npm run scripts/sample-mock.ts',
   port: 4111,
   reuseExistingServer: true,
 },
@@ -511,7 +513,7 @@ git commit -m "cli: SAMPLE-HTTP-001 seed ticket"
 - [ ] **Step 1: Write the test**
 
 ```ts
-import { test, expect, beforeEach, afterEach } from 'bun:test';
+import { test, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, rmSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -522,7 +524,7 @@ beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'init-api-')); });
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
 test('init --shape api scaffolds an api-only project', () => {
-  execSync(`bun ${join(import.meta.dir, '..', '..', 'bin', 'xera')} init --yes --shape api`, {
+  execSync(`node ${join(import.meta.dirname, '..', '..', 'bin', 'xera')} init --yes --shape api`, {
     cwd: dir,
     env: { ...process.env, XERA_TEST_ANSWERS: JSON.stringify({
       jiraBaseUrl: 'https://x.atlassian.net', jiraProjectKey: 'PROJ',
@@ -543,7 +545,7 @@ test('init --shape api scaffolds an api-only project', () => {
 
 - [ ] **Step 2: Run, verify pass**
 
-Run: `cd packages/cli && bun test test/integration/init-api.test.ts`
+Run: `cd packages/cli && npx vitest run test/integration/init-api.test.ts`
 Expected: green.
 
 - [ ] **Step 3: Commit**
@@ -587,7 +589,7 @@ git commit -m "cli: integration test for init --shape mixed"
 - [ ] **Step 1: Write**
 
 ```ts
-import { test, expect, beforeEach, afterEach } from 'bun:test';
+import { test, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -647,18 +649,18 @@ Edit each file. Same for any `@xera-ai/web` references that need bumping to `^0.
 
 - [ ] **Step 3: Reinstall**
 
-Run: `bun install`
+Run: `npm install`
 Expected: lockfile regenerated, no errors.
 
 - [ ] **Step 4: Run full suite**
 
-Run: `bun test && bun run typecheck && bun run lint && bun run xera:verify-prompts`
+Run: `npx vitest run && npm run typecheck && npm run lint && npx xera-internal verify-prompts`
 Expected: all green.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add packages/*/package.json bun.lock
+git add packages/*/package.json package-lock.json
 git commit -m "release: bump versions for v0.7.0"
 ```
 
@@ -678,7 +680,7 @@ git commit -m "release: bump versions for v0.7.0"
 - `@xera-ai/http` adapter (sibling of `@xera-ai/web`) for HTTP API testing without launching a browser.
 - Pre-authentication pattern via `defineHttpAuthSetup`. Per-role tokens stored encrypted at `.xera/.auth/http/<role>.json`.
 - Classifier buckets: `CONTRACT_DRIFT` (http adapter when OpenAPI configured), `RATE_LIMITED` (HTTP 429), `AUTH_EXPIRED` (cross-adapter on 401 + expired token / cookie).
-- `bunx @xera-ai/cli init` shape question: `web`, `api`, `mixed`.
+- `npx @xera-ai/cli init` shape question: `web`, `api`, `mixed`.
 - Runtime helper `newAuthedContext` for generated `spec.ts` files (no token leakage into env).
 - Doctor checks for auth file presence + expiry, OpenAPI reachability.
 - Prompt `script-from-feature-http.md` (v1.0.0).
@@ -719,7 +721,7 @@ After the web adapter section, add:
 Sibling of the web adapter. Same `TestAdapter` contract, different runtime:
 
 - Executes `@playwright/test` with `APIRequestContext` only — no browser.
-- Pre-auth runs via `bun run xera:auth-setup` and writes encrypted per-role JSON to `.xera/.auth/http/<role>.json`.
+- Pre-auth runs via `npx xera-internal auth-setup` and writes encrypted per-role JSON to `.xera/.auth/http/<role>.json`.
 - Generated `spec.ts` uses `newAuthedContext(playwright, role)` to attach the right header.
 - Optional OpenAPI spec drives schema-derived edge cases and `CONTRACT_DRIFT` detection.
 - `RATE_LIMITED` (HTTP 429) and `AUTH_EXPIRED` (401 + expired token) are deterministic classifier outputs.
@@ -765,13 +767,13 @@ git commit -m "docs: CONFIGURATION http block reference"
 ### "Auth file not found for role 'X'"
 You need to run pre-authentication for that role:
 ```
-bun run xera:auth-setup --role X
+npx xera-internal auth-setup --role X
 ```
 
 ### "Auth file expired for role 'X'"
 Token has aged past `http.auth.ttl`. Re-run:
 ```
-bun run xera:auth-setup --role X
+npx xera-internal auth-setup --role X
 ```
 This is normal; xera does not auto-refresh at run time to avoid surprises.
 
@@ -824,20 +826,20 @@ Read `.github/workflows/nightly-e2e.yml`. Identify how it scaffolds and runs the
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-      - run: bun install
+      - uses: actions/setup-node@v4
+      - run: npm install
       - name: Scaffold api-only project
         run: |
           mkdir -p /tmp/xera-http-e2e
           cd /tmp/xera-http-e2e
-          bunx @xera-ai/cli init --yes --shape api
+          npx @xera-ai/cli init --yes --shape api
       - name: Set env vars
         run: |
           echo "USER_BEARER_TOKEN=test-token-001" >> /tmp/xera-http-e2e/.env.local
       - name: Run pre-auth
-        run: cd /tmp/xera-http-e2e && bun run xera:auth-setup
+        run: cd /tmp/xera-http-e2e && npx xera-internal auth-setup
       - name: Run SAMPLE-HTTP-001
-        run: cd /tmp/xera-http-e2e && bun run --bun packages/core/bin/internal.ts run SAMPLE-HTTP-001
+        run: cd /tmp/xera-http-e2e && npm run --npx xera-internal run SAMPLE-HTTP-001
       - name: Assert PASS classification
         run: |
           cd /tmp/xera-http-e2e
@@ -859,7 +861,7 @@ git commit -m "ci: nightly E2E covers http shape"
 
 - [ ] **Step 1: Full suite**
 
-Run: `bun install && bun test && bun run typecheck && bun run lint && bun run xera:verify-prompts`
+Run: `npm install && npx vitest run && npm run typecheck && npm run lint && npx xera-internal verify-prompts`
 Expected: all green.
 
 - [ ] **Step 2: Smoke test the maintainer flow from index §Definition of Done**
@@ -884,4 +886,4 @@ git push --tags
 
 ## Done with Plan 05 — v0.7.0 ready to release
 
-Run `bun run --filter '@xera-ai/*' build` and `npm publish` (in dep order: core → web → http → prompts → skills → cli) when ready. The publish flow is documented in `AGENTS.md § Publish flow`.
+Run `npm run --filter '@xera-ai/*' build` and `npm publish` (in dep order: core → web → http → prompts → skills → cli) when ready. The publish flow is documented in `AGENTS.md § Publish flow`.

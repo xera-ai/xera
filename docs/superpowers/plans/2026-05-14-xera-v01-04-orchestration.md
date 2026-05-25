@@ -4,7 +4,7 @@
 
 **Goal:** Author the 3 versioned prompt templates and the 7 Claude Code skills that, together with `xera-internal`, drive the actual user workflow.
 
-**Architecture:** Prompts and skills are content files (`.md`), not code. The session LLM reads a skill, follows its instructions, calls `bun run xera:*` for deterministic work, performs AI work using prompts as instructions, and writes outputs to `.xera/<TICKET>/`.
+**Architecture:** Prompts and skills are content files (`.md`), not code. The session LLM reads a skill, follows its instructions, calls `npx xera-internal` for deterministic work, performs AI work using prompts as instructions, and writes outputs to `.xera/<TICKET>/`.
 
 **Prereqs:** Plans 01–03 complete. `xera-internal` works end-to-end.
 
@@ -257,7 +257,7 @@ Write `classifier-input.json` with this shape:
 }
 ```
 
-The skill will pass this file to `bun run xera:report -- --input=<path>`.
+The skill will pass this file to `npx xera-internal report -- --input=<path>`.
 ```
 
 - [x] **Step 2: Commit**
@@ -305,7 +305,7 @@ If the user did not provide a ticket key, ask: "Which Jira ticket key?" and wait
      d. Set the environment variable `XERA_MCP_JIRA=1` for the next subprocess call.
    - Else: use the REST backend implicitly via `JIRA_EMAIL` + `JIRA_API_TOKEN` from `.env`.
 
-3. Run: `bun run xera:fetch {{TICKET}}`
+3. Run: `npx xera-internal fetch {{TICKET}}`
    - Exit 0 → continue.
    - Exit 1 → user/config error. Read stderr, show the user the fix instructions, STOP.
    - Exit 4 → infra error. Show error, STOP.
@@ -354,7 +354,7 @@ If no ticket key was given, ask for one.
 
 4. Read `.xera/{{TICKET}}/story.md` and write `.xera/{{TICKET}}/test.feature` following the prompt. Do NOT include any text outside the Gherkin file body.
 
-5. Run: `bun run xera:validate-feature {{TICKET}}`
+5. Run: `npx xera-internal validate-feature {{TICKET}}`
    - Exit 0 → success.
    - Exit 2 → parse error. Read the line/message, rewrite test.feature to fix it, re-run. Try at most 2 retries. If still failing, show the user the parser output and stop.
 
@@ -405,8 +405,8 @@ The user invoked `/xera-script <TICKET>`. If no key, ask.
    Do not modify anything under `shared/`.
 
 6. Run quality gates:
-   - `bun run xera:typecheck {{TICKET}}` — if exit 2, read errors, fix in the generated files, retry up to 2 times.
-   - `bun run xera:lint {{TICKET}}` — same retry policy. If a CSS selector is truly necessary, add `// xera-allow-css: <reason>` on the line above it.
+   - `npx xera-internal typecheck {{TICKET}}` — if exit 2, read errors, fix in the generated files, retry up to 2 times.
+   - `npx xera-internal lint {{TICKET}}` — same retry policy. If a CSS selector is truly necessary, add `// xera-allow-css: <reason>` on the line above it.
 
 7. Update meta.json: `script_generated_at`, `script_generated_from_feature_hash`.
 
@@ -440,7 +440,7 @@ The user invoked `/xera-exec <TICKET>`. If no key, ask.
 
 1. Verify `.xera/{{TICKET}}/spec.ts` exists. If not: "Generate the spec first with `/xera-script {{TICKET}}`." STOP.
 
-2. Run: `bun run xera:exec {{TICKET}}`
+2. Run: `npx xera-internal exec {{TICKET}}`
    - Exit 0 → all scenarios passed.
    - Exit 1 → user/config error (lock held, missing env var). Show the error verbatim and STOP.
    - Exit 3 → test failure. This is expected; continue.
@@ -477,7 +477,7 @@ The user invoked `/xera-report <TICKET>`. If no key, ask.
 
 1. Verify `.xera/{{TICKET}}/runs/` has at least one run directory. If not: "Run the test first with `/xera-exec {{TICKET}}`." STOP.
 
-2. Run: `bun run xera:normalize {{TICKET}}`
+2. Run: `npx xera-internal normalize {{TICKET}}`
    - Exit 0 → continue.
    - Otherwise show stderr, STOP.
 
@@ -490,13 +490,13 @@ The user invoked `/xera-report <TICKET>`. If no key, ask.
 
 4. Read `node_modules/@xera-ai/prompts/diagnose-failure.md`. Follow its decision algorithm. Produce `classifier-input.json` matching the exact shape described. Save to `.xera/{{TICKET}}/classifier-input.json`.
 
-5. Run: `bun run xera:report {{TICKET}} -- --input=.xera/{{TICKET}}/classifier-input.json`
+5. Run: `npx xera-internal report {{TICKET}} -- --input=.xera/{{TICKET}}/classifier-input.json`
 
 6. Read the drafted Jira comment at `.xera/{{TICKET}}/jira-comment.draft.md`. Show it to the user. Ask: "Post to Jira? (Y/n)"
 
 7. If yes:
    - If Atlassian MCP is available, use `addCommentToJiraIssue` with the draft as the body. Capture the comment id.
-   - Else: run `bun run xera:post {{TICKET}}` (will use REST creds from .env).
+   - Else: run `npx xera-internal post {{TICKET}}` (will use REST creds from .env).
 
 8. Summarize result and link to the Jira comment (if MCP returned a URL).
 ```
@@ -529,7 +529,7 @@ This skill orchestrates the other six skills with quality gates between each ste
 
 ## Step 0 — Health gate
 
-Run: `bunx xera doctor --strict {{TICKET}}`
+Run: `npx xera doctor --strict {{TICKET}}`
 If non-zero exit → STOP. Show the output verbatim. Suggest the user fix env and re-run.
 
 ## Step 1 — Fetch
@@ -548,11 +548,11 @@ Follow `xera-script.md`. If `script_generated_from_feature_hash !== feature_hash
 
 ## Step 4 — Exec
 
-Run `bun run xera:exec {{TICKET}}`.
+Run `npx xera-internal exec {{TICKET}}`.
 
 ## Step 5 — Normalize
 
-Run `bun run xera:normalize {{TICKET}}`.
+Run `npx xera-internal normalize {{TICKET}}`.
 
 ## Step 6 — Diagnose + report + post
 
@@ -560,7 +560,7 @@ Follow `xera-report.md` from step 3 onwards. If the user is the SAMPLE-001 ticke
 
 ## Step 7 — Summary
 
-Print a single-paragraph summary covering: overall result, classification, per-scenario counts, link to Jira comment (if posted), and the reproduce command (`bunx xera-internal exec {{TICKET}} --replay=<runId>`).
+Print a single-paragraph summary covering: overall result, classification, per-scenario counts, link to Jira comment (if posted), and the reproduce command (`npx xera-internal exec {{TICKET}} --replay=<runId>`).
 ```
 
 - [x] **Step 2: Commit**
@@ -591,13 +591,13 @@ The user invoked `/xera-promote <TICKET> <PomClassName>`.
 
 2. Check `shared/page-objects/<PomClassName>.ts`:
    - If it does NOT exist → safe to promote.
-   - If it exists with identical content → just delete the ticket-local copy and update the import (run `bun run xera:promote {{TICKET}} {{POM}}` will refuse; manually delete with the user's confirmation).
+   - If it exists with identical content → just delete the ticket-local copy and update the import (run `npx xera-internal promote {{TICKET}} {{POM}}` will refuse; manually delete with the user's confirmation).
    - If it exists with different content → STOP. Show a unified diff. Ask the user to reconcile manually.
 
-3. Run: `bun run xera:promote {{TICKET}} {{POM}}`
+3. Run: `npx xera-internal promote {{TICKET}} {{POM}}`
    - This moves the file and rewrites the import in `.xera/{{TICKET}}/spec.ts`.
 
-4. Run `bun run xera:typecheck {{TICKET}}` to confirm nothing broke. If errors, surface them.
+4. Run `npx xera-internal typecheck {{TICKET}}` to confirm nothing broke. If errors, surface them.
 
 5. Suggest the user commit the changes:
    ```
@@ -654,9 +654,9 @@ At this point the framework has all the user-facing instructions assembled. End-
 Verify:
 
 ```bash
-bun run lint
-bun run typecheck
-bun test
+npm run lint
+npm run typecheck
+npx vitest run
 ```
 
 Continue with [Plan 05: Fixtures, Tests, Docs, Release](2026-05-14-xera-v01-05-fixtures-and-release.md).

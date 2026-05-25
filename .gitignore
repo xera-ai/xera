@@ -3,7 +3,10 @@ node_modules/
 *.log
 .env
 .env.local
+# Ignore any local/secret-bearing .npmrc, but keep the committed project one
+# (registry/install config only — auth tokens go to $HOME/.npmrc in CI).
 .npmrc
+!/.npmrc
 dist/
 build/
 .bun/

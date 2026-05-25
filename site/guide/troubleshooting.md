@@ -13,7 +13,7 @@ https://id.atlassian.com/manage-profile/security/api-tokens
 JIRA_EMAIL=your-email@company.com
 JIRA_API_TOKEN=<paste-here>
 # Verify:
-bunx xera doctor
+npx xera doctor
 ```
 
 ## 2. `Atlassian MCP not connecting`
@@ -30,7 +30,7 @@ This project is configured with `github: { repo: 'owner/repo' }` and the `gh` CL
 ## 3. `Playwright browser not installed`
 
 ```bash
-bunx playwright install chromium
+npx playwright install chromium
 ```
 
 ## 4. `Web baseUrl unreachable`
@@ -50,14 +50,14 @@ The skill retries automatically. If it still fails, open `.xera/<TICKET>/test.fe
 
 ## 7. `Auth setupScript failing`
 
-The shared/auth-setup.ts couldn't log in. Most often: selectors changed in your login page. Edit it manually to match your current UI. Run `bun run xera:exec <TICKET>` to test in isolation.
+The shared/auth-setup.ts couldn't log in. Most often: selectors changed in your login page. Edit it manually to match your current UI. Run `npx xera-internal exec <TICKET>` to test in isolation.
 
 ## 8. `.lock file stale`
 
 Another xera run was killed mid-run. To force-clear:
 
 ```bash
-bunx xera-internal unlock <TICKET> --force
+npx xera-internal unlock <TICKET> --force
 ```
 
 ## 9. `Skill not found in Claude Code`
@@ -66,7 +66,7 @@ The `.claude/skills/` directory is missing or out of date.
 
 ```bash
 # In your project:
-bunx xera init --update
+npx xera init --update
 # Restart Claude Code to refresh skill discovery.
 ```
 
@@ -85,17 +85,17 @@ xera init --update --editor cursor   # or --editor codex, or --editor all
 The runtime helper `newAuthedContext` couldn't find `.xera/.auth/http/<role>.json`. Run pre-authentication:
 
 ```bash
-bun run xera:auth-setup --role X
+npx xera-internal auth-setup --role X
 ```
 
-Or `bun run xera:auth-setup` to set up every role at once.
+Or `npx xera-internal auth-setup` to set up every role at once.
 
 ## 11. `Auth file expired for role 'X'` (v0.7+ http adapter)
 
 Token aged past `http.auth.ttl`. xera does NOT auto-refresh at run time (avoids surprise side effects). Re-run:
 
 ```bash
-bun run xera:auth-setup --role X
+npx xera-internal auth-setup --role X
 ```
 
 ## 12. `CONTRACT_DRIFT detected` (v0.7+)
@@ -142,7 +142,7 @@ Do not regenerate `XERA_AUTH_KEY` unless you accept losing cached auth state.
 If `xera doctor` warns the snapshot is stale, run:
 
 ```bash
-bun run xera:graph-snapshot
+npx xera-internal graph-snapshot
 ```
 
 This rebuilds `.xera/graph/snapshot.json` from `events/` in < 1s.
@@ -152,8 +152,8 @@ This rebuilds `.xera/graph/snapshot.json` from `events/` in < 1s.
 If you upgraded an existing project to v0.6, your historical tickets are not in the graph yet:
 
 ```bash
-bun run xera:graph-backfill --dry-run    # preview
-bun run xera:graph-backfill              # commit events
+npx xera-internal graph-backfill --dry-run    # preview
+npx xera-internal graph-backfill              # commit events
 ```
 
 Generates one `ticket.fetched` event per existing `.xera/<TICKET>/` directory.
@@ -168,7 +168,7 @@ If `xera-report` flagged a scenario as TEST_OUTDATED but you believe it's a real
 
 1. Use the dispute prompt during `/xera-report` (or run manually):
    ```bash
-   bun run xera:graph-record dispute \
+   npx xera-internal graph-record dispute \
      --run-id <RUN_ID> --scenario-id <SHA> \
      --from TEST_OUTDATED --to REAL_BUG \
      --actor "$(git config user.email)" \
@@ -190,15 +190,15 @@ If `/xera-impact` returns >50 scenarios, the markdown report shows the top 20 by
 If `/xera-impact` returns no scenarios even though there should be coverage:
 
 1. Run `xera doctor` to confirm the graph is up-to-date
-2. Run `bun run xera:graph-query --ticket <TICKET>` to verify the ticket has `modifies` edges
+2. Run `npx xera-internal graph-query --ticket <TICKET>` to verify the ticket has `modifies` edges
 3. If the ticket has no `modifies` edges, re-fetch: `/xera-fetch <TICKET>` (the v0.6.0 `extract-areas.md` prompt populates them at fetch time)
 
 ### Viewer too slow / blank
 
 If `.xera/graph.html` opens but renders slowly or appears blank:
 
-1. Check graph size: `bun run xera:graph-query --format text | head` — if you have > 500 nodes, the renderer auto-switches to ticket-only mode.
-2. Filter the view: `bun run xera:graph-render --since 30d` or `--ticket <SOME_ID>` to narrow the rendered subset.
+1. Check graph size: `npx xera-internal graph-query --format text | head` — if you have > 500 nodes, the renderer auto-switches to ticket-only mode.
+2. Filter the view: `npx xera-internal graph-render --since 30d` or `--ticket <SOME_ID>` to narrow the rendered subset.
 3. Check browser console for errors (vis-network may fail to initialize on very old browsers; Chrome/Firefox/Safari from the past 3 years all work).
 
 ### Viewer artifact not appearing on PRs
@@ -208,7 +208,7 @@ Verify the workflow file was scaffolded:
 ls .github/workflows/xera-graph.yml
 ```
 
-If missing, run `bunx @xera-ai/cli init --update` to refresh the scaffold (v0.6.3+).
+If missing, run `npx @xera-ai/cli init --update` to refresh the scaffold (v0.6.3+).
 
 ### Auto-trigger never prompts
 
@@ -230,7 +230,7 @@ The prompt fires only when at least one scenario's risk score exceeds the thresh
 Most likely the AI declined to map some scenarios (low confidence). Re-run the backfill step and then re-run the coverage report:
 
 ```bash
-bun run xera:ac-coverage-backfill-prepare
+npx xera-internal ac-coverage-backfill-prepare
 # /xera-coverage will then continue with the backfill prompt
 ```
 
@@ -255,7 +255,7 @@ export default defineConfig({
 Either the slug is misspelled or no ticket has been fetched that modifies that area yet. To check whether the area exists in the graph:
 
 ```bash
-bun run xera:graph-query --area <slug>
+npx xera-internal graph-query --area <slug>
 ```
 
 If the area is not found, check for typos in `coverage.criticalAreas` in `xera.config.ts`. If the slug is intentional and no tickets modify it yet (e.g. a brand-new area), the warning is informational and can be ignored until tickets accumulate.
@@ -265,7 +265,7 @@ If the area is not found, check for typos in `coverage.criticalAreas` in `xera.c
 **Area mode** (`/xera-fill-gap <area>`) requires at least one ticket with a `modifies` edge pointing to that area. Verify:
 
 ```bash
-bun run xera:graph-query --area <slug>
+npx xera-internal graph-query --area <slug>
 ```
 
 **AC mode** (`/xera-fill-gap --ticket <TICKET>`) requires at least one unsatisfied acceptance criterion on that ticket. Check:

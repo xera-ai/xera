@@ -1,9 +1,9 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { request as pwRequest } from '@playwright/test';
 import { writeAuthState } from '@xera-ai/core';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { newAuthedContext } from '../../src/runtime';
 
 const ORIG_KEY = process.env.XERA_AUTH_KEY;
@@ -31,7 +31,9 @@ const fakePlaywright = { request: pwRequest } as unknown as Parameters<typeof ne
 
 describe('newAuthedContext', () => {
   test('throws helpful error when auth file missing', async () => {
-    expect(newAuthedContext(fakePlaywright, 'user')).rejects.toThrow(/xera:auth-setup --role user/);
+    expect(newAuthedContext(fakePlaywright, 'user')).rejects.toThrow(
+      /xera-internal auth-setup --role user/,
+    );
   });
 
   test('throws expired error when auth file past expiry', async () => {

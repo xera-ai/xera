@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { lintSelectors } from '../../src/generator/selector-rules';
 
 describe('lintSelectors', () => {

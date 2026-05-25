@@ -1,5 +1,5 @@
-import { describe, expect, test } from 'bun:test';
 import type { OpenAPIDocument } from '@xera-ai/core';
+import { describe, expect, test } from 'vitest';
 import { findOperation } from '../../src/openapi/find-operation';
 
 const spec: OpenAPIDocument = {

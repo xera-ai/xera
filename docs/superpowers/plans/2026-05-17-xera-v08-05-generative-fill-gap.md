@@ -6,7 +6,7 @@
 
 **Architecture:** Two new deterministic binaries (`fill-gap-prepare` and `fill-gap-finalize`) following the impact-prepare pattern. One new prompt template (`propose-scenarios.md`). One new skill (`/xera-fill-gap`). AI lives skill-side; the binaries are pure I/O + validation. Per CLAUDE.md determinism rule: no AI in binaries.
 
-**Tech Stack:** TypeScript, `bun:test`, Zod for output validation.
+**Tech Stack:** TypeScript, `vitest`, Zod for output validation.
 
 **Prereqs:** Plans 01-04 complete. Coverage report (Plan 02) used to identify candidate areas/tickets. AC matrix (Plan 01 + 03) provides unsatisfied AC list for ticket mode.
 
@@ -207,7 +207,7 @@ git commit -m "feat(prompts): add propose-scenarios prompt for /xera-fill-gap (v
 ### Step 1 — failing test
 
 ```ts
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect } from 'vitest';
 import { fillGapPrepareCmd } from '../../src/bin-internal/fill-gap-prepare';
 
 describe('fill-gap-prepare subcommand', () => {
@@ -645,7 +645,7 @@ If they fail, check `buildTicketContext` logic for the satisfied-AC dedup.
 ### Step 1 — failing test
 
 ```ts
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect } from 'vitest';
 import { fillGapFinalizeCmd } from '../../src/bin-internal/fill-gap-finalize';
 
 describe('fill-gap-finalize subcommand', () => {
@@ -1004,7 +1004,7 @@ Confirm `xera.config.ts` exists in cwd. If not, say `xera.config.ts not found �
 Run:
 
 ```bash
-bun run xera:fill-gap-prepare {{--area <slug> | --ticket <TICKET>}}
+npx xera-internal fill-gap-prepare {{--area <slug> | --ticket <TICKET>}}
 ```
 
 Exit codes:
@@ -1019,7 +1019,7 @@ The output is `.xera/coverage/<scope>/context.json` where `<scope>` is the area 
 Mint a fresh per-invocation nonce:
 
 ```bash
-bun -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"
+node -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"
 ```
 
 Capture the single-line output as the nonce.
@@ -1070,7 +1070,7 @@ Ask the user: `Pick proposals to draft [comma-separated IDs / all / none]:`
 For each accepted proposal ID, run:
 
 ```bash
-bun run xera:fill-gap-finalize --accept <id> --ticket <proposal.ticketId> --source .xera/coverage/<scope>/proposals.json
+npx xera-internal fill-gap-finalize --accept <id> --ticket <proposal.ticketId> --source .xera/coverage/<scope>/proposals.json
 ```
 
 If the binary returns exit 3 (`feature.draft.md` already exists), prompt the user: `Overwrite existing draft for <TICKET>? (y/N)`. If yes, re-run with `--force`.
@@ -1108,7 +1108,7 @@ Next:
 ### Step 1 — failing test
 
 ```ts
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect } from 'vitest';
 import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -1217,7 +1217,7 @@ describe('fill-gap area-mode round-trip', () => {
 
 ```bash
 cd /home/user/xera
-bun run typecheck && bun run lint && bun test packages/core packages/web packages/http
+npm run typecheck && npm run lint && npx vitest run packages/core packages/web packages/http
 git status
 ```
 

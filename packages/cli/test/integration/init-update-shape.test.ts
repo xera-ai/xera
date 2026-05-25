@@ -8,13 +8,13 @@
  * non-destructive guarantee is preserved).
  */
 
-import { afterAll, describe, expect, test } from 'bun:test';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { spawn } from 'bun';
+import { afterAll, describe, expect, test } from 'vitest';
+import { run } from './helpers';
 
-const xeraBin = resolve(import.meta.dir, '../../bin/xera');
+const xeraBin = resolve(import.meta.dirname, '../../bin/xera');
 
 const createdDirs: string[] = [];
 afterAll(() => {
@@ -25,14 +25,10 @@ async function runXera(
   cwd: string,
   args: string[],
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-  const proc = spawn(['bun', 'run', '--cwd', cwd, xeraBin, ...args], {
-    cwd,
-    stderr: 'pipe',
-    stdout: 'pipe',
-  });
+  const proc = run(['node', xeraBin, ...args], { cwd, pipe: true });
   const exitCode = await proc.exited;
-  const stdout = await new Response(proc.stdout).text();
-  const stderr = await new Response(proc.stderr).text();
+  const stdout = await proc.stdout;
+  const stderr = await proc.stderr;
   return { exitCode, stdout, stderr };
 }
 

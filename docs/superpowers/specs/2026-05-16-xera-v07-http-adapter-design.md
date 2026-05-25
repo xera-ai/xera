@@ -15,7 +15,7 @@
 
 QA teams whose product is API-only (microservices, backend tickets) or mixed (UI + backend) get the same xera value loop they get for web today: AI-generated Gherkin from Jira story, classifier-explained failures, structured Jira posts, knowledge-graph areas — but for HTTP endpoints, without launching a browser.
 
-A project picks **one of three shapes** at `bunx @xera-ai/cli init`:
+A project picks **one of three shapes** at `npx @xera-ai/cli init`:
 
 | Shape | `xera.config.ts.adapters` | What runs |
 |---|---|---|
@@ -52,10 +52,10 @@ There is no "hybrid adapter." A web ticket that calls `page.request` is still a 
 - CLI `init` wizard branches on shape, scaffolds `xera.config.ts` and (if applicable) `openapi.yaml` reminder, env file template.
 - CLI `doctor` adds http-specific checks (token presence, OpenAPI reachable if configured) with gentle warnings, never hard fails.
 - `xera-internal` subcommand: `http-trace-normalize` (parallel to web's normalizer).
-- `bun run xera:auth-setup` extended to iterate http roles (existing command, code change in the runner).
+- `npx xera-internal auth-setup` extended to iterate http roles (existing command, code change in the runner).
 - Filesystem migration: existing `.xera/.auth/<role>.json` → `.xera/.auth/web/<role>.json`. Handled by `init --upgrade` and gracefully by the auth runner (reads either path during transition, writes only to the new location).
 - Test fixtures:
-  - `fixtures/mock-api/` — Bun.serve-based deterministic HTTP target (parallels `fixtures/mock-jira/`).
+  - `fixtures/mock-api/` — node:http-based deterministic HTTP target (parallels `fixtures/mock-jira/`).
   - `fixtures/golden-tickets-http/` — golden tickets for HTTP classifier paths.
   - `fixtures/sample-app-http/` — minimal API surface (POST /users, GET /users/:id, with OpenAPI spec) for integration tests.
 - Version bumps:
@@ -89,16 +89,16 @@ The package boundary also means `@xera-ai/web`'s `doctor()` doesn't fail when Op
 
 A maintainer can, from a clean checkout:
 
-1. `bun install`
-2. `bun run xera:doctor` — reports ok (validator checks new `script-from-feature-http.md` prompt + classifier additions).
-3. `bun run xera:verify-prompts` — reports ok with 8 in-scope prompts (was 7).
-4. `bun test` — all green, including new `packages/http/test/` and updated classifier tests.
-5. `cd /tmp && rm -rf api-tryout && mkdir api-tryout && cd api-tryout && bunx @xera-ai/cli init --yes --shape api` — scaffolds api-only project. No `playwright install chromium` triggered.
-6. Set bearer env var: `echo 'USER_BEARER_TOKEN=test-token-001' >> .env.local`. Run `bun run xera:auth-setup --role user`. Confirm `.xera/.auth/http/user.json` exists, is encrypted (`file` reports binary-ish), and `xera doctor` reports it ✓ with expiry hint.
+1. `npm install`
+2. `npx xera-internal doctor` — reports ok (validator checks new `script-from-feature-http.md` prompt + classifier additions).
+3. `npx xera-internal verify-prompts` — reports ok with 8 in-scope prompts (was 7).
+4. `npx vitest run` — all green, including new `packages/http/test/` and updated classifier tests.
+5. `cd /tmp && rm -rf api-tryout && mkdir api-tryout && cd api-tryout && npx @xera-ai/cli init --yes --shape api` — scaffolds api-only project. No `playwright install chromium` triggered.
+6. Set bearer env var: `echo 'USER_BEARER_TOKEN=test-token-001' >> .env.local`. Run `npx xera-internal auth-setup --role user`. Confirm `.xera/.auth/http/user.json` exists, is encrypted (`file` reports binary-ish), and `xera doctor` reports it ✓ with expiry hint.
 7. Open Claude Code in that directory. Edit a seeded `PROJ-HTTP-001/meta.json` with a story that maps to `POST /users`. Run `/xera-run PROJ-HTTP-001`. Skill generates feature.md → spec.ts using `newAuthedContext`, runs it against the bundled mock-api server (which validates the Authorization header against the seeded token), posts result to mock-jira.
-8. As a second smoke: `bunx @xera-ai/cli init --yes --shape mixed`. Run a web ticket whose AC includes "verify the order is created in backend." Confirm the generated script uses both `page.click` and `request.get`.
-9. As a third smoke: in an http-only project with no OpenAPI configured, `bun run xera:doctor` emits the gentle warning ("OpenAPI not configured — CONTRACT_DRIFT detection disabled, schema-derived edge cases disabled") and exits ok.
-10. As a fourth smoke (auth lifecycle): seed an expired JWT into `.xera/.auth/http/user.json`. Run `/xera-run PROJ-HTTP-001`. Run reports `AUTH_EXPIRED` with the suggested fix (`bun run xera:auth-setup --role user`).
+8. As a second smoke: `npx @xera-ai/cli init --yes --shape mixed`. Run a web ticket whose AC includes "verify the order is created in backend." Confirm the generated script uses both `page.click` and `request.get`.
+9. As a third smoke: in an http-only project with no OpenAPI configured, `npx xera-internal doctor` emits the gentle warning ("OpenAPI not configured — CONTRACT_DRIFT detection disabled, schema-derived edge cases disabled") and exits ok.
+10. As a fourth smoke (auth lifecycle): seed an expired JWT into `.xera/.auth/http/user.json`. Run `/xera-run PROJ-HTTP-001`. Run reports `AUTH_EXPIRED` with the suggested fix (`npx xera-internal auth-setup --role user`).
 
 If any of those breaks, v0.7.0 is not ready.
 
@@ -165,7 +165,7 @@ export const HttpAdapter: TestAdapter = {
   async doctor() {
     const checks: DoctorReport['checks'] = [];
     try { await import('@playwright/test'); checks.push({ name: '@playwright/test installed', ok: true }); }
-    catch { checks.push({ name: '@playwright/test installed', ok: false, message: 'Run `bun add -D @playwright/test`.' }); }
+    catch { checks.push({ name: '@playwright/test installed', ok: false, message: 'Run `npm install -D @playwright/test`.' }); }
     // OpenAPI gentle warning is emitted from xera:doctor in core, not here, because it depends on config (which adapter.doctor() doesn't receive).
     return { ok: checks.every(c => c.ok), checks };
   },
@@ -344,7 +344,7 @@ export const http = defineHttpAuthSetup(presetHttpAuth);  // reads config.http.a
 
 Users escape to a custom function by replacing the export body. The `strategy: 'custom'` value tells doctor not to validate preset-specific fields (`tokenEnv`, `tokenUrl`, etc.).
 
-#### 2.5.4 Runner: `bun run xera:auth-setup`
+#### 2.5.4 Runner: `npx xera-internal auth-setup`
 
 Existing command (web's). Extended to also iterate http roles:
 
@@ -355,7 +355,7 @@ Existing command (web's). Extended to also iterate http roles:
 3. Runner writes encrypted `.xera/.auth/{web|http}/<role>.json` via `writeAuthState`.
 4. Failures print clear errors per role; partial success allowed (one bad role doesn't block others).
 
-CI invocation: `bun run xera:auth-setup --role admin` (single role) or no arg (all roles).
+CI invocation: `npx xera-internal auth-setup --role admin` (single role) or no arg (all roles).
 
 #### 2.5.5 Run-time: how `spec.ts` uses the token
 
@@ -381,7 +381,7 @@ test.describe('User registration validation', () => {
 
 `newAuthedContext(playwright, role)`:
 1. Calls `readAuthState('http', role)` → decrypted entry.
-2. If file missing → throws with message `"Auth file not found for role '<role>'. Run: bun run xera:auth-setup --role <role>"`.
+2. If file missing → throws with message `"Auth file not found for role '<role>'. Run: npx xera-internal auth-setup --role <role>"`.
 3. If `expires_at` past → emits classifier hint `AUTH_EXPIRED` for the run and throws same message (single source of truth: missing OR expired both require re-running auth-setup).
 4. Builds `APIRequestContext` with `baseURL`, the auth header from payload (`payload.header: payload.scheme + ' ' + payload.token`), and any cookies attached.
 
@@ -398,9 +398,9 @@ $ xera doctor
 ✓ Auth file present:  .xera/.auth/http/admin.json (expires in 7h 23m)
 ✓ Auth file present:  .xera/.auth/http/user.json  (expires in 7h 23m)
 ⚠ Auth file expired:  .xera/.auth/http/readonly.json (expired 2h ago)
-    → Run: bun run xera:auth-setup --role readonly
+    → Run: npx xera-internal auth-setup --role readonly
 ✗ Auth file missing:  .xera/.auth/http/guest.json
-    → Run: bun run xera:auth-setup --role guest
+    → Run: npx xera-internal auth-setup --role guest
 ```
 
 Hard fail only when running a ticket whose roles have missing/expired auth files; doctor reports it as ✗ but xera CLI itself doesn't refuse to start.
@@ -508,7 +508,7 @@ Existing projects scaffold-generated by v0.6 or earlier have a top-level `web` b
 
 ## 4. CLI changes
 
-### 4.1 `bunx @xera-ai/cli init` wizard
+### 4.1 `npx @xera-ai/cli init` wizard
 
 New first question (interactive mode):
 
@@ -520,7 +520,7 @@ What kind of testing does this project do?
 > _
 ```
 
-Non-interactive: `bunx @xera-ai/cli init --yes --shape web|api|mixed` (default `web` for backward compat).
+Non-interactive: `npx @xera-ai/cli init --yes --shape web|api|mixed` (default `web` for backward compat).
 
 Based on shape, the wizard branches:
 
@@ -555,19 +555,19 @@ Next:
        USER_BEARER_TOKEN=...
        ADMIN_BEARER_TOKEN=...
   2) Run pre-authentication:
-       bun run xera:auth-setup
+       npx xera-internal auth-setup
   3) Try the sample:
        Open Claude Code in this directory and run: /xera-run SAMPLE-HTTP-001
 ```
 
-### 4.2 `bunx @xera-ai/cli doctor`
+### 4.2 `npx @xera-ai/cli doctor`
 
 Checks for the pre-auth files, never their contents (no token leakage in logs):
 
 - ⚠ `OpenAPI spec not configured (http.spec)` — *if* `http` is configured and `spec` is absent. Mentions degraded features.
 - ⚠ `OpenAPI spec unreachable` — path or URL doesn't resolve. Suggests fixes.
 - ✓ `Auth file present: .xera/.auth/http/<role>.json (expires in 7h 23m)` — per role.
-- ⚠ `Auth file expired: .xera/.auth/http/<role>.json` — suggests `bun run xera:auth-setup --role <role>`.
+- ⚠ `Auth file expired: .xera/.auth/http/<role>.json` — suggests `npx xera-internal auth-setup --role <role>`.
 - ✗ `Auth file missing: .xera/.auth/http/<role>.json` — hard error only when a ticket needs that role; doctor itself shows ✗ but doesn't refuse to start.
 - ⚠ `Web tests configured but no OpenAPI` — gentle reminder for mixed projects; v0.7 doesn't do `CONTRACT_DRIFT` on web traces (v0.9 roadmap).
 
@@ -628,7 +628,7 @@ xera-run / xera-script / xera-exec read .xera/<TICKET>/meta.json:
 Each skill that needs adapter-specific behavior checks `meta.json.adapter`:
 
 - `xera-script.md` — if `adapter == 'http'`, read `script-from-feature-http.md`; else read `script-from-feature-web.md`. Pass `openapi` context only when the http config has a spec.
-- `xera-exec.md` — invokes `bun run xera:exec <TICKET>` which now dispatches to the right runner. The subcommand reads `meta.json.adapter` and calls either `@xera-ai/web`'s executor or `@xera-ai/http`'s.
+- `xera-exec.md` — invokes `npx xera-internal exec <TICKET>` which now dispatches to the right runner. The subcommand reads `meta.json.adapter` and calls either `@xera-ai/web`'s executor or `@xera-ai/http`'s.
 
 Other skills (`xera-fetch`, `xera-feature`, `xera-report`, `xera-impact`, `xera-promote`, `xera-eval`) are adapter-agnostic.
 
@@ -698,7 +698,7 @@ Hash-based drift (story_hash / feature_hash / script_hash) works unchanged. `eve
 
 ### 8.1 `fixtures/mock-api/`
 
-Bun.serve-based deterministic HTTP target, parallels `fixtures/mock-jira/`:
+node:http-based deterministic HTTP target, parallels `fixtures/mock-jira/`:
 
 - POST /users — validates email, returns 201 with `{ id, email, name }` or 422 with `{ errors: [...] }`.
 - GET /users/:id — returns user or 404.
@@ -756,8 +756,8 @@ Minimal scaffold mimicking what a real user's project might look like — used b
 ### 9.4 E2E / nightly
 
 Extend `.github/workflows/nightly-e2e.yml` with an http-shape branch that:
-- Scaffolds `bunx @xera-ai/cli init --yes --shape api`.
-- Boots `fixtures/mock-api/` Bun.serve target.
+- Scaffolds `npx @xera-ai/cli init --yes --shape api`.
+- Boots `fixtures/mock-api/` node:http target.
 - Runs `/xera-run SAMPLE-HTTP-001` through the actual skill flow.
 - Asserts the run produces a PASS classification end-to-end.
 
@@ -766,7 +766,7 @@ Extend `.github/workflows/nightly-e2e.yml` with an http-shape branch that:
 ## 10. Migration & back-compat
 
 - Existing v0.6 projects: no action required. Their `xera.config.ts` has `web` block; `http` is optional; `adapters: ['web']` works.
-- A project that wants to add http: `bunx @xera-ai/cli init --upgrade --add-shape api` (extends `init-update` from v0.5 era).
+- A project that wants to add http: `npx @xera-ai/cli init --upgrade --add-shape api` (extends `init-update` from v0.5 era).
 - `meta.json.adapter` field already exists from v0.6; just accepts `'http'` as a value now.
 - Prompt rename `script-from-feature.md` → `script-from-feature-web.md` is internal-only — end users don't import prompts by name. Skills reference the new name.
 - Classifier enum gains values — consumers ignoring unknown values are fine; consumers exhaustively switching break loudly (we fix at the call sites in this PR).
@@ -832,7 +832,7 @@ Skills that auto-create tickets (rare; mostly user-driven) write `meta.json.adap
 
 ### 13.5 Sample HTTP ticket runs against bundled mock
 
-`init --shape api|mixed` scaffolds `sample/SAMPLE-HTTP-001/` whose `playwright.config.ts` points at `http://localhost:<port>` and starts `fixtures/mock-api/`-equivalent (a small Bun.serve script in `scripts/sample-mock.ts`) via `webServer` config. This makes the first-time-run experience zero-friction: `bun run xera:auth-setup && /xera-run SAMPLE-HTTP-001` works without the user's backend being up.
+`init --shape api|mixed` scaffolds `sample/SAMPLE-HTTP-001/` whose `playwright.config.ts` points at `http://localhost:<port>` and starts `fixtures/mock-api/`-equivalent (a small node:http script in `scripts/sample-mock.ts`) via `webServer` config. This makes the first-time-run experience zero-friction: `npx xera-internal auth-setup && /xera-run SAMPLE-HTTP-001` works without the user's backend being up.
 
 When QA is ready to point at their real backend: edit `xera.config.ts.http.baseUrl` and remove the `webServer` block in `playwright.config.ts`. The wizard's "next steps" output mentions this.
 

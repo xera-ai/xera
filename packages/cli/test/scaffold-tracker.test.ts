@@ -1,12 +1,13 @@
 /**
  * Unit test for the conditional issue-tracker rendering in xera.config.ts
  * templates. These run without a built dist (no CLI binary needed) so they
- * stay green even before `bun run build`.
+ * stay green even before `npm run build`.
  */
-import { describe, expect, test } from 'bun:test';
+
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { describe, expect, test } from 'vitest';
 import { scaffoldFile } from '../src/scaffold';
 
 interface ScaffoldVars {

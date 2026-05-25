@@ -88,4 +88,4 @@ Write `classifier-input.json` with this shape:
 }
 ```
 
-The skill will pass this file to `bun run xera:report -- --input=<path>`.
+The skill will pass this file to `npx xera-internal report --input=<path>`.

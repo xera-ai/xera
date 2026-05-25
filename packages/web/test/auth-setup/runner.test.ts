@@ -1,11 +1,11 @@
-import { describe, expect, test } from 'bun:test';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { AUTH_KEY_ENV, generateKey } from '@xera-ai/core';
+import { describe, expect, test } from 'vitest';
 import { runAuthSetup } from '../../src/auth-setup/runner';
 
-const definePath = resolve(import.meta.dir, '../../src/auth-setup/define.ts');
+const definePath = resolve(import.meta.dirname, '../../src/auth-setup/define.ts');
 
 function makeFakeBrowser(capture?: { contextOptions?: unknown }) {
   return {

@@ -1,7 +1,7 @@
-import { describe, expect, test } from 'bun:test';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { describe, expect, test } from 'vitest';
 import { generateKey } from '../../src/auth/encrypt';
 import { AUTH_KEY_ENV } from '../../src/auth/key';
 import { type AuthStateEntry, readAuthState, writeAuthState } from '../../src/auth/state';

@@ -9,13 +9,13 @@ The user invoked `/xera-promote <TICKET> <PomClassName>`.
 
 2. Check `shared/page-objects/<PomClassName>.ts`:
    - If it does NOT exist → safe to promote.
-   - If it exists with identical content → just delete the ticket-local copy and update the import (run `bun run xera:promote {{TICKET}} {{POM}}` will refuse; manually delete with the user's confirmation).
+   - If it exists with identical content → just delete the ticket-local copy and update the import (run `npx xera-internal promote {{TICKET}} {{POM}}` will refuse; manually delete with the user's confirmation).
    - If it exists with different content → STOP. Show a unified diff. Ask the user to reconcile manually.
 
-3. Run: `bun run xera:promote {{TICKET}} {{POM}}`
+3. Run: `npx xera-internal promote {{TICKET}} {{POM}}`
    - This moves the file and rewrites the import in `.xera/{{TICKET}}/spec.ts`.
 
-4. Run `bun run xera:typecheck {{TICKET}}` to confirm nothing broke. If errors, surface them.
+4. Run `npx xera-internal typecheck {{TICKET}}` to confirm nothing broke. If errors, surface them.
 
 5. Suggest the user commit the changes:
    ```
@@ -26,7 +26,7 @@ The user invoked `/xera-promote <TICKET> <PomClassName>`.
 ## Step 6 — Record graph events (v0.6)
 
 ```bash
-bun run xera:graph-record promote --pom-id <ID> --from <OLD> --to <NEW>
+npx xera-internal graph-record promote --pom-id <ID> --from <OLD> --to <NEW>
 ```
 
 `<ID>` is the sha1 of the POM filename basename (the bin-internal can compute this if `--pom-id` is omitted). Non-fatal.

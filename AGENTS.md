@@ -4,11 +4,11 @@ Instructions for AI coding agents (Claude Code, Codex, Cursor, etc.) working in 
 
 ## Project at a glance
 
-xera is an **AI-native test framework** that lets QA engineers generate, run, and diagnose Playwright/HTTP tests by invoking AI coding-agent skills (Claude Code, Cursor, Codex CLI) against tickets in Jira **or GitHub Issues**. The end-user surface is three CLI commands (`xera init`, `xera doctor`, `xera samples remove`) plus twelve skills (`/xera-run`, `/xera-fetch`, `/xera-feature`, `/xera-script`, `/xera-exec`, `/xera-report`, `/xera-impact`, `/xera-promote`, `/xera-coverage`, `/xera-fill-gap`, `/xera-explore`, `/xera-eval`). Everything else is internal plumbing invoked by skills via `bun run xera:*` scripts (36 `xera-internal` subcommands). `/xera-feature` has two modes: the default story mode (Gherkin from a fetched ticket) and `--from-spec` (Gherkin generated directly from an OpenAPI document, no ticket required).
+xera is an **AI-native test framework** that lets QA engineers generate, run, and diagnose Playwright/HTTP tests by invoking AI coding-agent skills (Claude Code, Cursor, Codex CLI) against tickets in Jira **or GitHub Issues**. The end-user surface is three CLI commands (`xera init`, `xera doctor`, `xera samples remove`) plus twelve skills (`/xera-run`, `/xera-fetch`, `/xera-feature`, `/xera-script`, `/xera-exec`, `/xera-report`, `/xera-impact`, `/xera-promote`, `/xera-coverage`, `/xera-fill-gap`, `/xera-explore`, `/xera-eval`). Everything else is internal plumbing invoked by skills via `npx xera-internal` (36 `xera-internal` subcommands). `/xera-feature` has two modes: the default story mode (Gherkin from a fetched ticket) and `--from-spec` (Gherkin generated directly from an OpenAPI document, no ticket required).
 
 Since v0.6, xera maintains a **project knowledge graph** — an event-sourced, repo-local data layer that records every fetch / script / exec / report / promote, derives a snapshot, and powers TEST_OUTDATED classification, `/xera-impact` analysis, an HTML viewer, and dispute capture. Graph events are sharded one-file-per-skill-invocation so concurrent QA causes no git merge conflicts.
 
-**Tech**: Bun ≥1.1, TypeScript 6.0 strict, Playwright 1.60, zod 4, biome 2, vitest-compatible `bun:test`. ESM-only. Vendored `vis-network` (Apache-2.0) for the HTML viewer.
+**Tech**: Node ≥22, npm workspaces, TypeScript 6.0 strict, Playwright 1.60, zod 4, biome 2, Vitest (build via tsup). ESM-only. Vendored `vis-network` (Apache-2.0) for the HTML viewer.
 
 **Authoritative docs**:
 - Core design spec: `docs/superpowers/specs/2026-05-14-xera-core-web-design.md`
@@ -42,7 +42,7 @@ packages/
   prompts/      # @xera-ai/prompts — 12 versioned LLM prompt templates
 fixtures/
   sample-app/   # Next.js app for integration tests
-  mock-jira/    # Bun.serve mock for offline Jira
+  mock-jira/    # node:http mock for offline Jira
   golden-tickets/ # Classifier-test fixtures (v0.1)
   golden-eval/  # /xera-eval rubric fixtures (v0.2 + EVAL-007/008/009)
   golden-graph/ # snapshot/dedup/corrupt + TEST_OUTDATED scenarios (v0.6)
@@ -54,20 +54,20 @@ docs/
 ## Running things
 
 ```bash
-bun install
-bun test                      # all packages
-cd packages/core && bun test  # one package
-bun run typecheck             # tsc --noEmit across workspace
-bun run lint                  # biome check
-bun run lint:fix              # biome check --write
+npm install
+npm test                          # core + web + http
+npx vitest run packages/core      # one package
+npm run typecheck                 # tsc --noEmit across workspace
+npm run lint                      # biome check
+npm run lint:fix                  # biome check --write
 ```
 
-Per-package build (only needed before publishing — tests use `src/` via the `bun` exports condition):
+Per-package build (only needed before publishing — tests use `src/` via the `source` exports condition + Vitest aliases):
 
 ```bash
-cd packages/core && bun run build && bunx tsc --emitDeclarationOnly
-cd packages/web  && bun run build && bunx tsc --declaration --emitDeclarationOnly --outDir dist
-cd packages/cli  && bun run build
+cd packages/core && npm run build && npx tsc --emitDeclarationOnly
+cd packages/web  && npm run build && npx tsc --declaration --emitDeclarationOnly --outDir dist
+cd packages/cli  && npm run build
 ```
 
 ## Code conventions
@@ -89,10 +89,10 @@ cd packages/cli  && bun run build
 
 - ESM only. No `require()` in source code (tests can use `createRequire` if needed).
 
-**Tests use `bun:test`**, not vitest/jest. Pattern:
+**Tests use `vitest`**, not bun:test/jest. Pattern:
 
 ```ts
-import { describe, expect, test, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, expect, test, beforeEach, afterEach, vi } from 'vitest';
 ```
 
 Tests live at `packages/<pkg>/test/<area>/<name>.test.ts` mirroring `src/`. Use `mkdtempSync` + `rmSync` for tmp dirs. **If a test calls `process.chdir(...)`, restore cwd in `afterEach`** — leaks break unrelated tests (`fixtures/golden-tickets/` resolution depends on cwd).
@@ -104,7 +104,7 @@ Tests live at `packages/<pkg>/test/<area>/<name>.test.ts` mirroring `src/`. Use 
 
 ## Workspace deps
 
-The six packages reference each other with **explicit caret semver** (`"@xera-ai/core": "^0.16.1"`), **not** `workspace:*`. This was a deliberate fix after `bun publish`'s `workspace:*` substitution lagged by one lockfile version on first launch. Keep using explicit semver until Bun fixes that.
+The six packages reference each other with **explicit caret semver** (`"@xera-ai/core": "^0.16.1"`), **not** `workspace:*`. Changesets' `fixed` group bumps all six in lockstep, so explicit carets stay consistent and avoid publish-time `workspace:*` substitution surprises. Let the Version Packages PR own the version fields.
 
 **All six packages share one version** — `cli`, `core`, `web`, `http`, `prompts`, `skills` move in lockstep via the `fixed` group in `.changeset/config.json`. A patch/minor/major bump declared in any single changeset propagates to all six. "Xera v0.16.1" = every package at `0.16.1`. This trades some npm churn (packages without code changes still get a new published version) for a single unambiguous marketing version.
 
@@ -117,15 +117,15 @@ The six packages reference each other with **explicit caret semver** (`"@xera-ai
 Manual override, if you ever need it:
 
 ```bash
-bunx changeset            # interactive: pick packages + bump type
+npx changeset            # interactive: pick packages + bump type
 git add .changeset/*.md
 ```
 
-Once any changeset (auto or manual) is on `main`, `release.yml` opens a "Version Packages" PR that applies the bumps and regenerates `CHANGELOG.md`. Merging that PR triggers the publish step (`bun run release`) which builds and publishes any package whose version isn't already on npm. `updateInternalDependencies: patch` in `.changeset/config.json` means a `web` bump cascades into a `cli` patch bump automatically.
+Once any changeset (auto or manual) is on `main`, `release.yml` opens a "Version Packages" PR that applies the bumps and regenerates `CHANGELOG.md`. Merging that PR triggers the publish step (`npm run release`) which builds and publishes any package whose version isn't already on npm. `updateInternalDependencies: patch` in `.changeset/config.json` means a `web` bump cascades into a `cli` patch bump automatically.
 
 Do not hand-bump `version` fields or push `v*` tags — changesets owns the bump path. The legacy `publish.yml` workflow is kept as a manual fallback (workflow_dispatch only).
 
-`bun` exports condition in each package's `package.json` points at `./src/index.ts` for monorepo dev, `./dist/index.js` for published consumers. This is why tests work without a pre-build step.
+The `source` exports condition in each package's `package.json` points at `./src/index.ts` for monorepo dev (resolved by tsc's `customConditions` and `vitest.config.ts` aliases), `./dist/index.js` for published consumers. This is why tests work without a pre-build step.
 
 ## Adapter pattern
 
@@ -151,7 +151,7 @@ When adding any new event type:
 
 ## Things to be careful about
 
-- **Public CLI surface**: `xera init`, `xera doctor`, and `xera samples remove`. Adding a public command requires a spec update. Everything else is `xera-internal` (called by skills via `bun run xera:*`).
+- **Public CLI surface**: `xera init`, `xera doctor`, and `xera samples remove`. Adding a public command requires a spec update. Everything else is `xera-internal` (called by skills via `npx xera-internal`).
 
 - **Skill `.md` content** (`packages/skills/`): user-facing instructions for Claude Code sessions. Copy verbatim from the implementation plan; don't paraphrase or condense.
 
@@ -175,7 +175,7 @@ web: scrub-rules catalog with regex tests
 cli: implement xera init with interactive scaffold + skills copy
 prompts: feature-from-story v1.0.0
 chore: rename to @xera-ai npm scope and xera-ai/xera GitHub repo
-build: add bun exports condition so tests resolve workspaces from src
+build: add source exports condition so tests resolve workspaces from src
 ```
 
 Commits should be small and focused. If you're about to do a multi-line summary, that's usually a sign to split.
@@ -191,7 +191,7 @@ curl -s https://registry.npmjs.org/@xera-ai/cli/latest | python3 -c "import sys,
 
 ### Emergency / manual fallback
 
-If `release.yml` fails mid-publish or you need to re-push a specific package, dispatch `publish.yml` from the Actions tab (`workflow_dispatch`). It runs the same build-then-`bun publish` per package and skips any version already on npm.
+If `release.yml` fails mid-publish or you need to re-push a specific package, dispatch `publish.yml` from the Actions tab (`workflow_dispatch`). It runs the same build-then-`npm publish` per package and skips any version already on npm.
 
 ## Spec → plan → implement
 
@@ -225,6 +225,6 @@ Bug fixes, dep bumps, refactors of code you're already touching, and doc tweaks 
 | **v0.18** | ✅ | **Feature-from-OpenAPI** — `/xera-feature <KEY> --from-spec [--tag/--operation/--path]` generates a Gherkin `test.feature` directly from an OpenAPI document (no fetched ticket). Deterministic `feature-spec-prepare` subcommand flattens the spec (`extractOperations` in `@xera-ai/http`) into `spec-input.json` + a synthetic `story.md` + `meta.json` (`source: 'openapi'`); new `feature-from-openapi.md` prompt produces API-flavored scenarios. Downstream `/xera-script`→`/xera-exec`→`/xera-report` unchanged. Opt-in, http only, not auto-chained from `/xera-run` |
 | **v0.19** | ✅ | **CONTRACT_DRIFT on web traces + self-heal** — *Detection:* `web.spec` config + `resolveOpenApiSpec`; opt-in `xeraNetwork` recorder (`@xera-ai/web`, env-gated by `XERA_NETWORK_LOG`) captures scrubbed page responses to a `network.jsonl` sidecar; `/xera-report` matches each FAIL scenario's calls to **documented** OpenAPI endpoints via the existing `classifyContractDrift` and stamps `CONTRACT_DRIFT` per scenario. *Self-heal:* `contract-heal-prepare` + `contract-heal.md` (v0.3 nonce-wrapped) + an `xera-report` heal branch rewrites a single `spec.ts` status/field assertion to the OpenAPI contract, re-runs, and `git add`/reverts — parallel to the v0.5 selector heal; http-focused, web refuses (`web-no-assertion`) |
 
-New projects are scaffolded via `bunx @xera-ai/cli init` — `xera init` produces an always-current scaffold for any shape (web, api, mixed). The `--editor <list>` flag controls which AI coding agents are scaffolded (`claude`, `cursor`, `codex`, or `all`); by default, `init` auto-detects the active editor, falling back to `all` when run non-interactively (`--yes`). The `--tracker <jira|github>` flag picks the issue provider (default `jira`). `init` also scaffolds a root `AGENTS.md` (orientation for any AI agent — all three editors read it) **only when one doesn't already exist**; a user-curated `AGENTS.md` is never overwritten, and `xera doctor` reports its presence. ~600 tests across `@xera-ai/core` + `@xera-ai/web` + `@xera-ai/http` (root `bun run test` runs the first three; `packages/cli/test/*` runs in nightly E2E + `bun run test:integration`).
+New projects are scaffolded via `npx @xera-ai/cli init` — `xera init` produces an always-current scaffold for any shape (web, api, mixed). The `--editor <list>` flag controls which AI coding agents are scaffolded (`claude`, `cursor`, `codex`, or `all`); by default, `init` auto-detects the active editor, falling back to `all` when run non-interactively (`--yes`). The `--tracker <jira|github>` flag picks the issue provider (default `jira`). `init` also scaffolds a root `AGENTS.md` (orientation for any AI agent — all three editors read it) **only when one doesn't already exist**; a user-curated `AGENTS.md` is never overwritten, and `xera doctor` reports its presence. ~600 tests across `@xera-ai/core` + `@xera-ai/web` + `@xera-ai/http` (root `npm test` runs the first three; `packages/cli/test/*` runs in nightly E2E + `npm run test:integration`).
 
 **Not yet shipped** (each is a separate future spec): `/xera-sprint` multi-ticket orchestration, production trace → test backfill, Mobile/Performance/Security adapters, live dashboard.

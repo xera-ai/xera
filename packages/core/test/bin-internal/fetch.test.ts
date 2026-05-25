@@ -1,7 +1,7 @@
-import { describe, expect, test } from 'bun:test';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { describe, expect, test } from 'vitest';
 import { fetchCmd } from '../../src/bin-internal/fetch';
 
 const DEFINE_PATH = resolve(__dirname, '../../src/config/define.ts');

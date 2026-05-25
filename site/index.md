@@ -151,7 +151,7 @@ That's the whole loop. Swap `SAMPLE-001` for `JIRA-123` or `GH-42` and Xera work
 ## Quickstart
 
 ```bash
-bun add -g @xera-ai/cli         # install once globally; or use bunx
+npm install -g @xera-ai/cli         # install once globally; or use npx
 
 mkdir my-tests && cd my-tests
 xera init                       # interactive: shape + tracker + ~5 prompts
@@ -160,10 +160,10 @@ xera init -y --shape web --tracker github \
   --gr xera-ai/xera --su https://staging.example.com
 
 cp .env.example .env            # fill in credentials
-bun install
+npm install
 # Web shape only:
-bunx playwright install chromium
-bun run xera:auth-setup         # pre-authenticate roles
+npx playwright install chromium
+npx xera-internal auth-setup         # pre-authenticate roles
 ```
 
 Then in your AI coding agent (Claude Code, Cursor, or Codex CLI):
@@ -211,8 +211,8 @@ cd xera-sample-app && npm install && npm run dev:backend & npm run dev:frontend
 # 2. Clone the reference tests in a sibling directory and run a ticket
 cd .. && git clone https://github.com/xera-ai/xera-sample-app-tests
 cd xera-sample-app-tests
-cp .env.example .env && bun install && bunx playwright install chromium
-bun run xera:fetch XFB-6 && bun run xera:exec XFB-6
+cp .env.example .env && npm install && npx playwright install chromium
+npx xera-internal fetch XFB-6 && npx xera-internal exec XFB-6
 ```
 
 Or start from scratch with your own xera project pointed at the same FlowBoard:

@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { strToU8, zipSync } from 'fflate';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { type HealInput, healPrepare, healPrepareCmd } from '../../src/bin-internal/heal-prepare';
 
 function seedTicket(

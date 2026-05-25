@@ -22,7 +22,7 @@ And STOP.
 Pass through the user's flags:
 
 ```bash
-bun run xera:coverage-prepare [--why <id>] [--all] [--json] [--no-emit-event]
+npx xera-internal coverage-prepare [--why <id>] [--all] [--json] [--no-emit-event]
 ```
 
 Flag handling:
@@ -45,7 +45,7 @@ Read `.xera/coverage/report.json`. If `acBackfillNeeded === true`:
 ### 3a — Assemble unmapped context
 
 ```bash
-bun run xera:ac-coverage-backfill-prepare
+npx xera-internal ac-coverage-backfill-prepare
 ```
 
 This writes `.xera/coverage/ac-backfill-input.json` listing tickets with at least one **unmapped** scenario (a scenario that has no `satisfies` edge to any of its ticket's ACs). Tickets with partially mapped scenarios surface only their unmapped scenarios — finalize is additive per scenarioId (#119), so generating decisions for just the unmapped set will not clobber prior mappings.
@@ -57,7 +57,7 @@ If the input file is `{ "tickets": [] }`, skip to Step 4 — there's nothing to 
 Mint a fresh per-invocation nonce:
 
 ```bash
-bun -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"
+node -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"
 ```
 
 Capture the single-line output as the nonce.
@@ -77,7 +77,7 @@ Write the prompt output to `.xera/coverage/ac-backfill-decisions.json`. The outp
 ### 3c — Materialize the satisfies edges
 
 ```bash
-bun run xera:ac-coverage-backfill-finalize
+npx xera-internal ac-coverage-backfill-finalize
 ```
 
 This validates the decisions JSON and emits one `ac-coverage.backfilled` event per ticket. Each event materializes the `satisfies` edges in the graph snapshot.
@@ -85,7 +85,7 @@ This validates the decisions JSON and emits one `ac-coverage.backfilled` event p
 ### 3d — Re-run coverage-prepare
 
 ```bash
-bun run xera:coverage-prepare --no-emit-event
+npx xera-internal coverage-prepare --no-emit-event
 ```
 
 This regenerates `.xera/coverage/report.json` with the newly materialized `satisfies` edges. After this, `acBackfillNeeded` should be `false` (or only `true` for tickets the AI declined to map — those are an AI quality issue and need a human eye).
@@ -99,7 +99,7 @@ Read `.xera/coverage/report.md` and print it verbatim to the terminal.
 If the user passed `--viewer`, run:
 
 ```bash
-bun run xera:graph-render --include-coverage
+npx xera-internal graph-render --include-coverage
 ```
 
 This regenerates `.xera/graph.html` with a top-level Coverage tab (Map / List / Trend). Print the path so the user knows where to open it:

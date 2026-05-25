@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { buildSimilarityPrompt } from '../../src/graph/similarity';
 import type { TicketNode } from '../../src/graph/types';
 

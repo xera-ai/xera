@@ -1,9 +1,9 @@
-import { describe, expect, test } from 'bun:test';
 import { join } from 'node:path';
+import { describe, expect, test } from 'vitest';
 import { type ExtractedOperation, extractInfo, extractOperations } from '../../src/openapi/extract';
 import { loadOpenApi } from '../../src/openapi/loader';
 
-const MOCK_SPEC = join(import.meta.dir, '../../../../fixtures/mock-api/openapi.yaml');
+const MOCK_SPEC = join(import.meta.dirname, '../../../../fixtures/mock-api/openapi.yaml');
 
 async function loadMock() {
   const doc = await loadOpenApi(MOCK_SPEC);

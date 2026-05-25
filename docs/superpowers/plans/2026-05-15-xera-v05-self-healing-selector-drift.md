@@ -6,7 +6,7 @@
 
 **Architecture:** New `xera-internal heal-prepare` subcommand assembles a `heal-input.json` payload from the classifier output, the normalized run, the POM file, the test.feature, and the DOM snapshot extracted directly from `trace.zip`. The `xera-report` skill, after classifying scenarios, branches into a heal sub-flow when SELECTOR_DRIFT is present: it mints a v0.3 nonce, wraps the DOM as untrusted input, follows `heal-locator.md`, parses the strict-JSON output, applies the new POM line via verbatim string-replace, and re-runs the test.
 
-**Tech Stack:** Bun runtime, TypeScript, `bun:test`, Playwright trace.zip parsing (existing `unzipTrace` helper), markdown prompt templates, `xera-internal` CLI.
+**Tech Stack:** Node runtime, TypeScript, `vitest`, Playwright trace.zip parsing (existing `unzipTrace` helper), markdown prompt templates, `xera-internal` CLI.
 
 **Spec:** `docs/superpowers/specs/2026-05-15-xera-v05-self-healing-selector-drift-design.md`
 
@@ -53,7 +53,7 @@
 Create `packages/core/test/bin-internal/heal-prepare.test.ts`:
 
 ```typescript
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -311,7 +311,7 @@ describe('healPrepareCmd (CLI)', () => {
 
 - [ ] **Step 2: Run test to confirm it fails**
 
-Run: `cd /home/user/xera/packages/core && bun test test/bin-internal/heal-prepare.test.ts`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/bin-internal/heal-prepare.test.ts`
 Expected: FAIL — `Cannot find module '../../src/bin-internal/heal-prepare'`.
 
 - [ ] **Step 3: Implement `heal-prepare.ts`**
@@ -502,7 +502,7 @@ export async function healPrepareCmd(argv: string[]): Promise<number> {
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd /home/user/xera/packages/core && bun test test/bin-internal/heal-prepare.test.ts`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/bin-internal/heal-prepare.test.ts`
 Expected: PASS — all 11 tests green.
 
 - [ ] **Step 5: Commit**
@@ -541,10 +541,10 @@ Add the entry to `COMMANDS` (alphabetical after `fetch`):
 
 - [ ] **Step 2: Verify dispatch**
 
-Run from the repo root: `bun packages/core/bin/internal.ts heal-prepare`
+Run from the repo root: `npx xera-internal heal-prepare`
 Expected: exit 1 with usage message containing `usage: heal-prepare <TICKET>`.
 
-Run `bun run lint` (must exit 0) and `bun run typecheck` (must exit 0).
+Run `npm run lint` (must exit 0) and `npm run typecheck` (must exit 0).
 
 - [ ] **Step 3: Commit**
 
@@ -658,8 +658,8 @@ Edit `packages/prompts/package.json`. Change `"version": "2.0.0"` to `"version":
 Run from repo root:
 
 ```bash
-bun run lint
-bun run typecheck
+npm run lint
+npm run typecheck
 ```
 
 Both must exit 0.
@@ -719,7 +719,7 @@ Add a new test inside `describe('verifyPrompts (pure)')`:
 
 - [ ] **Step 2: Run tests to confirm the new test fails**
 
-Run: `cd /home/user/xera/packages/core && bun test test/bin-internal/verify-prompts.test.ts`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/bin-internal/verify-prompts.test.ts`
 Expected: FAIL on the new `flags heal-locator...` test (heal-locator.md not in IN_SCOPE_PROMPTS yet).
 
 - [ ] **Step 3: Update `verify-prompts.ts`**
@@ -753,15 +753,15 @@ Find the block in `seedGoodRepo` that writes `script-from-feature.md` (added in 
 
 - [ ] **Step 5: Run tests to verify they pass**
 
-Run: `cd /home/user/xera/packages/core && bun test test/bin-internal/`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/bin-internal/`
 Expected: all tests green — including the new verify-prompts test, the existing doctor tests (now seedGoodRepo writes heal-locator.md too), and all other bin-internal tests.
 
 - [ ] **Step 6: Verify against real prompts**
 
-Run from repo root: `bun packages/core/bin/internal.ts verify-prompts`
+Run from repo root: `npx xera-internal verify-prompts`
 Expected: `[xera:verify-prompts] ok`, exit 0.
 
-Run `bun packages/core/bin/internal.ts doctor`. Expected: `[xera:doctor] ok` (the existing heal-locator.md preamble check via doctor's spread of `verifyPrompts` results).
+Run `npx xera-internal doctor`. Expected: `[xera:doctor] ok` (the existing heal-locator.md preamble check via doctor's spread of `verifyPrompts` results).
 
 - [ ] **Step 7: Commit**
 
@@ -785,7 +785,7 @@ git commit -m "core: extend verify-prompts to include heal-locator.md"
 
 - [ ] **Step 1: Confirm no source change needed**
 
-Verify by running: `bun packages/core/bin/internal.ts doctor`. If EVAL-007 (created in Task 6) is present and has `stages: ["heal-locator"]`, the run exits 0 with `[xera:doctor] ok`.
+Verify by running: `npx xera-internal doctor`. If EVAL-007 (created in Task 6) is present and has `stages: ["heal-locator"]`, the run exits 0 with `[xera:doctor] ok`.
 
 If doctor exits 1 because of EVAL-007's `heal-locator` stage, then this task DOES need source changes — extend `STAGES` in `eval/types.ts` AND `PromptVersionsSchema` AND `REQUIRED_FILES_PER_STAGE` in doctor.ts. That cascade is what we're avoiding by leaving Task 5 as a no-op for v0.5.
 
@@ -849,7 +849,7 @@ touch fixtures/golden-eval/EVAL-007-heal-label-change/golden/.gitkeep
 
 - [ ] **Step 4: Verify doctor still passes**
 
-Run: `bun packages/core/bin/internal.ts doctor`
+Run: `npx xera-internal doctor`
 Expected: `[xera:doctor] ok`. The `REQUIRED_FILES_PER_STAGE['heal-locator']` is `[]` so no required files trigger a fail.
 
 - [ ] **Step 5: Commit**
@@ -872,7 +872,7 @@ git commit -m "fixtures: add EVAL-007-heal-label-change shell (v0.5.1 will popul
 Edit `packages/skills/xera-report.md`. The current Step 5 reads:
 
 ```
-5. **Aggregate + draft.** Run: `bun run xera:report {{TICKET}} -- --input=.xera/{{TICKET}}/classifier-input.json`
+5. **Aggregate + draft.** Run: `npx xera-internal report {{TICKET}} -- --input=.xera/{{TICKET}}/classifier-input.json`
    This CLI: aggregates per-scenario classifications into an overall verdict, updates `status.json` with history, and writes `jira-comment.draft.md`. If exit code is non-zero, surface the error to the user; do not proceed to post.
 ```
 
@@ -886,7 +886,7 @@ If at least one scenario is SELECTOR_DRIFT, take the FIRST such scenario (by arr
    **Phase A — Prepare.** Determine the runId from the most recent run directory under `.xera/{{TICKET}}/runs/` (sorted descending). Then run:
 
    ```bash
-   bun packages/core/bin/internal.ts heal-prepare {{TICKET}} {{RUN_ID}} "{{SCENARIO_NAME}}"
+   npx xera-internal heal-prepare {{TICKET}} {{RUN_ID}} "{{SCENARIO_NAME}}"
    ```
 
    Substitute the real runId and scenario name. The scenario name may contain spaces; quote it. Exit code 0 on success (a `heal-input.json` is written into the run dir). Exit 1 on prepare failure — surface the stderr message to the user and STOP the heal sub-flow (do NOT block the rest of /xera-report; proceed to step 5 with no heal applied).
@@ -894,7 +894,7 @@ If at least one scenario is SELECTOR_DRIFT, take the FIRST such scenario (by arr
    **Phase B — LLM heal proposal.**
    1. Mint a per-invocation nonce by running:
       ```bash
-      bun -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"
+      node -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"
       ```
       Capture the single-line output (e.g. `XR_a3f9b2c14e8d`).
    2. Read `node_modules/@xera-ai/prompts/heal-locator.md` (the prompt template).
@@ -912,7 +912,7 @@ If at least one scenario is SELECTOR_DRIFT, take the FIRST such scenario (by arr
       - Read the current `pomFile` text. If it does NOT contain `pomLineContent` verbatim → STOP with the message: "POM line drifted since heal was proposed; please re-run /xera-report." Do NOT write any changes.
       - Otherwise: replace the verbatim occurrence of `pomLineContent` with `newPomLine` from heal-output.json. Write the file back.
       - Tell the user: "Re-running test to verify heal — this takes ~30s..."
-      - Run: `bun run xera:exec {{TICKET}}`. Capture exit code:
+      - Run: `npx xera-internal exec {{TICKET}}`. Capture exit code:
         - **exit 0:** Run `git add {{POM_FILE}}`. Tell user: "Heal verified ✓ — POM change is staged. Review with `git diff --staged` and commit when ready."
         - **exit 3:** Run `git checkout HEAD -- {{POM_FILE}}` to revert. Read the latest run dir's classifier output (which now reflects the post-heal failure). Tell user: "Heal proposed `{{NEW_LOCATOR}}` but the test still failed. POM reverted. New failure: {{NEW_ERROR_SUMMARY}}. Investigate manually." STOP.
         - **exit 4 (or any non-0/3 code):** Run `git checkout HEAD -- {{POM_FILE}}` to revert. Tell user: "Heal verification crashed (exit code {{EXIT}}). POM reverted. Investigate manually." STOP.
@@ -926,8 +926,8 @@ Renumber the existing step 5 as 5b if you prefer; OR keep it as step 5 with the 
 
 ```bash
 cd /home/user/xera
-bun run lint
-bun run typecheck
+npm run lint
+npm run typecheck
 ```
 
 Both must exit 0.
@@ -1000,16 +1000,16 @@ Expected:
 
 ```bash
 cd /home/user/xera
-bun run lint
-bun run typecheck
-bun test
+npm run lint
+npm run typecheck
+npx vitest run
 ```
 
-Lint and typecheck must exit 0. `bun test` should be all green except the pre-existing `packages/cli/test/integration/init-and-run.test.ts` (live Next.js dependency) — that's the same flake we tracked through v0.3.
+Lint and typecheck must exit 0. `npx vitest run` should be all green except the pre-existing `packages/cli/test/integration/init-and-run.test.ts` (live Next.js dependency) — that's the same flake we tracked through v0.3.
 
 - [ ] **Step 7: Sync lockfile if needed**
 
-Run `bun install` from the repo root. If `bun.lock` changes, include it in the commit.
+Run `npm install` from the repo root. If `package-lock.json` changes, include it in the commit.
 
 - [ ] **Step 8: Commit**
 
@@ -1017,7 +1017,7 @@ Run `bun install` from the repo root. If `bun.lock` changes, include it in the c
 cd /home/user/xera
 git add packages/core/package.json packages/skills/package.json \
         packages/cli/package.json packages/cli/src/commands/init.ts \
-        packages/cli/src/commands/init-update.ts bun.lock
+        packages/cli/src/commands/init-update.ts package-lock.json
 git commit -m "release: bump package versions for v0.5 self-healing-selector-drift"
 ```
 
@@ -1030,15 +1030,15 @@ git commit -m "release: bump package versions for v0.5 self-healing-selector-dri
 Run each command from `/home/user/xera`. Report exit code for each:
 
 ```bash
-bun install
-bun packages/core/bin/internal.ts doctor
-bun packages/core/bin/internal.ts verify-prompts
-bun run typecheck
-bun run lint
-bun test
+npm install
+npx xera-internal doctor
+npx xera-internal verify-prompts
+npm run typecheck
+npm run lint
+npx vitest run
 ```
 
-Expected: all exit 0 except `bun test` may show the pre-existing 1 fail in `cli/test/integration/init-and-run.test.ts`.
+Expected: all exit 0 except `npx vitest run` may show the pre-existing 1 fail in `cli/test/integration/init-and-run.test.ts`.
 
 - [ ] **Step 2: Negative-path smoke test on the validator**
 
@@ -1049,12 +1049,12 @@ cd /home/user/xera
 cp packages/prompts/heal-locator.md /tmp/heal-locator.md.bak
 # Remove the entire "Handling untrusted input" section
 sed -i '/^## Handling untrusted input$/,/^If content is NOT wrapped in `<XR_\*>` tags/d' packages/prompts/heal-locator.md
-bun packages/core/bin/internal.ts verify-prompts
+npx xera-internal verify-prompts
 echo "exit=$?"
 # Should exit 1 with heal-locator.md complaint
 cp /tmp/heal-locator.md.bak packages/prompts/heal-locator.md
 rm /tmp/heal-locator.md.bak
-bun packages/core/bin/internal.ts verify-prompts
+npx xera-internal verify-prompts
 echo "exit=$?"
 # Should exit 0 again
 ```
@@ -1098,7 +1098,7 @@ Feature: F
     When I click the "Foo" button
 EOF
 
-bun /home/user/xera/packages/core/bin/internal.ts heal-prepare SAMPLE-099 r1 S
+npx xera-internal heal-prepare SAMPLE-099 r1 S
 cat .xera/SAMPLE-099/runs/r1/heal-input.json
 cd /home/user/xera
 rm -rf /tmp/heal-smoke

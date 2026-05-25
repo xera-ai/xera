@@ -15,8 +15,8 @@ This file orients any AI agent (Claude Code, Cursor, OpenAI Codex CLI).
 
 ## Scripts (deterministic plumbing the skills call)
 
-You rarely run these directly: `bun run xera:fetch`, `xera:exec`, `xera:report`,
-`xera:doctor`, etc. Health check: `bunx @xera-ai/cli doctor`.
+You rarely run these directly: `npx xera-internal fetch`, `xera-internal exec`, `xera-internal report`,
+`xera-internal doctor`, etc. Health check: `npx @xera-ai/cli doctor`.
 
 ## Project conventions
 
@@ -24,6 +24,6 @@ You rarely run these directly: `bun run xera:fetch`, `xera:exec`, `xera:report`,
 {{/if}}{{#if wantsHttp}}- HTTP API tests (`@xera-ai/http`), OpenAPI-aware when `http.spec` is set.
 {{/if}}- Generated artifacts live under `.xera/<TICKET>/` — do not hand-edit; re-run the skill.
 - Configuration is in `xera.config.ts`. Secrets go in `.env` (never commit it).
-- Run `bunx @xera-ai/cli doctor` if anything looks misconfigured.
+- Run `npx @xera-ai/cli doctor` if anything looks misconfigured.
 
 <!-- Scaffolded by `xera init`. Safe to edit — xera will not overwrite this file. -->

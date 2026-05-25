@@ -48,7 +48,7 @@ statements the judge checks individually. Example:
 4. Hand-author `golden/test.feature` for stages that include `feature-from-story`.
 5. Hand-author `golden/spec-requirements.md` for stages that include
    `script-from-feature`. Keep bullets concrete and checkable.
-6. Run `bun run xera:doctor` to validate the fixture shape.
+6. Run `npx xera-internal doctor` to validate the fixture shape.
 7. Run `/xera-eval --ticket=EVAL-NNN` from a Claude Code session in this repo
    to smoke-test before opening a PR.
 

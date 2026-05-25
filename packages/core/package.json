@@ -16,12 +16,12 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "bun": "./src/index.ts",
+      "source": "./src/index.ts",
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
     "./adapter": {
-      "bun": "./src/adapter/types.ts",
+      "source": "./src/adapter/types.ts",
       "import": "./dist/adapter/types.js",
       "types": "./dist/adapter/types.d.ts"
     }
@@ -35,10 +35,10 @@
     "bin"
   ],
   "scripts": {
-    "build": "bun build ./src/index.ts ./src/adapter/types.ts --outdir ./dist --root ./src --target bun --external @playwright/test --external @xera-ai/web --external @xera-ai/http --external zod && bun build ./bin/internal.ts --outfile ./dist/bin/internal.js --target bun --external @playwright/test --external @xera-ai/web --external @xera-ai/http --external zod && cp -r src/graph/templates dist/bin/",
+    "build": "tsup && cp -r src/graph/templates dist/bin/",
     "build:types": "tsc --emitDeclarationOnly",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "bun run build && bun run build:types"
+    "prepublishOnly": "npm run build && npm run build:types"
   },
   "dependencies": {
     "zod": "4.4.3",

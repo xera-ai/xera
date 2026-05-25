@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { buildComment } from '../../src/reporter/comment';
 
 describe('buildComment', () => {
@@ -40,6 +40,6 @@ describe('buildComment', () => {
     expect(md).toContain('1 / 2 passed');
     expect(md).toContain('Login fail bad password');
     expect(md).toContain('returned 500');
-    expect(md).toContain('bunx xera-internal exec JIRA-1 --replay=2026-05-14T10-30-00');
+    expect(md).toContain('npx xera-internal exec JIRA-1 --replay=2026-05-14T10-30-00');
   });
 });

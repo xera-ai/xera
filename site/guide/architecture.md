@@ -6,13 +6,13 @@ For the full specs see [design docs](https://github.com/xera-ai/xera/tree/main/d
 
 ```
 End user (QA)
-  │ uses `bunx xera init --shape web|api|mixed --tracker jira|github` once
+  │ uses `npx xera init --shape web|api|mixed --tracker jira|github` once
   │ (scaffolds CI workflow + npm scripts + per-editor skill paths)
   │ then `/xera-*` slash commands in their AI coding agent (Claude Code, Cursor, or Codex CLI)
   ▼
 Skills — 12 user-facing workflows (Claude Code / Cursor / OpenAI Codex CLI via the editor adapter registry in `packages/cli/src/editors/`)
   │ tell the session LLM what to do
-  │ session LLM calls `bun run xera:*`
+  │ session LLM calls `npx xera-internal`
   ▼
 `xera-internal` binary (in @xera-ai/core) — 36 subcommands
   │ deterministic helpers + graph data layer + coverage engine
@@ -187,11 +187,11 @@ The classifier, reporter, **and graph layer** are adapter-agnostic by design. A 
 | Fixture dir | Used by |
 |---|---|
 | `fixtures/sample-app/` | Next.js login+dashboard SUT for e2e tests |
-| `fixtures/mock-jira/` | Bun.serve mock Jira (deterministic tickets) |
+| `fixtures/mock-jira/` | node:http mock Jira (deterministic tickets) |
 | `fixtures/golden-tickets/` | Classifier rubric fixtures (v0.1) |
 | `fixtures/golden-eval/` | `/xera-eval` rubric fixtures (v0.2 + EVAL-007 heal + EVAL-008/009 classify-outdated) |
 | `fixtures/golden-graph/` | Snapshot/dedup/corrupt + TEST_OUTDATED scenarios (v0.6) |
 | `fixtures/golden-impact/` | impact-prepare BFS scenarios (v0.6) |
 | `fixtures/golden-coverage/` | coverage engine fixtures — 6 scenarios covering UNCOVERED/STALE/COVERED, risk formula, AC gaps (v0.8) |
 | `fixtures/golden-tickets-http/` | HTTP-adapter classifier fixtures (v0.7) — `PASS`, `REAL_BUG`, `CONTRACT_DRIFT`, `RATE_LIMITED`, `AUTH_EXPIRED` |
-| `fixtures/mock-api/` | Bun.serve mock HTTP API + `openapi.yaml` — target for http-adapter integration tests (v0.7) |
+| `fixtures/mock-api/` | node:http mock HTTP API + `openapi.yaml` — target for http-adapter integration tests (v0.7) |

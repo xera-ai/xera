@@ -38,7 +38,7 @@ Coverage in v0.8 is computed **from the existing v0.6 graph**, not from runtime 
   - `packages/core/src/coverage/status.ts` — `computeAreaStatus()`, `computeAcStatus()`, `computeTicketStatus()`
   - `packages/core/src/coverage/risk.ts` — `computeAreaRisk()`, `computeAcGapScore()`
   - `packages/core/src/coverage/report.ts` — JSON + markdown report builders
-- Binary subcommands (under `bun run xera:*`, in `packages/core/src/bin-internal/`):
+- Binary subcommands (under `npx xera-internal`, in `packages/core/src/bin-internal/`):
   - `coverage-prepare` — walk snapshot, compute statuses + risks, write JSON + markdown report
   - `ac-coverage-backfill-prepare` — assemble unmapped scenario list for legacy tickets
   - `ac-coverage-backfill-finalize` — validate AI mapping decisions, materialize `satisfies` edges
@@ -100,8 +100,8 @@ Splitting them across v0.8.0 / v0.8.1 would duplicate scaffolding and make the s
 
 A maintainer can, from a clean checkout:
 
-1. `bun install && bun run typecheck && bun test` — all green, including new `packages/core/test/coverage/` suite.
-2. `bun run xera:verify-prompts` — reports ok with **10 in-scope prompts** (was 9: adds `map-ac-to-scenarios.md`; `propose-scenarios.md` appears at v0.8.2). After v0.8.2: 11.
+1. `npm install && npm run typecheck && npx vitest run` — all green, including new `packages/core/test/coverage/` suite.
+2. `npx xera-internal verify-prompts` — reports ok with **10 in-scope prompts** (was 9: adds `map-ac-to-scenarios.md`; `propose-scenarios.md` appears at v0.8.2). After v0.8.2: 11.
 3. In a freshly scaffolded test project, seed a graph snapshot from `fixtures/golden-coverage/mixed.json`. Run `/xera-coverage`. Output groups areas into UNCOVERED / STALE / COVERED with correct sort order; AC GAPS section lists tickets with unsatisfied ACs.
 4. Run `/xera-coverage --why checkout`. Output shows the formula expansion (`3 × 2 + 2 = 8`) and lists contributing tickets + bug events.
 5. Run `/xera-coverage --why PROJ-105`. Output shows AC list with ✓/✗ per AC and which scenario(s) satisfy each.
@@ -110,7 +110,7 @@ A maintainer can, from a clean checkout:
 8. (v0.8.1) After running `/xera-coverage` three times across different days (simulated via `--ts` flag in tests), Trend tab shows three data points; viewer dedups multiple snapshots from the same day.
 9. (v0.8.2) Run `/xera-fill-gap checkout` against `fixtures/golden-coverage/uncovered-only.json`. Skill loads context, calls prompt, presents 3+ proposals, accepts user picks, writes `.xera/<TICKET>/feature.draft.md`. Skill does **not** auto-chain into `/xera-script`.
 10. (v0.8.2) Run `/xera-fill-gap --ticket PROJ-105` against `fixtures/golden-coverage/ac-gap.json`. Proposals address only the unsatisfied ACs of PROJ-105.
-11. `bun run xera:doctor` reports ok across all phases.
+11. `npx xera-internal doctor` reports ok across all phases.
 
 If any of those breaks, the corresponding phase is not ready.
 
@@ -509,7 +509,7 @@ Exit codes:
 | Code | Meaning |
 |---|---|
 | 0 | Report generated, no errors |
-| 1 | Graph snapshot missing or corrupt; skill recommends `bun run xera:graph-backfill` |
+| 1 | Graph snapshot missing or corrupt; skill recommends `npx xera-internal graph-backfill` |
 | 2 | Config invalid (`coverage.criticalAreas` contains non-slug, etc.) |
 
 ### 4.2 `/xera-fill-gap` skill (v0.8.2)
@@ -549,16 +549,16 @@ All warnings, no hard fails.
 Workflow:
 
 1. Validate cwd is a xera project (config + `.xera/graph/snapshot.json` present).
-2. Run `bun run xera:coverage-prepare` (with `--snapshot-ts` only if test mode).
+2. Run `npx xera-internal coverage-prepare` (with `--snapshot-ts` only if test mode).
 3. Read `.xera/coverage/report.json`. If `acBackfillNeeded === true`:
-   - Run `bun run xera:ac-coverage-backfill-prepare`.
+   - Run `npx xera-internal ac-coverage-backfill-prepare`.
    - Read `.xera/coverage/ac-backfill-input.json`.
    - Invoke prompt `map-ac-to-scenarios.md` with input as data.
    - Write LLM output to `.xera/coverage/ac-backfill-decisions.json`.
-   - Run `bun run xera:ac-coverage-backfill-finalize`.
+   - Run `npx xera-internal ac-coverage-backfill-finalize`.
    - Re-run `coverage-prepare` to recompute with new `satisfies` edges.
 4. Read `.xera/coverage/report.md`, print to terminal.
-5. If `--viewer`: run `bun run xera:graph-render --include-coverage`, print HTML path.
+5. If `--viewer`: run `npx xera-internal graph-render --include-coverage`, print HTML path.
 6. Print next-step suggestions.
 
 Skill .md follows existing skill conventions (frontmatter + workflow steps, verbatim from implementation plan).
@@ -568,12 +568,12 @@ Skill .md follows existing skill conventions (frontmatter + workflow steps, verb
 Workflow:
 
 1. Validate inputs (area slug exists in graph, or ticket ID exists with INCOMPLETE status).
-2. Run `bun run xera:fill-gap-prepare --area <slug>` or `--ticket <TICKET>`.
+2. Run `npx xera-internal fill-gap-prepare --area <slug>` or `--ticket <TICKET>`.
 3. Read `.xera/coverage/<id>/context.json`.
 4. Invoke prompt `propose-scenarios.md` with context as data.
 5. Write LLM output to `.xera/coverage/<id>/proposals.json`.
 6. Print proposals to user, prompt for picks.
-7. For each picked proposal: run `bun run xera:fill-gap-finalize --accept <id> --ticket <TICKET>`.
+7. For each picked proposal: run `npx xera-internal fill-gap-finalize --accept <id> --ticket <TICKET>`.
 8. Print final next-step hint.
 
 ### 5.3 `packages/prompts/map-ac-to-scenarios.md` (NEW, v1.0.0)
@@ -690,7 +690,7 @@ map-ac-to-scenarios            (NEW v0.8.0)
 propose-scenarios              (NEW v0.8.2)
 ```
 
-`bun run xera:verify-prompts` validates count.
+`npx xera-internal verify-prompts` validates count.
 
 ---
 
@@ -923,11 +923,11 @@ For binaries that orchestrate AI calls in production, tests stub the AI step: pa
 
 ### 10.3 Skill tests
 
-Skill `.md` files are validated by `bun run xera:verify-prompts` against the in-scope list and version line presence. No end-to-end skill test in v0.8 (skills run in Claude Code sessions, not in `bun test`). Manual smoke per §1.5.
+Skill `.md` files are validated by `npx xera-internal verify-prompts` against the in-scope list and version line presence. No end-to-end skill test in v0.8 (skills run in Claude Code sessions, not in `npx vitest run`). Manual smoke per §1.5.
 
 ### 10.4 Eval suite
 
-`bun run xera:eval-deterministic` already covers existing prompts. v0.8 adds:
+`npx xera-internal eval-deterministic` already covers existing prompts. v0.8 adds:
 
 - `map-ac-to-scenarios` rubric (v0.8.0) — 3 fixtures in `golden-eval/coverage/` (mapping precision + recall).
 - `propose-scenarios` rubric (v0.8.2) — 3+ fixtures, asserts proposals cover the gap, link to real ticket, Gherkin parses.
@@ -998,7 +998,7 @@ Spec milestone numbering (`v0.8`) is independent from package semver (`0.10.0`) 
 | Snapshot pollution from local `xera coverage` runs | High | Trend tab dedups by date when reading; never dedups on write. JSONL ~1 KB/event; storage cost negligible. Config flag `autoSnapshotOnCoverage` lets user opt out. |
 | Risk weights drift after user feedback | Medium | Weights are consts in `risk.ts`, documented in `docs/CONFIGURATION.md`. Not in UI. Easy to bump. |
 | AC reordering invalidates `satisfies` edges (index-based ID) | Low | Story-hash drift on re-fetch triggers re-enrichment; satisfies edges with mismatched AC text get warnings on snapshot rebuild. Migration to content-hash ID deferred to v0.9 if pain emerges. |
-| AC text changes silently (Jira edit without ticket refetch) | Low | `coverage-prepare` warns when `ACNode.text !== ticket.acceptanceCriteria[index]` and recommends `bun run xera:graph-backfill`. |
+| AC text changes silently (Jira edit without ticket refetch) | Low | `coverage-prepare` warns when `ACNode.text !== ticket.acceptanceCriteria[index]` and recommends `npx xera-internal graph-backfill`. |
 | AI proposes scenario that duplicates existing one | Medium | `fill-gap-prepare` includes `existingScenarios` from adjacent areas in context.json; prompt rule "avoid duplicating an existing scenario." Verified via eval rubric. |
 | Viewer perf with >365 days of events | Low | Trend lazy-loads on tab click; caps at 365 days unless override. |
 | POM `covers` edge stale after refactor | Low | Reuses existing `graph-enrich` lifecycle from v0.6. No new code path. |

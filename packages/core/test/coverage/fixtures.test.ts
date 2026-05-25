@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { loadExpected, loadSnap } from '../../../../fixtures/golden-coverage/_helpers';
 import { buildCoverageReport } from '../../src/coverage/report';
 import { DEFAULT_COVERAGE_CONFIG } from '../../src/coverage/types';

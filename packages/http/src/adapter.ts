@@ -15,7 +15,7 @@ export const HttpAdapter: TestAdapter = {
 
   async generate(_input: GenerateInput): Promise<GenerateResult> {
     // Generation itself is LLM-driven via skills + prompts; the adapter
-    // exposes helpers that the skills call via `bun run xera:*`.
+    // exposes helpers that the skills call via `npx xera-internal`.
     // No direct artifact writing here.
     return { artifacts: [], warnings: [] };
   },
@@ -54,7 +54,7 @@ export const HttpAdapter: TestAdapter = {
       checks.push({
         name: '@playwright/test installed',
         ok: false,
-        message: 'Run `bun add -D @playwright/test`.',
+        message: 'Run `npm install -D @playwright/test`.',
       });
     }
     return { ok: checks.every((c) => c.ok), checks };

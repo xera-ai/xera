@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { classifyContractDrift, type OpenAPIDocument } from '../../src/classifier/contract-drift';
 
 const spec: OpenAPIDocument = {

@@ -1,7 +1,7 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { openapiResolveCmd } from '../../src/bin-internal/openapi-resolve';
 
 const DEFINE_PATH = resolve(__dirname, '../../src/config/define.ts');

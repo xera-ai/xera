@@ -1,23 +1,25 @@
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { type Subprocess, spawn } from 'bun';
+import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { type Proc, run } from './helpers';
 
 // Absolute path to the xera CLI entrypoint. Must be absolute because the test
-// spawns `bun run` with --cwd set to a fresh tmpdir, so a relative path would
+// runs `node <bin>` with cwd set to a fresh tmpdir, so a relative path would
 // resolve outside the repo. Test file lives at packages/cli/test/integration/,
 // bin at packages/cli/bin/.
-const xeraBin = resolve(import.meta.dir, '../../bin/xera');
+const xeraBin = resolve(import.meta.dirname, '../../bin/xera');
+const REPO_ROOT = resolve(import.meta.dirname, '../../../..');
 
-let mockJira: Subprocess | undefined;
-let sampleApp: Subprocess | undefined;
+let mockJira: Proc | undefined;
+let sampleApp: Proc | undefined;
 
 beforeAll(async () => {
-  mockJira = spawn(['bun', 'run', 'fixtures/mock-jira/server.ts'], {
+  mockJira = run(['npx', 'tsx', 'fixtures/mock-jira/server.ts'], {
+    cwd: REPO_ROOT,
     env: { ...process.env, MOCK_JIRA_PORT: '4322' },
   });
-  sampleApp = spawn(['bun', 'run', '--cwd', 'fixtures/sample-app', 'dev']);
+  sampleApp = run(['npm', 'run', 'dev'], { cwd: join(REPO_ROOT, 'fixtures/sample-app') });
   // Wait for both to come up
   for (let i = 0; i < 30; i++) {
     try {
@@ -40,7 +42,7 @@ describe('xera integration — init + fetch + exec + report', () => {
     const cwd = mkdtempSync(join(tmpdir(), 'xera-int-'));
 
     // 1. Run `xera init --yes`
-    const init = spawn(['bun', 'run', '--cwd', cwd, xeraBin, 'init', '--yes'], { cwd });
+    const init = run(['node', xeraBin, 'init', '--yes'], { cwd });
     expect(await init.exited).toBe(0);
     expect(existsSync(join(cwd, 'xera.config.ts'))).toBe(true);
 
@@ -85,11 +87,11 @@ describe('xera integration — init + fetch + exec + report', () => {
 
     // 4. Install scaffolded deps so `xera:fetch` can resolve the
     // `xera-internal` bin (from @xera-ai/core).
-    const install = spawn(['bun', 'install'], { cwd });
+    const install = run(['npm', 'install'], { cwd });
     expect(await install.exited).toBe(0);
 
     // 5. Run xera-internal fetch SAMPLE-001 (uses mock-jira REST since no MCP)
-    const fetchProc = spawn(['bun', 'run', '--cwd', cwd, 'xera:fetch', 'SAMPLE-001'], { cwd });
+    const fetchProc = run(['npx', 'xera-internal', 'fetch', 'SAMPLE-001'], { cwd });
     expect(await fetchProc.exited).toBe(0);
     expect(existsSync(join(cwd, '.xera/SAMPLE-001/story.md'))).toBe(true);
 

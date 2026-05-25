@@ -1,7 +1,7 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { graphRenderCmd } from '../../src/bin-internal/graph-render';
 import { appendEvents } from '../../src/graph/store';
 import { ulid } from '../../src/graph/ulid';

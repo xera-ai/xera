@@ -6,7 +6,7 @@
 
 **Architecture:** New module `packages/core/src/graph/classify.ts` runs AFTER existing 4-bucket classifier in `bin-internal/report.ts`. If existing classification is REAL_BUG or SELECTOR_DRIFT, runs deterministic graph pre-check (`findCandidateTickets`); if candidates exist, calls Claude via new `classify-outdated.md` prompt; if confidence ≥ 0.7, overrides classification to TEST_OUTDATED. Lazy similarity (`classify.findCandidateTickets` triggers `enrich.enrichTicket` on first miss) populates `similar` + `modifies` edges via Claude `similarity-match.md` prompt. New `xera-internal graph-enrich` subcommand for manual + on-demand enrichment. New `xera-internal graph-record dispute` action emits `classification.disputed` events.
 
-**Tech Stack:** Bun runtime, TypeScript strict (`exactOptionalPropertyTypes` + `noUncheckedIndexedAccess`), zod 4.4.3, `bun:test`, Claude API integration via existing skill `.md` prompt-template invocation pattern (no SDK dep — Claude Code session reads prompt + executes), markdown prompt templates.
+**Tech Stack:** Node runtime, TypeScript strict (`exactOptionalPropertyTypes` + `noUncheckedIndexedAccess`), zod 4.4.3, `vitest`, Claude API integration via existing skill `.md` prompt-template invocation pattern (no SDK dep — Claude Code session reads prompt + executes), markdown prompt templates.
 
 **Spec:** `docs/superpowers/specs/2026-05-16-xera-v06-project-knowledge-graph-design.md` §5 (TEST_OUTDATED), §11.2 (lazy similarity), §11.3 (Jira sub-task routing), §11.6 (dispute event)
 
@@ -137,7 +137,7 @@ const classification = z.enum(['REAL_BUG', 'TEST_BUG', 'SELECTOR_DRIFT', 'FLAKY'
 
 - [ ] **Step 5: Run all tests to verify no regressions**
 
-Run: `cd /home/user/xera/packages/core && bun test && bun run typecheck`
+Run: `cd /home/user/xera/packages/core && npx vitest run && npm run typecheck`
 Expected: all existing tests still pass (251+); typecheck clean.
 
 - [ ] **Step 6: Commit**
@@ -163,7 +163,7 @@ git commit -m "core: extend Classification enum to include TEST_OUTDATED (v0.6.1
 Create `packages/core/test/graph/similarity.test.ts`:
 
 ```typescript
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { buildSimilarityPrompt } from '../../src/graph/similarity';
 import type { TicketNode } from '../../src/graph/types';
 
@@ -226,7 +226,7 @@ describe('buildSimilarityPrompt', () => {
 
 - [ ] **Step 2: Run to fail**
 
-Run: `cd /home/user/xera/packages/core && bun test test/graph/similarity.test.ts`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/graph/similarity.test.ts`
 Expected: FAIL — cannot import.
 
 - [ ] **Step 3: Implement `similarity.ts`**
@@ -280,7 +280,7 @@ Output a JSON object with shape:
 
 - [ ] **Step 4: Run tests, verify pass**
 
-Run: `cd /home/user/xera/packages/core && bun test test/graph/similarity.test.ts`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/graph/similarity.test.ts`
 Expected: PASS (5 tests).
 
 - [ ] **Step 5: Commit**
@@ -306,7 +306,7 @@ The enrich module reads LLM output (written by skill .md after Claude executes t
 Create `packages/core/test/graph/enrich.test.ts`:
 
 ```typescript
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -395,7 +395,7 @@ describe('enrichTicket', () => {
 
 - [ ] **Step 2: Run to fail**
 
-Run: `cd /home/user/xera/packages/core && bun test test/graph/enrich.test.ts`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/graph/enrich.test.ts`
 Expected: FAIL — cannot import.
 
 - [ ] **Step 3: Implement `enrich.ts`**
@@ -494,7 +494,7 @@ export async function enrichTicket(repoRoot: string, ticketId: string, opts: Enr
 
 - [ ] **Step 4: Run tests, verify pass**
 
-Run: `cd /home/user/xera/packages/core && bun test test/graph/enrich.test.ts`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/graph/enrich.test.ts`
 Expected: PASS (6 tests).
 
 - [ ] **Step 5: Commit**
@@ -524,7 +524,7 @@ The actual Claude call for `classify-outdated.md` happens in skill `.md` (not in
 Create `packages/core/test/graph/classify.test.ts`:
 
 ```typescript
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -700,7 +700,7 @@ describe('enhanceClassification', () => {
 
 - [ ] **Step 2: Run to fail**
 
-Run: `cd /home/user/xera/packages/core && bun test test/graph/classify.test.ts`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/graph/classify.test.ts`
 Expected: FAIL — cannot import.
 
 - [ ] **Step 3: Implement `classify.ts`**
@@ -839,7 +839,7 @@ export async function enhanceClassification(
 
 - [ ] **Step 4: Run tests, verify pass**
 
-Run: `cd /home/user/xera/packages/core && bun test test/graph/classify.test.ts`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/graph/classify.test.ts`
 Expected: PASS (5 tests).
 
 - [ ] **Step 5: Commit**
@@ -881,7 +881,7 @@ export type {
 
 - [ ] **Step 2: Verify typecheck**
 
-Run: `cd /home/user/xera/packages/core && bun run typecheck`
+Run: `cd /home/user/xera/packages/core && npm run typecheck`
 Expected: zero errors.
 
 - [ ] **Step 3: Commit**
@@ -1128,7 +1128,7 @@ In `packages/core/test/bin-internal/doctor.test.ts`, find `seedGoodRepo`. Add th
 
 - [ ] **Step 5: Run all verify-prompts + doctor tests**
 
-Run: `cd /home/user/xera/packages/core && bun test test/bin-internal/verify-prompts.test.ts && bun test test/bin-internal/doctor.test.ts && bun run typecheck`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/bin-internal/verify-prompts.test.ts && npx vitest run test/bin-internal/doctor.test.ts && npm run typecheck`
 Expected: all pass.
 
 - [ ] **Step 6: Commit**
@@ -1156,7 +1156,7 @@ git commit -m "prompts: bump 2.2.0 → 2.3.0; verify-prompts covers similarity-m
 Create `packages/core/test/bin-internal/graph-enrich.test.ts`:
 
 ```typescript
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -1224,7 +1224,7 @@ describe('graph-enrich', () => {
 
 - [ ] **Step 2: Run to fail**
 
-Run: `cd /home/user/xera/packages/core && bun test test/bin-internal/graph-enrich.test.ts`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/bin-internal/graph-enrich.test.ts`
 Expected: FAIL — cannot import.
 
 - [ ] **Step 3: Implement `graph-enrich.ts`**
@@ -1272,7 +1272,7 @@ import { graphEnrichCmd } from './graph-enrich';
 
 - [ ] **Step 5: Run tests, verify pass**
 
-Run: `cd /home/user/xera/packages/core && bun test test/bin-internal/graph-enrich.test.ts`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/bin-internal/graph-enrich.test.ts`
 Expected: PASS (4 tests).
 
 - [ ] **Step 6: Commit**
@@ -1307,7 +1307,7 @@ Note: The existing flow is `aggregateScenarios(input.scenarios)` → `writeStatu
 Create or extend `packages/core/test/bin-internal/report.test.ts` (read existing structure first; if test file doesn't exist, create one with seedReport helper):
 
 ```typescript
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -1411,7 +1411,7 @@ describe('reportCmd with TEST_OUTDATED enhancement', () => {
 
 - [ ] **Step 3: Run to fail**
 
-Run: `cd /home/user/xera/packages/core && bun test test/bin-internal/report.test.ts -t TEST_OUTDATED`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/bin-internal/report.test.ts -t TEST_OUTDATED`
 Expected: FAIL — `enhanceClassification` not wired.
 
 - [ ] **Step 4: Modify `report.ts` to wire enhancement**
@@ -1474,7 +1474,7 @@ If the existing `paths.ticketDir` field doesn't exist in `resolveArtifactPaths`,
 
 - [ ] **Step 5: Run tests**
 
-Run: `cd /home/user/xera/packages/core && bun test test/bin-internal/report.test.ts && bun run typecheck`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/bin-internal/report.test.ts && npm run typecheck`
 Expected: 3 new tests pass; existing report tests still pass.
 
 - [ ] **Step 6: Commit**
@@ -1528,7 +1528,7 @@ describe('graph-record dispute', () => {
 
 - [ ] **Step 2: Run to fail**
 
-Run: `cd /home/user/xera/packages/core && bun test test/bin-internal/graph-record.test.ts -t dispute`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/bin-internal/graph-record.test.ts -t dispute`
 Expected: FAIL.
 
 - [ ] **Step 3: Implement `dispute` action in graph-record.ts**
@@ -1570,7 +1570,7 @@ In `packages/core/src/bin-internal/graph-record.ts`, find the `switch (action)` 
 
 - [ ] **Step 4: Run tests**
 
-Run: `cd /home/user/xera/packages/core && bun test test/bin-internal/graph-record.test.ts && bun run typecheck`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/bin-internal/graph-record.test.ts && npm run typecheck`
 Expected: existing 3 tests + 2 new dispute tests pass.
 
 - [ ] **Step 5: Commit**
@@ -1604,7 +1604,7 @@ In `packages/skills/xera-report.md`, locate the step that runs the existing clas
 For every scenario in `classifier-output.json` whose `outcome === "FAIL"`:
 
 1. Compute `scenarioId = sha1(<TICKET> + ":" + normalize(scenario.name))` (lowercase, single-spaced).
-2. Query the graph: `bun run xera:graph-query --ticket <TICKET> --format json | jq '.edges[] | select(.kind == "modifies") | select(.discoveredAt > <scenario.generatedAt>)'`.
+2. Query the graph: `npx xera-internal graph-query --ticket <TICKET> --format json | jq '.edges[] | select(.kind == "modifies") | select(.discoveredAt > <scenario.generatedAt>)'`.
 3. If there are 0 candidates → skip this scenario, no LLM call needed.
 4. If there are ≥1 candidates → run the `classify-outdated.md` prompt (located at `packages/prompts/classify-outdated.md`):
    - Inputs: scenario gherkin + original AC, candidate tickets' AC, failure expected/actual from trace.
@@ -1615,7 +1615,7 @@ For every scenario in `classifier-output.json` whose `outcome === "FAIL"`:
 **If lazy similarity is needed** (a candidate ticket exists but has no `similar` edges and is hot for many scenarios), first run:
 
 ```bash
-bun run xera:graph-enrich --ticket <CANDIDATE>
+npx xera-internal graph-enrich --ticket <CANDIDATE>
 ```
 
 This populates `similar` edges so future graph queries are richer. Skip if not needed.
@@ -1625,7 +1625,7 @@ This populates `similar` edges so future graph queries are richer. Skip if not n
 Now invoke the existing `xera:report` flow as before:
 
 ```bash
-bun run xera:report <TICKET> --input=.xera/<TICKET>/runs/<RUN_ID>/classifier-output.json
+npx xera-internal report <TICKET> --input=.xera/<TICKET>/runs/<RUN_ID>/classifier-output.json
 ```
 
 The `xera:report` subcommand reads `outdated-decisions.json` (if present) and may upgrade scenario classifications to `TEST_OUTDATED`.
@@ -1640,7 +1640,7 @@ Find the existing v0.5 sub-flow that runs `heal-locator.md` for SELECTOR_DRIFT s
 
 ```bash
 # Example:
-bun run xera:script <ORIGINAL_TICKET> --refresh-from <CANDIDATE_TICKET>
+npx xera-internal script <ORIGINAL_TICKET> --refresh-from <CANDIDATE_TICKET>
 ```
 
 Heal is for selector drift (DOM moved); TEST_OUTDATED requires a scenario rewrite, not a heal.
@@ -1697,7 +1697,7 @@ Reason (optional, single line):
 Then emit a dispute event:
 
 ```bash
-bun run xera:graph-record dispute \
+npx xera-internal graph-record dispute \
   --run-id <RUN_ID> \
   --scenario-id <SCENARIO_ID> \
   --from <ORIGINAL_CLASSIFICATION> \
@@ -1809,7 +1809,7 @@ If `xera-report` flagged a scenario as TEST_OUTDATED but you believe it's a real
 
 1. Use the dispute prompt during `/xera-report` (or run manually):
    ```bash
-   bun run xera:graph-record dispute \
+   npx xera-internal graph-record dispute \
      --run-id <RUN_ID> --scenario-id <SHA> \
      --from TEST_OUTDATED --to REAL_BUG \
      --actor "$(git config user.email)" \
@@ -1871,7 +1871,7 @@ Specifics per fixture:
 Create `packages/core/test/graph/classify-golden.test.ts`:
 
 ```typescript
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { cpSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -1927,7 +1927,7 @@ For each `expected-classification.json`:
 
 - [ ] **Step 3: Run golden tests**
 
-Run: `cd /home/user/xera/packages/core && bun test test/graph/classify-golden.test.ts`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/graph/classify-golden.test.ts`
 Expected: 4 tests pass.
 
 - [ ] **Step 4: Commit**
@@ -2039,7 +2039,7 @@ Placeholder story for v0.6.1 eval rubric.
 
 - [ ] **Step 4: Verify doctor still passes**
 
-Run: `cd /home/user/xera/packages/core && bun test test/bin-internal/doctor.test.ts`
+Run: `cd /home/user/xera/packages/core && npx vitest run test/bin-internal/doctor.test.ts`
 Expected: all pass (including any `checkGoldenEvalDir` integration).
 
 - [ ] **Step 5: Commit**
@@ -2057,22 +2057,22 @@ git commit -m "test: add EVAL-008 + EVAL-009 fixture shells for v0.6.1 (rubric s
 
 - [ ] **Step 1: Lint**
 
-Run: `cd /home/user/xera && bun run lint`
-Expected: zero errors. Auto-fix with `bun run lint:fix` and commit if needed.
+Run: `cd /home/user/xera && npm run lint`
+Expected: zero errors. Auto-fix with `npm run lint:fix` and commit if needed.
 
 - [ ] **Step 2: Typecheck**
 
-Run: `cd /home/user/xera && bun run typecheck`
+Run: `cd /home/user/xera && npm run typecheck`
 Expected: zero errors.
 
 - [ ] **Step 3: All tests**
 
-Run: `cd /home/user/xera && bun test`
+Run: `cd /home/user/xera && npx vitest run`
 Expected: all unit tests pass (the pre-existing `init-and-run` integration test that requires live servers will still fail — note as expected).
 
 - [ ] **Step 4: Verify backwards compatibility**
 
-Run: `cd /home/user/xera/packages/core && bun test`
+Run: `cd /home/user/xera/packages/core && npx vitest run`
 Specifically check:
 - All v0.6.0 tests still pass
 - Existing classifier tests still pass with the extended enum
@@ -2080,7 +2080,7 @@ Specifically check:
 
 - [ ] **Step 5: Quick scaffolded smoke (skip if CLI not built)**
 
-Optional: `cd /tmp && rm -rf v061test && mkdir v061test && cd v061test && bunx --bun /home/user/xera/packages/cli/dist/index.js init --yes 2>&1 || echo "CLI not built — skip"`
+Optional: `cd /tmp && rm -rf v061test && mkdir v061test && cd v061test && node /home/user/xera/packages/cli/dist/index.js init --yes 2>&1 || echo "CLI not built — skip"`
 
 - [ ] **Step 6: Commit any fixups**
 

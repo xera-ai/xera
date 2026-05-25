@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { type NormalizedRun, scrub } from '../../src/trace-normalizer/scrub';
 
 function runWithError(msg: string): NormalizedRun {

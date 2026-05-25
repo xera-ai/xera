@@ -29,12 +29,12 @@ export async function newAuthedContext(
   const entry = readAuthState(join(authDir, 'http'), role);
   if (!entry) {
     throw new Error(
-      `Auth file not found for role '${role}'. Run: bun run xera:auth-setup --role ${role}`,
+      `Auth file not found for role '${role}'. Run: npx xera-internal auth-setup --role ${role}`,
     );
   }
   if (new Date(entry.expires_at).getTime() < Date.now()) {
     throw new Error(
-      `Auth file expired for role '${role}'. Run: bun run xera:auth-setup --role ${role}`,
+      `Auth file expired for role '${role}'. Run: npx xera-internal auth-setup --role ${role}`,
     );
   }
   const payload = entry.payload as unknown as AuthFilePayload;

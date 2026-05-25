@@ -6,7 +6,7 @@
 
 **Architecture:** Mirror `@xera-ai/web`'s shape. Each subsystem has its own folder under `src/`. Tests mirror src paths. Only `@playwright/test` (peer-style), `@apidevtools/json-schema-ref-parser`, `@xera-ai/core`, and zod are direct deps. The package exports two distinct entry points: a build-time API (`HttpAdapter` for the runner) and a run-time API (`newAuthedContext` for generated `spec.ts`).
 
-**Prereqs:** Plan 01 complete. `bun test packages/core` green.
+**Prereqs:** Plan 01 complete. `npx vitest run packages/core` green.
 
 ---
 
@@ -31,20 +31,19 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "bun": "./src/index.ts",
+      "source": "./src/index.ts",
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
     "./runtime": {
-      "bun": "./src/runtime/index.ts",
+      "source": "./src/runtime/index.ts",
       "import": "./dist/runtime/index.js",
       "types": "./dist/runtime/index.d.ts"
     }
   },
   "files": ["dist", "src"],
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target bun --external @playwright/test --external @xera-ai/core --external @apidevtools/json-schema-ref-parser",
-    "build:runtime": "bun build ./src/runtime/index.ts --outdir ./dist/runtime --target bun --external @playwright/test --external @xera-ai/core",
+    "build": "tsup",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -68,7 +67,7 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "composite": false,
-    "types": ["bun-types"]
+    "types": ["@types/node"]
   },
   "include": ["src/**/*", "test/**/*"]
 }
@@ -85,13 +84,13 @@ export { defineHttpAuthSetup, presetHttpAuth } from './auth-setup';
 
 - [ ] **Step 4: Install deps**
 
-Run: `bun install`
+Run: `npm install`
 Expected: workspace resolves `@xera-ai/http`; lockfile updated.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add packages/http/package.json packages/http/tsconfig.json packages/http/src/index.ts packages/http/test/ bun.lock
+git add packages/http/package.json packages/http/tsconfig.json packages/http/src/index.ts packages/http/test/ package-lock.json
 git commit -m "http: scaffold @xera-ai/http package"
 ```
 
@@ -110,7 +109,7 @@ git commit -m "http: scaffold @xera-ai/http package"
 
 ```ts
 // packages/http/test/openapi/loader.test.ts
-import { test, expect } from 'bun:test';
+import { test, expect } from 'vitest';
 import { join } from 'node:path';
 import { loadOpenApi } from '../../src/openapi/loader';
 
@@ -169,7 +168,7 @@ Create a malformed fixture too: `packages/http/test/openapi/fixtures/malformed.y
 
 - [ ] **Step 3: Run, verify fail**
 
-Run: `cd packages/http && bun test test/openapi/`
+Run: `cd packages/http && npx vitest run test/openapi/`
 Expected: import error.
 
 - [ ] **Step 4: Implement loader**
@@ -201,7 +200,7 @@ export async function loadOpenApi(pathOrUrl: string): Promise<OpenAPIDocument | 
 
 - [ ] **Step 5: Run, verify pass**
 
-Run: `cd packages/http && bun test test/openapi/loader.test.ts`
+Run: `cd packages/http && npx vitest run test/openapi/loader.test.ts`
 Expected: 3 green.
 
 - [ ] **Step 6: Commit**
@@ -222,7 +221,7 @@ git commit -m "http: openapi loader with $ref deref"
 - [ ] **Step 1: Write the failing test**
 
 ```ts
-import { test, expect } from 'bun:test';
+import { test, expect } from 'vitest';
 import { findOperation } from '../../src/openapi/find-operation';
 import type { OpenAPIDocument } from '@xera-ai/core';
 
@@ -258,7 +257,7 @@ test('ignores query string', () => {
 
 - [ ] **Step 2: Run, verify fail**
 
-Run: `cd packages/http && bun test test/openapi/find-operation.test.ts`
+Run: `cd packages/http && npx vitest run test/openapi/find-operation.test.ts`
 Expected: import error.
 
 - [ ] **Step 3: Implement**
@@ -288,7 +287,7 @@ export function findOperation(spec: OpenAPIDocument, method: string, url: string
 
 - [ ] **Step 4: Run, verify pass**
 
-Run: `cd packages/http && bun test test/openapi/find-operation.test.ts`
+Run: `cd packages/http && npx vitest run test/openapi/find-operation.test.ts`
 Expected: 5 green.
 
 - [ ] **Step 5: Commit**
@@ -332,7 +331,7 @@ git commit -m "http: openapi public exports"
 - [ ] **Step 1: Write failing test**
 
 ```ts
-import { test, expect } from 'bun:test';
+import { test, expect } from 'vitest';
 import { defineHttpAuthSetup } from '../../src/auth-setup/define';
 
 test('defineHttpAuthSetup returns the function as-is', () => {
@@ -343,7 +342,7 @@ test('defineHttpAuthSetup returns the function as-is', () => {
 
 - [ ] **Step 2: Run, verify fail**
 
-Run: `cd packages/http && bun test test/auth-setup/define.test.ts`
+Run: `cd packages/http && npx vitest run test/auth-setup/define.test.ts`
 Expected: import error.
 
 - [ ] **Step 3: Implement**
@@ -385,7 +384,7 @@ export function defineHttpAuthSetup(fn: HttpAuthSetupFn): HttpAuthSetupFn {
 
 - [ ] **Step 4: Run, verify pass**
 
-Run: `cd packages/http && bun test test/auth-setup/define.test.ts`
+Run: `cd packages/http && npx vitest run test/auth-setup/define.test.ts`
 Expected: 1 green.
 
 - [ ] **Step 5: Commit**
@@ -406,7 +405,7 @@ git commit -m "http: defineHttpAuthSetup helper"
 - [ ] **Step 1: Write failing test**
 
 ```ts
-import { test, expect, beforeEach } from 'bun:test';
+import { test, expect, beforeEach } from 'vitest';
 import { presetHttpAuth } from '../../src/auth-setup/preset';
 import type { XeraConfig } from '@xera-ai/core';
 
@@ -467,7 +466,7 @@ test('bearer throws when env var missing', async () => {
 
 - [ ] **Step 2: Run, verify fail**
 
-Run: `cd packages/http && bun test test/auth-setup/preset.test.ts`
+Run: `cd packages/http && npx vitest run test/auth-setup/preset.test.ts`
 Expected: import error.
 
 - [ ] **Step 3: Implement**
@@ -553,7 +552,7 @@ export async function presetHttpAuth(input: PresetHttpAuthInput): Promise<HttpAu
 
 - [ ] **Step 4: Run, verify pass**
 
-Run: `cd packages/http && bun test test/auth-setup/preset.test.ts`
+Run: `cd packages/http && npx vitest run test/auth-setup/preset.test.ts`
 Expected: 3 green.
 
 - [ ] **Step 5: Commit**
@@ -574,7 +573,7 @@ git commit -m "http: presetHttpAuth (bearer/apiKey/basic/oauth-cc)"
 - [ ] **Step 1: Write failing test**
 
 ```ts
-import { test, expect, beforeEach, afterEach } from 'bun:test';
+import { test, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -612,7 +611,7 @@ test('writes encrypted http auth file for role', async () => {
 
 - [ ] **Step 2: Run, verify fail**
 
-Run: `cd packages/http && bun test test/auth-setup/runner.test.ts`
+Run: `cd packages/http && npx vitest run test/auth-setup/runner.test.ts`
 Expected: import error.
 
 - [ ] **Step 3: Implement**
@@ -661,7 +660,7 @@ export async function runHttpAuthSetup(input: RunHttpAuthSetupInput): Promise<vo
 
 - [ ] **Step 4: Run, verify pass**
 
-Run: `cd packages/http && bun test test/auth-setup/runner.test.ts`
+Run: `cd packages/http && npx vitest run test/auth-setup/runner.test.ts`
 Expected: 1 green.
 
 - [ ] **Step 5: Commit**
@@ -706,7 +705,7 @@ git commit -m "http: auth-setup public exports"
 - [ ] **Step 1: Write failing test**
 
 ```ts
-import { test, expect, beforeEach, afterEach } from 'bun:test';
+import { test, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -742,7 +741,7 @@ test('throws AUTH_EXPIRED-style error when file past expiry', async () => {
 
 - [ ] **Step 2: Run, verify fail**
 
-Run: `cd packages/http && bun test test/runtime/`
+Run: `cd packages/http && npx vitest run test/runtime/`
 Expected: import error.
 
 - [ ] **Step 3: Implement**
@@ -774,10 +773,10 @@ export async function newAuthedContext(
   }
   const entry = readAuthState(join(authDir, 'http'), role);
   if (!entry) {
-    throw new Error(`Auth file not found for role '${role}'. Run: bun run xera:auth-setup --role ${role}`);
+    throw new Error(`Auth file not found for role '${role}'. Run: npx xera-internal auth-setup --role ${role}`);
   }
   if (new Date(entry.expires_at).getTime() < Date.now()) {
-    throw new Error(`Auth file expired for role '${role}'. Run: bun run xera:auth-setup --role ${role}`);
+    throw new Error(`Auth file expired for role '${role}'. Run: npx xera-internal auth-setup --role ${role}`);
   }
   const payload = entry.payload as unknown as AuthFilePayload;
   const headers: Record<string, string> = {};
@@ -796,7 +795,7 @@ export async function newAuthedContext(
 
 - [ ] **Step 4: Run, verify pass**
 
-Run: `cd packages/http && bun test test/runtime/`
+Run: `cd packages/http && npx vitest run test/runtime/`
 Expected: 2 green.
 
 - [ ] **Step 5: Commit**
@@ -819,7 +818,7 @@ git commit -m "http: newAuthedContext runtime helper"
 - [ ] **Step 1: Write failing test**
 
 ```ts
-import { test, expect } from 'bun:test';
+import { test, expect } from 'vitest';
 import { generateHttpPlaywrightConfig } from '../../src/executor/playwright-config';
 
 test('generates a config string with http project and no browser', () => {
@@ -836,7 +835,7 @@ test('generates a config string with http project and no browser', () => {
 
 - [ ] **Step 2: Run, verify fail**
 
-Run: `cd packages/http && bun test test/executor/`
+Run: `cd packages/http && npx vitest run test/executor/`
 Expected: import error.
 
 - [ ] **Step 3: Implement**
@@ -869,7 +868,7 @@ export default defineConfig({
 
 - [ ] **Step 4: Run, verify pass**
 
-Run: `cd packages/http && bun test test/executor/playwright-config.test.ts`
+Run: `cd packages/http && npx vitest run test/executor/playwright-config.test.ts`
 Expected: 1 green.
 
 - [ ] **Step 5: Commit**
@@ -892,7 +891,7 @@ The trace recorder hooks into the `APIRequestContext` returned by `newAuthedCont
 - [ ] **Step 1: Write failing test (using a fake request context)**
 
 ```ts
-import { test, expect, beforeEach, afterEach } from 'bun:test';
+import { test, expect, beforeEach, afterEach } from 'vitest';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -926,7 +925,7 @@ test('writes a JSONL line on response', async () => {
 
 - [ ] **Step 2: Run, verify fail**
 
-Run: `cd packages/http && bun test test/executor/trace-recorder.test.ts`
+Run: `cd packages/http && npx vitest run test/executor/trace-recorder.test.ts`
 Expected: import error.
 
 - [ ] **Step 3: Implement**
@@ -994,7 +993,7 @@ export function attachTraceRecorder(ctx: APIRequestContext, input: AttachTraceRe
 
 - [ ] **Step 4: Run, verify pass**
 
-Run: `cd packages/http && bun test test/executor/trace-recorder.test.ts`
+Run: `cd packages/http && npx vitest run test/executor/trace-recorder.test.ts`
 Expected: 1 green.
 
 - [ ] **Step 5: Commit**
@@ -1049,7 +1048,7 @@ export async function runHttpScenarios(input: RunHttpScenariosInput): Promise<Ru
   const traceFile = join(input.runDir, 'http-trace.jsonl');
 
   return new Promise((resolve) => {
-    const child = spawn('bunx', ['playwright', 'test', '--config', pwConfigPath], {
+    const child = spawn('npx', ['playwright', 'test', '--config', pwConfigPath], {
       stdio: 'inherit',
       env: {
         ...process.env,
@@ -1083,7 +1082,7 @@ git commit -m "http: runHttpScenarios entry point"
 - [ ] **Step 1: Write failing test**
 
 ```ts
-import { test, expect, beforeEach, afterEach } from 'bun:test';
+import { test, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -1114,7 +1113,7 @@ test('produces normalized.json with calls array and curl reproducer', async () =
 
 - [ ] **Step 2: Run, verify fail**
 
-Run: `cd packages/http && bun test test/trace-normalizer/`
+Run: `cd packages/http && npx vitest run test/trace-normalizer/`
 Expected: import error.
 
 - [ ] **Step 3: Implement**
@@ -1205,7 +1204,7 @@ export async function normalizeHttpRun(input: NormalizeHttpRunInput): Promise<No
 
 - [ ] **Step 4: Run, verify pass**
 
-Run: `cd packages/http && bun test test/trace-normalizer/`
+Run: `cd packages/http && npx vitest run test/trace-normalizer/`
 Expected: 1 green.
 
 - [ ] **Step 5: Commit**
@@ -1228,7 +1227,7 @@ git commit -m "http: trace normalizer + curl reproducer"
 - [ ] **Step 1: Write failing test**
 
 ```ts
-import { test, expect } from 'bun:test';
+import { test, expect } from 'vitest';
 import { HttpAdapter } from '../src/adapter';
 
 test('HttpAdapter id is "http"', () => {
@@ -1248,7 +1247,7 @@ test('HttpAdapter.doctor reports playwright presence', async () => {
 
 - [ ] **Step 2: Run, verify fail**
 
-Run: `cd packages/http && bun test test/adapter.test.ts`
+Run: `cd packages/http && npx vitest run test/adapter.test.ts`
 Expected: import error.
 
 - [ ] **Step 3: Implement**
@@ -1297,7 +1296,7 @@ export const HttpAdapter: TestAdapter = {
       await import('@playwright/test');
       checks.push({ name: '@playwright/test installed', ok: true });
     } catch {
-      checks.push({ name: '@playwright/test installed', ok: false, message: 'Run `bun add -D @playwright/test`.' });
+      checks.push({ name: '@playwright/test installed', ok: false, message: 'Run `npm install -D @playwright/test`.' });
     }
     return { ok: checks.every((c) => c.ok), checks };
   },
@@ -1306,7 +1305,7 @@ export const HttpAdapter: TestAdapter = {
 
 - [ ] **Step 4: Run, verify pass**
 
-Run: `cd packages/http && bun test test/adapter.test.ts`
+Run: `cd packages/http && npx vitest run test/adapter.test.ts`
 Expected: 3 green.
 
 - [ ] **Step 5: Commit**
@@ -1335,12 +1334,12 @@ export { loadOpenApi, findOperation } from './openapi';
 
 - [ ] **Step 2: Run full http suite**
 
-Run: `cd packages/http && bun test && bun run typecheck`
+Run: `cd packages/http && npx vitest run && npm run typecheck`
 Expected: all green, no type errors.
 
 - [ ] **Step 3: Run full workspace suite**
 
-Run: `bun test && bun run typecheck && bun run lint`
+Run: `npx vitest run && npm run typecheck && npm run lint`
 Expected: all green.
 
 - [ ] **Step 4: Commit milestone**

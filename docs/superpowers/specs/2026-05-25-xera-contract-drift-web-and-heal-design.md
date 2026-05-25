@@ -141,7 +141,7 @@ This runs **before** aggregation, alongside the existing http override. CONTRACT
   └─ after classifier-output, for the FIRST scenario by priority:
        ├─ class == SELECTOR_DRIFT  → existing v0.5 locator heal (unchanged)
        └─ class == CONTRACT_DRIFT  → NEW contract heal:
-            Phase A: bun run xera:contract-heal-prepare <TICKET> <RUN_ID> "<SCENARIO>"
+            Phase A: npx xera-internal contract-heal-prepare <TICKET> <RUN_ID> "<SCENARIO>"
                        → contract-heal-input.json   (no LLM)
                        (web adapter → input.refusable='web-no-assertion'; skill refuses, STOP)
             Phase B: mint nonce, wrap (respBody + openapi snippet) untrusted,

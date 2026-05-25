@@ -1,7 +1,7 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { cpSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { graphBackfillCmd } from '../../src/bin-internal/graph-backfill';
 import { deriveSnapshot, isSnapshotStale, loadAllEvents } from '../../src/graph/store';
 

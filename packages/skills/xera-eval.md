@@ -28,7 +28,7 @@ The flow has 5 phases. Phases 1, 3, 5 are deterministic CLI calls. Phase 2 (gen)
 
 If `--judge-only` is set, SKIP phases 1, 2, 3 and jump to "Judge-only flow" below.
 
-Run: `bun run xera:eval-prepare {{FLAGS}}`
+Run: `npx xera-internal eval-prepare {{FLAGS}}`
 
 `{{FLAGS}}` is the user's pass-through flags (e.g. `--ticket=EVAL-001 --force`). If no flags are given, pass none.
 
@@ -56,13 +56,13 @@ Create the actual output directory if missing: `.xera/eval/{{RUN_ID}}/actual/{{T
 **Stage = feature-from-story:**
 1. Read `packages/prompts/feature-from-story.md` (the prompt under test).
 2. Read `.xera/eval/{{RUN_ID}}/inputs/{{TICKET}}/story.md`.
-3. Mint a per-iteration nonce: `bun -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"`. The output is a value like `XR_a3f9b2c14e8d`. Wrap the story.md content between two identical tags whose name IS that nonce value (e.g. `<XR_a3f9b2c14e8d>...story content...<XR_a3f9b2c14e8d>` — NOT the literal string `<NONCE>`). Then follow the prompt to generate the Gherkin output. Do NOT include the nonce markers in the written file.
+3. Mint a per-iteration nonce: `node -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"`. The output is a value like `XR_a3f9b2c14e8d`. Wrap the story.md content between two identical tags whose name IS that nonce value (e.g. `<XR_a3f9b2c14e8d>...story content...<XR_a3f9b2c14e8d>` — NOT the literal string `<NONCE>`). Then follow the prompt to generate the Gherkin output. Do NOT include the nonce markers in the written file.
 4. Write it to `.xera/eval/{{RUN_ID}}/actual/{{TICKET}}/test.feature`.
 
 **Stage = script-from-feature:**
 1. Read `packages/prompts/script-from-feature.md`.
 2. Read `.xera/eval/{{RUN_ID}}/inputs/{{TICKET}}/test.feature` — this is the GOLDEN feature, not the actual gen from the previous stage. Stage inputs are isolated (spec §2.2 decision #2).
-3. Mint a per-iteration nonce: `bun -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"`. The output is a value like `XR_a3f9b2c14e8d`. Wrap the test.feature content between two identical tags whose name IS that nonce value (e.g. `<XR_a3f9b2c14e8d>...feature content...<XR_a3f9b2c14e8d>` — NOT the literal string `<NONCE>`). Then follow the prompt to generate `spec.ts` (and any page-object files). Do NOT include the nonce markers in the written files.
+3. Mint a per-iteration nonce: `node -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"`. The output is a value like `XR_a3f9b2c14e8d`. Wrap the test.feature content between two identical tags whose name IS that nonce value (e.g. `<XR_a3f9b2c14e8d>...feature content...<XR_a3f9b2c14e8d>` — NOT the literal string `<NONCE>`). Then follow the prompt to generate `spec.ts` (and any page-object files). Do NOT include the nonce markers in the written files.
 4. Write `spec.ts` to `.xera/eval/{{RUN_ID}}/actual/{{TICKET}}/spec.ts`.
 5. Write any POM files to `.xera/eval/{{RUN_ID}}/actual/{{TICKET}}/page-objects/<name>.page.ts`.
 
@@ -122,7 +122,7 @@ Append the parsed JSON object to an in-memory array of judgments.
 
 After all (ticket, stage) iterations have completed (gen + judge), run the deterministic phase:
 
-Run: `bun run xera:eval-deterministic {{RUN_ID}}`
+Run: `npx xera-internal eval-deterministic {{RUN_ID}}`
 
 Exit code 0 → continue. Any non-zero → fail; surface stderr.
 
@@ -141,7 +141,7 @@ Write the in-memory judgments array to `.xera/eval/{{RUN_ID}}/judge-scores.json`
 
 ### Phase 5 — Report
 
-Run: `bun run xera:eval-report {{RUN_ID}}`
+Run: `npx xera-internal eval-report {{RUN_ID}}`
 
 Exit code 0 → success. The command prints a one-line summary to stdout (e.g. `12/15 PASS (avg 80%)`). The full report is at `.xera/eval/{{RUN_ID}}/report.md`.
 
@@ -159,14 +159,14 @@ If `--judge-only` was passed:
 3. Apply any `--prompt` / `--ticket` filters from the user against the manifest's scope (do not extend beyond it).
 4. For each (ticket, stage) in `manifest.ticket_stages` filtered by any `--prompt`/`--ticket` flags from the user: spawn a judge sub-agent using the existing `actual/<ticket>/*` files. Same Task-tool template as Phase 2.
 5. Overwrite `.xera/eval/<run-id>/judge-scores.json` with the new array.
-6. Re-run `bun run xera:eval-report <run-id>`.
+6. Re-run `npx xera-internal eval-report <run-id>`.
 
-Do NOT re-run `xera:eval-prepare` or `xera:eval-deterministic` in judge-only mode.
+Do NOT re-run `xera-internal eval-prepare` or `xera-internal eval-deterministic` in judge-only mode.
 
 ## Exit conditions
 
 - Exit 0 → report.md exists and was rendered. Tell the maintainer the path and the summary line.
-- Any non-zero exit from any `bun run xera:*` call → stop, print the stderr, and ask the maintainer how to proceed. Do not invent fallbacks.
+- Any non-zero exit from any `npx xera-internal` call → stop, print the stderr, and ask the maintainer how to proceed. Do not invent fallbacks.
 - A sub-agent returning persistently-invalid JSON (after 1 retry) is NOT a stop condition — record FAIL placeholder and continue, so the report still renders for the other tickets.
 
 ## What NOT to do

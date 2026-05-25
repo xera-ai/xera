@@ -1,7 +1,7 @@
-import { describe, expect, test } from 'bun:test';
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { hostname, tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { describe, expect, test } from 'vitest';
 import { acquireLock, isLockStale, readLock, releaseLock } from '../../src/lock/file-lock';
 
 describe('file-lock', () => {

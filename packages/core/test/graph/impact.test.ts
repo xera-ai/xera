@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import type { ImpactReport, ImpactScenario } from '../../src/graph/impact';
 import { renderImpactMarkdown, riskScore, walkImpact } from '../../src/graph/impact';
 import type {
@@ -301,7 +301,7 @@ describe('renderImpactMarkdown', () => {
     expect(md).toContain('ABC-100');
     expect(md).toContain('user signs in');
     expect(md).toContain('## Re-run commands');
-    expect(md).toContain('xera:exec --from-impact ABC-200');
+    expect(md).toContain('xera-internal exec --from-impact ABC-200');
   });
 
   test('shows empty state when no scenarios impacted', () => {

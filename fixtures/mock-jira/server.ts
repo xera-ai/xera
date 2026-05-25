@@ -1,4 +1,5 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { createServer } from 'node:http';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -14,45 +15,48 @@ function loadTicket(key: string): unknown | null {
 
 const comments: Array<{ key: string; body: unknown }> = [];
 
-Bun.serve({
-  port: PORT,
-  fetch(req) {
-    const url = new URL(req.url);
+const server = createServer((req, res) => {
+  const url = new URL(req.url ?? '/', `http://localhost:${PORT}`);
+  const json = (status: number, body: unknown) => {
+    res.statusCode = status;
+    res.setHeader('content-type', 'application/json');
+    res.end(JSON.stringify(body));
+  };
 
-    // GET /rest/api/3/issue/<KEY>
-    const issueMatch = url.pathname.match(/^\/rest\/api\/3\/issue\/([^/]+)$/);
-    if (req.method === 'GET' && issueMatch) {
-      const ticket = loadTicket(decodeURIComponent(issueMatch[1]!));
-      return ticket
-        ? new Response(JSON.stringify(ticket), {
-            status: 200,
-            headers: { 'content-type': 'application/json' },
-          })
-        : new Response('not found', { status: 404 });
-    }
+  // GET /rest/api/3/issue/<KEY>
+  const issueMatch = url.pathname.match(/^\/rest\/api\/3\/issue\/([^/]+)$/);
+  if (req.method === 'GET' && issueMatch) {
+    const ticket = loadTicket(decodeURIComponent(issueMatch[1]!));
+    if (ticket) return json(200, ticket);
+    res.statusCode = 404;
+    return res.end('not found');
+  }
 
-    // POST /rest/api/3/issue/<KEY>/comment
-    const commentMatch = url.pathname.match(/^\/rest\/api\/3\/issue\/([^/]+)\/comment$/);
-    if (req.method === 'POST' && commentMatch) {
-      return req.json().then((body) => {
-        comments.push({ key: commentMatch[1]!, body });
-        return new Response(JSON.stringify({ id: String(comments.length) }), {
-          status: 201,
-          headers: { 'content-type': 'application/json' },
-        });
-      });
-    }
+  // POST /rest/api/3/issue/<KEY>/comment
+  const commentMatch = url.pathname.match(/^\/rest\/api\/3\/issue\/([^/]+)\/comment$/);
+  if (req.method === 'POST' && commentMatch) {
+    let data = '';
+    req.on('data', (chunk) => {
+      data += chunk;
+    });
+    req.on('end', () => {
+      const body = data ? JSON.parse(data) : {};
+      comments.push({ key: commentMatch[1]!, body });
+      json(201, { id: String(comments.length) });
+    });
+    return;
+  }
 
-    // GET /__comments__ for assertions
-    if (req.method === 'GET' && url.pathname === '/__comments__') {
-      return new Response(JSON.stringify(comments), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      });
-    }
+  // GET /__comments__ for assertions
+  if (req.method === 'GET' && url.pathname === '/__comments__') {
+    return json(200, comments);
+  }
 
-    return new Response('not found', { status: 404 });
-  },
+  res.statusCode = 404;
+  res.end('not found');
 });
-console.log(`mock-jira listening on http://localhost:${PORT}`);
-console.log(`available tickets: ${readdirSync(TICKETS_DIR).join(', ')}`);
+
+server.listen(PORT, () => {
+  console.log(`mock-jira listening on http://localhost:${PORT}`);
+  console.log(`available tickets: ${readdirSync(TICKETS_DIR).join(', ')}`);
+});

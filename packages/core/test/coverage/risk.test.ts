@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { computeAcGapScore, computeAreaRisk, RISK_WEIGHTS } from '../../src/coverage/risk';
 import { DEFAULT_COVERAGE_CONFIG } from '../../src/coverage/types';
 import type { Snapshot } from '../../src/graph/types';

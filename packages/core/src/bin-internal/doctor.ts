@@ -163,7 +163,7 @@ export async function doctorCmd(argv: string[], opts: DoctorOpts = {}): Promise<
         console.log('');
         console.log(`⚠ Graph: ${unbackfilled.length} ticket(s) not yet in graph.`);
         console.log(`  These won't participate in v0.6.1+ features (TEST_OUTDATED, /xera-impact).`);
-        console.log(`  Run: bun run xera:graph-backfill`);
+        console.log(`  Run: npx xera-internal graph-backfill`);
         console.log(`  (Use --dry-run to preview.)`);
         if (autoEnrich) {
           console.log('[doctor] --auto-enrich: running backfill for unbackfilled tickets...');

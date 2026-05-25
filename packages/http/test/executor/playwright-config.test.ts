@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { generateHttpPlaywrightConfig } from '../../src/executor/playwright-config';
 
 describe('generateHttpPlaywrightConfig', () => {

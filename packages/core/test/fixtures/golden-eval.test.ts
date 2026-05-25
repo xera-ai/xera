@@ -1,9 +1,9 @@
-import { describe, expect, test } from 'bun:test';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { validateGherkin } from '@xera-ai/web';
+import { describe, expect, test } from 'vitest';
 
-const ROOT = join(import.meta.dir, '../../../../fixtures/golden-eval');
+const ROOT = join(import.meta.dirname, '../../../../fixtures/golden-eval');
 
 describe('fixtures/golden-eval/', () => {
   const dirs = existsSync(ROOT)

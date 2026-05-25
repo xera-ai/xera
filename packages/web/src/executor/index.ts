@@ -1,3 +1,4 @@
+import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildPlaywrightArgs } from './playwright-args';
@@ -22,11 +23,12 @@ export interface RunPlaywrightResult {
   exitCode: number;
 }
 
-const defaultSpawn: SpawnFn = async (cmd, args, env) => {
-  const proc = Bun.spawn([cmd, ...args], { env, stdout: 'inherit', stderr: 'inherit' });
-  const exitCode = await proc.exited;
-  return { exitCode };
-};
+const defaultSpawn: SpawnFn = (cmd, args, env) =>
+  new Promise((resolve) => {
+    const child = spawn(cmd, args, { env, stdio: 'inherit' });
+    child.on('error', () => resolve({ exitCode: 1 }));
+    child.on('close', (code) => resolve({ exitCode: code ?? 1 }));
+  });
 
 export async function runPlaywright(input: RunPlaywrightInput): Promise<RunPlaywrightResult> {
   const args = buildPlaywrightArgs({

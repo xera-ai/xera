@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { writeAuthState } from '@xera-ai/core';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { runChecks } from '../src/checks';
 
 // Helper: create a minimal web project with optional coverage config (plain object export)
@@ -53,7 +53,7 @@ describe('doctor http checks', () => {
     const checks = await runChecks(dir);
     const missing = checks.find((c) => c.name === 'http auth file present: user');
     expect(missing?.ok).toBe(false);
-    expect(missing?.message).toContain('xera:auth-setup --role user');
+    expect(missing?.message).toContain('xera-internal auth-setup --role user');
   });
 
   test('reports ✓ when auth file present and fresh', async () => {

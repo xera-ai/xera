@@ -60,7 +60,7 @@ Note: the actual *reasoning* in v0.1 is done by the LLM (via skill prompt + diag
 - [x] **Step 2: Failing test for history**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { summarizeHistory } from '../../src/classifier/history';
 
 describe('summarizeHistory', () => {
@@ -119,7 +119,7 @@ export function summarizeHistory(
 - [x] **Step 4: Tests pass + commit**
 
 ```bash
-cd packages/core && bun test
+cd packages/core && npx vitest run
 git add packages/core/src/classifier/{types,history}.ts packages/core/test/classifier/history.test.ts
 git commit -m "core: classifier types + history summarizer"
 ```
@@ -137,7 +137,7 @@ When the LLM has classified each failing scenario individually, the aggregator d
 - [x] **Step 1: Failing tests**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { aggregateScenarios } from '../../src/classifier/aggregate';
 
 describe('aggregateScenarios', () => {
@@ -201,7 +201,7 @@ export function aggregateScenarios(scenarios: ScenarioClassification[]): Classif
 - [x] **Step 3: Tests pass + commit**
 
 ```bash
-cd packages/core && bun test
+cd packages/core && npx vitest run
 git add packages/core/src/classifier/aggregate.ts packages/core/test/classifier/aggregate.test.ts
 git commit -m "core: aggregate per-scenario classifications into overall verdict"
 ```
@@ -217,7 +217,7 @@ git commit -m "core: aggregate per-scenario classifications into overall verdict
 - [x] **Step 1: Failing tests**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { buildJiraComment } from '../../src/reporter/jira-comment';
 
 describe('buildJiraComment', () => {
@@ -254,7 +254,7 @@ describe('buildJiraComment', () => {
     expect(md).toContain('1 / 2 passed');
     expect(md).toContain('Login fail bad password');
     expect(md).toContain('returned 500');
-    expect(md).toContain('bunx xera-internal exec JIRA-1 --replay=2026-05-14T10-30-00');
+    expect(md).toContain('npx xera-internal exec JIRA-1 --replay=2026-05-14T10-30-00');
   });
 });
 ```
@@ -298,7 +298,7 @@ export function buildJiraComment(input: JiraCommentInput): string {
 - [x] **Step 3: Tests pass + commit**
 
 ```bash
-cd packages/core && bun test
+cd packages/core && npx vitest run
 git add packages/core/src/reporter/jira-comment.ts packages/core/test/reporter/jira-comment.test.ts
 git commit -m "core: Jira comment builder (English, includes reproduce)"
 ```
@@ -314,7 +314,7 @@ git commit -m "core: Jira comment builder (English, includes reproduce)"
 - [x] **Step 1: Failing test**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -400,7 +400,7 @@ export function writeStatusFromClassification(path: string, input: StatusWriterI
 - [x] **Step 3: Tests pass + commit**
 
 ```bash
-cd packages/core && bun test
+cd packages/core && npx vitest run
 git add packages/core/src/reporter/status-writer.ts packages/core/test/reporter/status-writer.test.ts
 git commit -m "core: status-writer integrates classification into status.json"
 ```
@@ -499,7 +499,7 @@ These fixtures contain the *expected* per-scenario classifications. The test ass
 - [x] **Step 2: Failing test**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { aggregateScenarios } from '../../src/classifier/aggregate';
@@ -522,7 +522,7 @@ describe('classifier golden fixtures', () => {
 - [x] **Step 3: Tests pass + commit**
 
 ```bash
-cd packages/core && bun test
+cd packages/core && npx vitest run
 git add fixtures/golden-tickets packages/core/test/classifier/golden.test.ts
 git commit -m "core+fixtures: classifier golden harness with 5 fixtures"
 ```
@@ -587,7 +587,7 @@ export async function run(argv: string[]): Promise<number> {
 `packages/core/bin/internal.ts`:
 
 ```ts
-#!/usr/bin/env bun
+#!/usr/bin/env node
 import { run } from '../src/bin-internal/index';
 const code = await run(process.argv.slice(2));
 process.exit(code);
@@ -614,7 +614,7 @@ The subcommand files (referenced above) are implemented in the following tasks. 
 - [x] **Step 1: Failing test (mocks Jira client)**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { mkdtempSync, rmSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -731,7 +731,7 @@ function renderStory(t: JiraTicket): string {
 - [x] **Step 3: Tests pass + commit**
 
 ```bash
-cd packages/core && bun test
+cd packages/core && npx vitest run
 git add packages/core/src/bin-internal/fetch.ts packages/core/test/bin-internal/fetch.test.ts
 git commit -m "core: xera-internal fetch — writes story.md + meta.json"
 ```
@@ -802,7 +802,7 @@ export async function lintCmd(argv: string[]): Promise<number> {
 - [x] **Step 4: Smoke test all three**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -837,7 +837,7 @@ describe('quality gate subcommands', () => {
 - [x] **Step 5: Tests pass + commit**
 
 ```bash
-cd packages/core && bun test
+cd packages/core && npx vitest run
 git add packages/core/src/bin-internal/{validate-feature,typecheck,lint}.ts packages/core/test/bin-internal/quality-gates.test.ts
 git commit -m "core: xera-internal validate-feature + typecheck + lint subcommands"
 ```
@@ -969,7 +969,7 @@ ${projects.join(',\n')}
 - [x] **Step 2: Lightweight test (skip real Playwright; assert lock + config gen)**
 
 ```ts
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { mkdtempSync, writeFileSync, mkdirSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -999,7 +999,7 @@ describe('xera-internal exec', () => {
 - [x] **Step 3: Tests pass + commit**
 
 ```bash
-cd packages/core && bun test
+cd packages/core && npx vitest run
 git add packages/core/src/bin-internal/exec.ts packages/core/test/bin-internal/exec.test.ts
 git commit -m "core: xera-internal exec with auth refresh, lock, and config gen"
 ```
@@ -1209,7 +1209,7 @@ export async function promoteCmd(argv: string[]): Promise<number> {
 - [x] **Step 4: Commit + verify build**
 
 ```bash
-cd packages/core && bun run typecheck && bun run build
+cd packages/core && npm run typecheck && npm run build
 git add packages/core/src/bin-internal/{status-cmd,unlock,promote}.ts
 git commit -m "core: xera-internal status + unlock + promote subcommands"
 ```
@@ -1360,7 +1360,7 @@ export default defineConfig({
     "skipLibCheck": true,
     "esModuleInterop": true,
     "isolatedModules": true,
-    "types": ["@playwright/test", "bun-types"]
+    "types": ["@playwright/test", "@types/node"]
   },
   "include": [".xera/**/*.ts", "shared/**/*.ts"]
 }
@@ -1651,8 +1651,8 @@ export interface Check { name: string; ok: boolean; message?: string; }
 export async function runChecks(cwd: string): Promise<Check[]> {
   const checks: Check[] = [];
 
-  // Bun
-  checks.push({ name: `bun ${process.versions.bun ?? 'unknown'}`, ok: !!process.versions.bun });
+  // Node
+  checks.push({ name: `node ${process.versions.node}`, ok: Number(process.versions.node.split('.')[0]) >= 20 });
 
   // xera.config.ts present and valid
   try {
@@ -1685,7 +1685,7 @@ export async function runChecks(cwd: string): Promise<Check[]> {
     await import('@playwright/test');
     checks.push({ name: '@playwright/test installed', ok: true });
   } catch {
-    checks.push({ name: '@playwright/test installed', ok: false, message: 'run: bun add -D @playwright/test' });
+    checks.push({ name: '@playwright/test installed', ok: false, message: 'run: npm install -D @playwright/test' });
   }
 
   // Skills
@@ -1743,7 +1743,7 @@ export async function doctorCommand(opts: { strict?: string; logs?: string; usag
 - [x] **Step 3: Commit + smoke test**
 
 ```bash
-cd packages/cli && bun run typecheck
+cd packages/cli && npm run typecheck
 git add packages/cli/src/{checks,commands/doctor}.ts
 git commit -m "cli: xera doctor (init, --strict, --logs, --usage)"
 ```
@@ -1815,7 +1815,7 @@ export async function initUpdateCommand(_opts: { yes: boolean }): Promise<void> 
 - [x] **Step 2: Commit + final CLI build**
 
 ```bash
-cd packages/cli && bun run typecheck && bun run build
+cd packages/cli && npm run typecheck && npm run build
 git add packages/cli/src/commands/init-update.ts
 git commit -m "cli: xera init --update with 3-way skill diff"
 ```
@@ -1827,9 +1827,9 @@ git commit -m "cli: xera init --update with 3-way skill diff"
 Verify:
 
 ```bash
-bun run lint
-bun run typecheck
-bun test
+npm run lint
+npm run typecheck
+npx vitest run
 ```
 
 Continue with [Plan 04: Orchestration (Prompts + Skills)](2026-05-14-xera-v01-04-orchestration.md).

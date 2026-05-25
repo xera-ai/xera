@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { ulid } from '../../src/graph/ulid';
 
 describe('ulid', () => {

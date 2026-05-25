@@ -4,11 +4,11 @@
 
 > **REVISION NOTE (2026-05-17):** Initial Plan 01 was based on incorrect assumptions about v0.6 internals (assumed `Graph` type with separate edge arrays; actual is `Snapshot` type with single `edges: EdgeRecord[]` filtered by `kind`). This revision uses the actual v0.6 shapes from `packages/core/src/graph/types.ts` and `store.ts`.
 
-**Goal:** Extend v0.6 graph to support v0.8 coverage: add `'satisfies'` to `EdgeKind` union, add `ACNode` interface, extend `Snapshot` with `acNodes` + `classifications`, extend `EventPayloadMap` with `coverage.snapshot` + `ac-coverage.backfilled`, extend `ScenarioGeneratedPayload` with optional `satisfiesAcs`, wire all of these into `deriveSnapshot` + `EventSchema`, then build the pure coverage engine in a new `packages/core/src/coverage/` module, plus six golden fixtures and unit/integration tests. End state: `bun test packages/core/test/coverage/ packages/core/test/graph/` green, no user-facing surface (binary/skill is Plan 02).
+**Goal:** Extend v0.6 graph to support v0.8 coverage: add `'satisfies'` to `EdgeKind` union, add `ACNode` interface, extend `Snapshot` with `acNodes` + `classifications`, extend `EventPayloadMap` with `coverage.snapshot` + `ac-coverage.backfilled`, extend `ScenarioGeneratedPayload` with optional `satisfiesAcs`, wire all of these into `deriveSnapshot` + `EventSchema`, then build the pure coverage engine in a new `packages/core/src/coverage/` module, plus six golden fixtures and unit/integration tests. End state: `npx vitest run packages/core/test/coverage/ packages/core/test/graph/` green, no user-facing surface (binary/skill is Plan 02).
 
 **Architecture:** All graph shape changes are additive to existing `Snapshot` and `EventPayloadMap`. Satisfies edges live in the existing `edges: EdgeRecord[]` array (filtered by `kind === 'satisfies'`) — not a separate array. `classifications: Array<{ scenarioId, classification, ts }>` is a new projection on `Snapshot` so coverage can compute scenario PASSING/NOT_PASSING from `run.classified` event history without re-reading event files. Coverage engine is pure functions over `Snapshot` + `CoverageConfig`, returning structured `CoverageReport` objects. Markdown rendering is also pure.
 
-**Tech Stack:** TypeScript (strict, `exactOptionalPropertyTypes` + `noUncheckedIndexedAccess` on), Zod for validation, `bun:test`, ESM source.
+**Tech Stack:** TypeScript (strict, `exactOptionalPropertyTypes` + `noUncheckedIndexedAccess` on), Zod for validation, `vitest`, ESM source.
 
 **Prereqs:** Working v0.6 graph foundation. The following exist and ARE the contract this plan extends:
 
@@ -51,7 +51,7 @@ Read these files BEFORE starting Task 1.1 if you have any ambiguity about field 
 Create or append to `packages/core/test/graph/types.test.ts`:
 
 ```ts
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect } from 'vitest';
 import type { EdgeKind } from '../../src/graph/types';
 
 describe('EdgeKind union', () => {
@@ -65,7 +65,7 @@ describe('EdgeKind union', () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 ```bash
-cd packages/core && bun test test/graph/types.test.ts
+cd packages/core && npx vitest run test/graph/types.test.ts
 ```
 
 Expected: TypeScript compile error — `'satisfies'` not assignable to `EdgeKind`.
@@ -81,7 +81,7 @@ export type EdgeKind = 'tests' | 'uses' | 'covers' | 'modifies' | 'jira-linked' 
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/core && bun test test/graph/types.test.ts
+cd packages/core && npx vitest run test/graph/types.test.ts
 ```
 
 Expected: 1 pass.
@@ -125,7 +125,7 @@ describe('ACNode', () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/core && bun test test/graph/types.test.ts
+cd packages/core && npx vitest run test/graph/types.test.ts
 ```
 
 Expected: "Cannot find name 'ACNode'".
@@ -146,7 +146,7 @@ export interface ACNode {
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/core && bun test test/graph/types.test.ts
+cd packages/core && npx vitest run test/graph/types.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -200,7 +200,7 @@ describe('ScenarioGeneratedPayload', () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/core && bun test test/graph/types.test.ts
+cd packages/core && npx vitest run test/graph/types.test.ts
 ```
 
 - [ ] **Step 3: Extend the interface**
@@ -230,7 +230,7 @@ if (acs.length > 0) payload.satisfiesAcs = acs;
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/core && bun test test/graph/types.test.ts
+cd packages/core && npx vitest run test/graph/types.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -326,7 +326,7 @@ describe('Event union extended', () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/core && bun test test/graph/types.test.ts
+cd packages/core && npx vitest run test/graph/types.test.ts
 ```
 
 Expected: "Cannot find name 'CoverageSnapshotPayload'".
@@ -391,7 +391,7 @@ Important: the existing `Event` mapped type immediately below `EventPayloadMap` 
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/core && bun test test/graph/types.test.ts
+cd packages/core && npx vitest run test/graph/types.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -435,7 +435,7 @@ describe('Snapshot with v0.8 projections', () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/core && bun test test/graph/types.test.ts
+cd packages/core && npx vitest run test/graph/types.test.ts
 ```
 
 Expected: TS error — `acNodes` / `classifications` not on `Snapshot`.
@@ -470,7 +470,7 @@ export interface Snapshot {
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/core && bun test test/graph/types.test.ts
+cd packages/core && npx vitest run test/graph/types.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -495,7 +495,7 @@ git commit -m "feat(core): extend Snapshot with acNodes + classifications projec
 Create or append to `packages/core/test/graph/schema.test.ts`:
 
 ```ts
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect } from 'vitest';
 import { safeParseEvent } from '../../src/graph/schema';
 
 const base = {
@@ -568,7 +568,7 @@ describe('edgeDiscovered schema with satisfies kind', () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/core && bun test test/graph/schema.test.ts
+cd packages/core && npx vitest run test/graph/schema.test.ts
 ```
 
 Expected: scenarioGenerated rejects `satisfiesAcs`; edgeDiscovered rejects `'satisfies'`.
@@ -611,7 +611,7 @@ const edgeDiscovered = z
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/core && bun test test/graph/schema.test.ts
+cd packages/core && npx vitest run test/graph/schema.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -704,7 +704,7 @@ describe('ac-coverage.backfilled event schema', () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/core && bun test test/graph/schema.test.ts
+cd packages/core && npx vitest run test/graph/schema.test.ts
 ```
 
 - [ ] **Step 3: Add payload schemas + extend `EventSchema`**
@@ -769,7 +769,7 @@ export const EventSchema = z.discriminatedUnion('type', [
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/core && bun test test/graph/schema.test.ts
+cd packages/core && npx vitest run test/graph/schema.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -792,7 +792,7 @@ git commit -m "feat(core): add Zod schemas for coverage.snapshot + ac-coverage.b
 - [ ] **Step 1: Write the failing test**
 
 ```ts
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect } from 'vitest';
 import { deriveSnapshot } from '../../src/graph/store';
 
 describe('deriveSnapshot v0.8 projections', () => {
@@ -807,7 +807,7 @@ describe('deriveSnapshot v0.8 projections', () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/core && bun test test/graph/store.test.ts
+cd packages/core && npx vitest run test/graph/store.test.ts
 ```
 
 Expected: `acNodes` / `classifications` not on returned snapshot.
@@ -869,7 +869,7 @@ import type {
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/core && bun test test/graph/store.test.ts
+cd packages/core && npx vitest run test/graph/store.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -956,7 +956,7 @@ describe('deriveSnapshot — ACNode materialization', () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/core && bun test test/graph/store.test.ts
+cd packages/core && npx vitest run test/graph/store.test.ts
 ```
 
 - [ ] **Step 3: Extend `ticket.fetched` handler**
@@ -1006,7 +1006,7 @@ case 'ticket.fetched': {
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/core && bun test test/graph/store.test.ts
+cd packages/core && npx vitest run test/graph/store.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -1084,7 +1084,7 @@ describe('deriveSnapshot — eager satisfies edges', () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/core && bun test test/graph/store.test.ts
+cd packages/core && npx vitest run test/graph/store.test.ts
 ```
 
 - [ ] **Step 3: Extend `scenario.generated` handler**
@@ -1136,7 +1136,7 @@ case 'scenario.generated':
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/core && bun test test/graph/store.test.ts
+cd packages/core && npx vitest run test/graph/store.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -1193,7 +1193,7 @@ describe('deriveSnapshot — classifications projection', () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/core && bun test test/graph/store.test.ts
+cd packages/core && npx vitest run test/graph/store.test.ts
 ```
 
 Expected: classifications still empty.
@@ -1215,7 +1215,7 @@ case 'run.classified':
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/core && bun test test/graph/store.test.ts
+cd packages/core && npx vitest run test/graph/store.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -1310,7 +1310,7 @@ describe('deriveSnapshot — backfilled satisfies edges', () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/core && bun test test/graph/store.test.ts
+cd packages/core && npx vitest run test/graph/store.test.ts
 ```
 
 - [ ] **Step 3: Add `ac-coverage.backfilled` and `coverage.snapshot` cases**
@@ -1351,7 +1351,7 @@ case 'coverage.snapshot':
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/core && bun test test/graph/store.test.ts
+cd packages/core && npx vitest run test/graph/store.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -1375,7 +1375,7 @@ git commit -m "feat(core): handle ac-coverage.backfilled + coverage.snapshot in 
 - [ ] **Step 1: Write the failing test**
 
 ```ts
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect } from 'vitest';
 import type { CoverageConfig } from '../../src/coverage/types';
 import { DEFAULT_COVERAGE_CONFIG } from '../../src/coverage/types';
 
@@ -1392,7 +1392,7 @@ describe('CoverageConfig defaults', () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/core && bun test test/coverage/types.test.ts
+cd packages/core && npx vitest run test/coverage/types.test.ts
 ```
 
 Expected: module not found.
@@ -1425,7 +1425,7 @@ export { DEFAULT_COVERAGE_CONFIG } from './types';
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/core && bun test test/coverage/types.test.ts
+cd packages/core && npx vitest run test/coverage/types.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -1446,7 +1446,7 @@ git commit -m "feat(core): scaffold coverage module with CoverageConfig"
 - [ ] **Step 1: Write the failing test**
 
 ```ts
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect } from 'vitest';
 import { computeScenarioStatus } from '../../src/coverage/status';
 import type { Snapshot } from '../../src/graph/types';
 
@@ -1503,7 +1503,7 @@ describe('computeScenarioStatus', () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/core && bun test test/coverage/status.test.ts
+cd packages/core && npx vitest run test/coverage/status.test.ts
 ```
 
 - [ ] **Step 3: Implement**
@@ -1540,7 +1540,7 @@ export function computeScenarioStatus(
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/core && bun test test/coverage/status.test.ts
+cd packages/core && npx vitest run test/coverage/status.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -1681,7 +1681,7 @@ describe('computeTicketStatus', () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/core && bun test test/coverage/status.test.ts
+cd packages/core && npx vitest run test/coverage/status.test.ts
 ```
 
 - [ ] **Step 3: Implement**
@@ -1747,7 +1747,7 @@ export function computeTicketStatus(
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/core && bun test test/coverage/status.test.ts
+cd packages/core && npx vitest run test/coverage/status.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -1770,7 +1770,7 @@ git commit -m "feat(core): add computeAreaStatus + computeAcStatus + computeTick
 - [ ] **Step 1: Write the failing test**
 
 ```ts
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect } from 'vitest';
 import { computeAreaRisk, RISK_WEIGHTS } from '../../src/coverage/risk';
 import { DEFAULT_COVERAGE_CONFIG } from '../../src/coverage/types';
 import type { Snapshot } from '../../src/graph/types';
@@ -1867,7 +1867,7 @@ describe('computeAreaRisk', () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/core && bun test test/coverage/risk.test.ts
+cd packages/core && npx vitest run test/coverage/risk.test.ts
 ```
 
 - [ ] **Step 3: Implement**
@@ -1927,7 +1927,7 @@ export function computeAreaRisk(
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/core && bun test test/coverage/risk.test.ts
+cd packages/core && npx vitest run test/coverage/risk.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -1999,7 +1999,7 @@ describe('computeAcGapScore', () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/core && bun test test/coverage/risk.test.ts
+cd packages/core && npx vitest run test/coverage/risk.test.ts
 ```
 
 - [ ] **Step 3: Implement**
@@ -2036,7 +2036,7 @@ export function computeAcGapScore(
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/core && bun test test/coverage/risk.test.ts
+cd packages/core && npx vitest run test/coverage/risk.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -2059,7 +2059,7 @@ git commit -m "feat(core): add computeAcGapScore"
 - [ ] **Step 1: Write the failing test**
 
 ```ts
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect } from 'vitest';
 import { buildCoverageReport } from '../../src/coverage/report';
 import { DEFAULT_COVERAGE_CONFIG } from '../../src/coverage/types';
 import type { Snapshot } from '../../src/graph/types';
@@ -2130,7 +2130,7 @@ describe('buildCoverageReport', () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/core && bun test test/coverage/report.test.ts
+cd packages/core && npx vitest run test/coverage/report.test.ts
 ```
 
 - [ ] **Step 3: Implement**
@@ -2272,7 +2272,7 @@ function needsBackfill(snap: Snapshot): boolean {
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/core && bun test test/coverage/report.test.ts
+cd packages/core && npx vitest run test/coverage/report.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -2379,7 +2379,7 @@ describe('renderMarkdown', () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/core && bun test test/coverage/report.test.ts
+cd packages/core && npx vitest run test/coverage/report.test.ts
 ```
 
 - [ ] **Step 3: Implement**
@@ -2457,7 +2457,7 @@ export function renderMarkdown(report: CoverageReport, options: RenderOptions = 
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/core && bun test test/coverage/report.test.ts
+cd packages/core && npx vitest run test/coverage/report.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -2480,7 +2480,7 @@ git commit -m "feat(core): add renderMarkdown with RenderOptions includeCovered"
 - [ ] **Step 1: Write the failing test**
 
 ```ts
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect } from 'vitest';
 import { buildWhyArea } from '../../src/coverage/why';
 import { DEFAULT_COVERAGE_CONFIG } from '../../src/coverage/types';
 import type { Snapshot } from '../../src/graph/types';
@@ -2540,7 +2540,7 @@ describe('buildWhyArea', () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/core && bun test test/coverage/why.test.ts
+cd packages/core && npx vitest run test/coverage/why.test.ts
 ```
 
 - [ ] **Step 3: Implement**
@@ -2624,7 +2624,7 @@ export function buildWhyArea(
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/core && bun test test/coverage/why.test.ts
+cd packages/core && npx vitest run test/coverage/why.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -2691,7 +2691,7 @@ describe('buildWhyTicket', () => {
 - [ ] **Step 2: Verify failure**
 
 ```bash
-cd packages/core && bun test test/coverage/why.test.ts
+cd packages/core && npx vitest run test/coverage/why.test.ts
 ```
 
 - [ ] **Step 3: Implement**
@@ -2758,7 +2758,7 @@ export function buildWhyTicket(
 - [ ] **Step 4: Verify pass**
 
 ```bash
-cd packages/core && bun test test/coverage/why.test.ts
+cd packages/core && npx vitest run test/coverage/why.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -2814,7 +2814,7 @@ export {
 - [ ] **Step 2: Workspace typecheck**
 
 ```bash
-cd /home/user/xera && bun run typecheck
+cd /home/user/xera && npm run typecheck
 ```
 
 Expected: no errors.
@@ -2916,7 +2916,7 @@ export function loadExpected(name: string): unknown {
 `packages/core/test/coverage/fixtures.test.ts`:
 
 ```ts
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect } from 'vitest';
 import { buildCoverageReport } from '../../src/coverage/report';
 import { DEFAULT_COVERAGE_CONFIG } from '../../src/coverage/types';
 import { loadSnap, loadExpected } from '../../../../fixtures/golden-coverage/_helpers';
@@ -2937,7 +2937,7 @@ describe('golden-coverage fixtures', () => {
 - [ ] **Step 5: Run + commit**
 
 ```bash
-cd packages/core && bun test test/coverage/fixtures.test.ts
+cd packages/core && npx vitest run test/coverage/fixtures.test.ts
 git add fixtures/golden-coverage/ packages/core/test/coverage/fixtures.test.ts
 git commit -m "test(coverage): add uncovered-only golden fixture + helper"
 ```
@@ -3082,7 +3082,7 @@ test('mixed', () => {
 ```
 
 ```bash
-cd packages/core && bun test test/coverage/fixtures.test.ts
+cd packages/core && npx vitest run test/coverage/fixtures.test.ts
 ```
 
 - [ ] **Step 5: Commit**
@@ -3153,7 +3153,7 @@ test('critical-boost', () => {
 - [ ] **Step 4: Run + commit**
 
 ```bash
-cd packages/core && bun test test/coverage/fixtures.test.ts
+cd packages/core && npx vitest run test/coverage/fixtures.test.ts
 git add fixtures/golden-coverage/critical-boost.json fixtures/golden-coverage/critical-boost.expected.json packages/core/test/coverage/fixtures.test.ts
 git commit -m "test(coverage): add critical-boost golden fixture"
 ```
@@ -3235,7 +3235,7 @@ test('bug-history', () => {
 ```
 
 ```bash
-cd packages/core && bun test test/coverage/fixtures.test.ts
+cd packages/core && npx vitest run test/coverage/fixtures.test.ts
 git add fixtures/golden-coverage/bug-history.json fixtures/golden-coverage/bug-history.expected.json packages/core/test/coverage/fixtures.test.ts
 git commit -m "test(coverage): add bug-history golden fixture"
 ```
@@ -3318,7 +3318,7 @@ test('stale-only', () => {
 ```
 
 ```bash
-cd packages/core && bun test test/coverage/fixtures.test.ts
+cd packages/core && npx vitest run test/coverage/fixtures.test.ts
 git add fixtures/golden-coverage/stale-only.json fixtures/golden-coverage/stale-only.expected.json packages/core/test/coverage/fixtures.test.ts
 git commit -m "test(coverage): add stale-only golden fixture"
 ```
@@ -3415,7 +3415,7 @@ test('ac-gap', () => {
 ```
 
 ```bash
-cd packages/core && bun test test/coverage/fixtures.test.ts
+cd packages/core && npx vitest run test/coverage/fixtures.test.ts
 git add fixtures/golden-coverage/ac-gap.json fixtures/golden-coverage/ac-gap.expected.json packages/core/test/coverage/fixtures.test.ts
 git commit -m "test(coverage): add ac-gap golden fixture"
 ```
@@ -3429,7 +3429,7 @@ git commit -m "test(coverage): add ac-gap golden fixture"
 - [ ] **Step 1: Typecheck**
 
 ```bash
-cd /home/user/xera && bun run typecheck
+cd /home/user/xera && npm run typecheck
 ```
 
 Expected: no errors.
@@ -3437,7 +3437,7 @@ Expected: no errors.
 - [ ] **Step 2: Full test suite**
 
 ```bash
-cd /home/user/xera && bun test
+cd /home/user/xera && npx vitest run
 ```
 
 Expected: all green — Plan 01 tests + no v0.6/v0.7 regressions.

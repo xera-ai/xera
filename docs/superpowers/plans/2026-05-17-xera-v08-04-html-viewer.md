@@ -6,7 +6,7 @@
 
 **Architecture:** All work composes into existing infrastructure — no new vendor libraries. The existing `renderHtml` function takes new optional `coverage` input. The HTML template gains a `{{COVERAGE_*}}` set of placeholders. New rendering modules under `packages/core/src/graph/render-coverage/` keep concerns separated (map overlay vs list table vs trend chart). Tab-switching logic added to the inline JS template. vis-network reused — Coverage Map is just a recoloring of the Knowledge graph.
 
-**Tech Stack:** TypeScript, `bun:test`, vis-network (already vendored).
+**Tech Stack:** TypeScript, `vitest`, vis-network (already vendored).
 
 **Prereqs:** Plans 01-03 complete. Coverage engine pure functions, `coverage.snapshot` event emission, and `/xera-coverage` skill all in place.
 
@@ -34,7 +34,7 @@
 ### Step 1 — failing test
 
 ```ts
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect } from 'vitest';
 import { renderHtml } from '../../src/graph/render';
 
 describe('renderHtml with coverage data', () => {
@@ -267,7 +267,7 @@ function renderCoverageTrend() { /* Task 29 */ }
 ### Step 8 — verify pass + lint
 
 ```bash
-cd /home/user/xera && bun run lint:fix && bun run lint && bun test packages/core packages/web packages/http
+cd /home/user/xera && npm run lint:fix && npm run lint && npx vitest run packages/core packages/web packages/http
 ```
 
 ### Step 9 — commit: `feat(graph): extend renderHtml with coverage tab scaffold (v0.8.1)`
@@ -325,7 +325,7 @@ Add unit test for the template fragment:
 
 ```ts
 // packages/core/test/graph/render-coverage.test.ts
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect } from 'vitest';
 import { renderHtml } from '../../src/graph/render';
 import { DEFAULT_COVERAGE_CONFIG } from '../../src/coverage';
 import { buildCoverageReport } from '../../src/coverage/report';
@@ -680,7 +680,7 @@ Replace the existing Step 5 ("Handle --viewer") block:
 If the user passed `--viewer`, run:
 
 ```bash
-bun run xera:graph-render --include-coverage
+npx xera-internal graph-render --include-coverage
 ```
 
 This regenerates `.xera/graph.html` with a top-level Coverage tab (Map / List / Trend). Print the path so the user knows where to open it:
@@ -704,7 +704,7 @@ Open in any browser. The Coverage tab is at the top right.
 ### Step 1 — failing test (likely already passing after Phase 30; verify)
 
 ```ts
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -786,9 +786,9 @@ describe('graph-render --include-coverage end-to-end', () => {
 
 ```bash
 cd /home/user/xera
-bun run typecheck
-bun run lint
-bun test packages/core packages/web packages/http
+npm run typecheck
+npm run lint
+npx vitest run packages/core packages/web packages/http
 git status
 ```
 
