@@ -1,0 +1,29 @@
+# AGENTS.md
+
+This project uses **xera** for AI-driven QA testing: AI coding-agent skills
+generate, run, and diagnose Playwright/HTTP tests from issue-tracker tickets.
+This file orients any AI agent (Claude Code, Cursor, OpenAI Codex CLI).
+
+## Skills (how you drive xera)
+
+- `/xera-run <TICKET>` — full pipeline: fetch → feature → script → exec → report
+- `/xera-fetch <TICKET>` — pull the ticket into `.xera/<TICKET>/story.md`
+- `/xera-feature <TICKET>` — generate the Gherkin `test.feature`
+- `/xera-script <TICKET>` — generate the runnable spec
+- `/xera-exec <TICKET>` / `/xera-report <TICKET>` — run tests + classify failures
+- `/xera-coverage`, `/xera-impact`, `/xera-promote` — coverage, blast-radius, PR promotion
+
+## Scripts (deterministic plumbing the skills call)
+
+You rarely run these directly: `bun run xera:fetch`, `xera:exec`, `xera:report`,
+`xera:doctor`, etc. Health check: `bunx @xera-ai/cli doctor`.
+
+## Project conventions
+
+{{#if wantsWeb}}- Web UI tests via Playwright (`@xera-ai/web`).
+{{/if}}{{#if wantsHttp}}- HTTP API tests (`@xera-ai/http`), OpenAPI-aware when `http.spec` is set.
+{{/if}}- Generated artifacts live under `.xera/<TICKET>/` — do not hand-edit; re-run the skill.
+- Configuration is in `xera.config.ts`. Secrets go in `.env` (never commit it).
+- Run `bunx @xera-ai/cli doctor` if anything looks misconfigured.
+
+<!-- Scaffolded by `xera init`. Safe to edit — xera will not overwrite this file. -->

@@ -266,6 +266,16 @@ export async function initCommand(opts: InitOptions): Promise<void> {
   // Scaffold GitHub Actions viewer workflow (v0.6.3+)
   scaffoldFile(join(cwd, '.github/workflows/xera-graph.yml'), 'xera-graph.yml.template', vars);
 
+  // AGENTS.md — orient any AI agent (Claude/Cursor/Codex all read it). Never
+  // clobber a user-curated file: scaffold only when absent.
+  const agentsTarget = join(cwd, 'AGENTS.md');
+  if (existsSync(agentsTarget)) {
+    p.log.info('kept existing AGENTS.md');
+  } else {
+    scaffoldFile(agentsTarget, 'AGENTS.md.tmpl', vars);
+    p.log.success('scaffolded AGENTS.md');
+  }
+
   // openapi.yaml placeholder for api/mixed when a relative path is configured
   if (wantsHttp && vars.openapiPath && !vars.openapiPath.startsWith('http')) {
     const openapiTarget = join(cwd, vars.openapiPath);

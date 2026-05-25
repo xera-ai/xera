@@ -13,6 +13,7 @@ import pc from 'picocolors';
 import { editors } from '../editors';
 import { parseFrontmatter } from '../editors/frontmatter';
 import { resolveEditors } from '../editors/resolve';
+import { scaffoldFile } from '../scaffold';
 import type { HttpAuthStrategy, ProjectShape } from './init';
 
 const require = createRequire(import.meta.url);
@@ -174,6 +175,19 @@ export async function initUpdateCommand(opts: InitUpdateOptions): Promise<void> 
     // CLI templates not resolvable in this environment; skip workflow scaffold.
     // Users can re-run `xera init` to get it.
     p.log.warn('skipped xera-graph.yml scaffold (re-run `xera init` to create it)');
+  }
+
+  // AGENTS.md — create if missing; never overwrite a user-curated file.
+  const agentsTarget = join(cwd, 'AGENTS.md');
+  if (existsSync(agentsTarget)) {
+    p.log.info('kept existing AGENTS.md');
+  } else {
+    const adapters = detectAdaptersFromConfig(cwd) ?? [];
+    scaffoldFile(agentsTarget, 'AGENTS.md.tmpl', {
+      wantsWeb: adapters.includes('web'),
+      wantsHttp: adapters.includes('http'),
+    });
+    p.log.success('scaffolded AGENTS.md');
   }
 
   // Resolve which editors to refresh. Without --editor, only refresh editors

@@ -396,6 +396,15 @@ export async function runChecks(cwd: string, opts: RunChecksOptions = {}): Promi
     });
   }
 
+  // AGENTS.md — orientation file all three editors read. Informational only.
+  const hasAgents = existsSync(join(cwd, 'AGENTS.md'));
+  const agentsCheck: Check = { name: 'AGENTS.md present', ok: hasAgents };
+  if (!hasAgents) {
+    agentsCheck.message =
+      'no AGENTS.md — run `xera init` to scaffold one (orients Cursor / Codex / Claude)';
+  }
+  checks.push(agentsCheck);
+
   // Editor integrations — each detected editor contributes its own checks.
   // Required skill names cover the core workflow; doctor doesn't pin newer
   // optional skills (xera-coverage, xera-impact, etc.) to keep the check

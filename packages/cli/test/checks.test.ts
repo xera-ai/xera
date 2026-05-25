@@ -343,6 +343,35 @@ describe('runChecks ticket-specific (--strict <TICKET>)', () => {
   });
 });
 
+describe('runChecks AGENTS.md', () => {
+  test('flags missing AGENTS.md (informational)', async () => {
+    const d = makeWebProject();
+    try {
+      const checks = await runChecks(d);
+      const c = checks.find((x) => x.name === 'AGENTS.md present');
+      expect(c).toBeDefined();
+      expect(c!.ok).toBe(false);
+      expect(c!.message ?? '').toMatch(/xera init/);
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
+
+  test('passes when AGENTS.md exists', async () => {
+    const d = makeWebProject();
+    try {
+      writeFileSync(join(d, 'AGENTS.md'), '# AGENTS.md\n');
+      const checks = await runChecks(d);
+      const c = checks.find((x) => x.name === 'AGENTS.md present');
+      expect(c).toBeDefined();
+      expect(c!.ok).toBe(true);
+      expect(c!.message).toBeUndefined();
+    } finally {
+      rmSync(d, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('runChecks coverage warnings', () => {
   test('warns when coverage.staleAfterDays > 90', async () => {
     const d = makeWebProject('{ staleAfterDays: 120 }');
