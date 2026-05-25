@@ -10,6 +10,7 @@ import { evalReportCmd } from './eval-report';
 import { execCmd } from './exec';
 import { exploreFinalizeCmd } from './explore-finalize';
 import { explorePrepareCmd } from './explore-prepare';
+import { featureSpecPrepareCmd } from './feature-spec-prepare';
 import { fetchCmd } from './fetch';
 import { fillGapFinalizeCmd } from './fill-gap-finalize';
 import { fillGapPrepareCmd } from './fill-gap-prepare';
@@ -46,6 +47,7 @@ const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
   exec: execCmd,
   'explore-finalize': exploreFinalizeCmd,
   'explore-prepare': explorePrepareCmd,
+  'feature-spec-prepare': featureSpecPrepareCmd,
   'fill-gap-finalize': fillGapFinalizeCmd,
   'fill-gap-prepare': fillGapPrepareCmd,
   fetch: fetchCmd,

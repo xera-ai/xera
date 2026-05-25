@@ -380,6 +380,7 @@ export async function initCommand(opts: InitOptions): Promise<void> {
   pkg.scripts['xera:heal-prepare'] = 'xera-internal heal-prepare';
   pkg.scripts['xera:disputes'] = 'xera-internal disputes';
   if (wantsHttp) pkg.scripts['xera:openapi-resolve'] = 'xera-internal openapi-resolve';
+  if (wantsHttp) pkg.scripts['xera:feature-spec-prepare'] = 'xera-internal feature-spec-prepare';
   // Adversarial explore (v0.9+)
   pkg.scripts['xera:explore-prepare'] = 'xera-internal explore-prepare';
   pkg.scripts['xera:explore-finalize'] = 'xera-internal explore-finalize';

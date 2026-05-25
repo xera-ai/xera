@@ -20,7 +20,7 @@ packages/
                                 CONTRACT_DRIFT/RATE_LIMITED/AUTH_EXPIRED),
                                 auth state, graph + coverage modules,
                                 xera-internal binary
-    src/bin-internal/           34 subcommands invoked by skills via `bun run xera:*`
+    src/bin-internal/           35 subcommands invoked by skills via `bun run xera:*`
                                 v0.1: fetch, validate-feature, typecheck, lint,
                                       exec (supports --grep), normalize, report,
                                       post, status, unlock, promote
@@ -35,6 +35,9 @@ packages/
                                       ac-coverage-backfill-finalize, fill-gap-prepare,
                                       fill-gap-finalize
                                 v0.9: explore-prepare, explore-finalize (experimental)
+                                v0.18: feature-spec-prepare (OpenAPI → synthetic
+                                      story + spec-input.json for /xera-feature
+                                      --from-spec; http only)
                                 universal: verify-prompts, doctor (--auto-enrich,
                                   --strict [ticket] split since v0.16)
     src/adapter/types.ts        TestAdapter interface — extension point
@@ -58,7 +61,9 @@ packages/
   http/      @xera-ai/http      HTTP API adapter (v0.7+, no browser)
     src/executor/               HTTP request runner + JSON reporter
     src/auth/                   defineHttpAuthSetup, presetHttpAuth, newAuthedContext
-    src/openapi/                OpenAPI loader for CONTRACT_DRIFT detection
+    src/openapi/                OpenAPI loader for CONTRACT_DRIFT detection +
+                                extractOperations (v0.18 — flatten spec for
+                                /xera-feature --from-spec)
   cli/       @xera-ai/cli       public `xera` CLI: `init` (--shape web|api|mixed
                                 --tracker jira|github --editor claude|cursor|codex|all),
                                 `doctor` (--strict [ticket]), `samples remove`
@@ -77,8 +82,10 @@ packages/
                                 xera-coverage (v0.8.0), xera-fill-gap (v0.8.2),
                                 xera-explore (v0.9.0 — experimental, opt-in,
                                   not auto-chained from /xera-run))
-  prompts/   @xera-ai/prompts   versioned LLM prompt templates (12 templates:
+  prompts/   @xera-ai/prompts   versioned LLM prompt templates (13 templates:
                                 diagnose-failure, feature-from-story,
+                                feature-from-openapi (v0.18 — API Gherkin from
+                                an OpenAPI slice),
                                 script-from-feature-web, script-from-feature-http,
                                 heal-locator, extract-areas, similarity-match,
                                 classify-outdated, eval-rubric,
