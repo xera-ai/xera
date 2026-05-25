@@ -23,7 +23,17 @@ export {
   type AttachTraceRecorderInput,
   attachTraceRecorder,
 } from './executor/trace-recorder';
-export { type FoundOperation, findOperation, loadOpenApi } from './openapi';
+export {
+  type ExtractedOperation,
+  type ExtractedParam,
+  type ExtractedResponse,
+  type ExtractFilter,
+  extractInfo,
+  extractOperations,
+  type FoundOperation,
+  findOperation,
+  loadOpenApi,
+} from './openapi';
 export {
   type NormalizedHttpRun,
   type NormalizedHttpScenario,

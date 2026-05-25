@@ -194,7 +194,21 @@ export default defineConfig({
 ### `http` (v0.7+)
 - `baseUrl`: map of environment name → URL for the API target. Must include `defaultEnv`.
 - `defaultEnv`: which environment xera targets by default.
-- `spec`: optional path or URL to an OpenAPI 3 document. When set, AI generation uses the schema to derive request bodies and the classifier emits `CONTRACT_DRIFT` on schema mismatches. When unset, xera still works — schema-derived edge cases and `CONTRACT_DRIFT` detection are disabled (doctor warns).
+- `spec`: optional path or URL to an OpenAPI 3 document. When set, AI generation uses the schema to derive request bodies and the classifier emits `CONTRACT_DRIFT` on schema mismatches. It also powers **`/xera-feature <KEY> --from-spec`** (v0.18), which generates a Gherkin `test.feature` directly from the spec with no fetched ticket — see below. When unset, xera still works — schema-derived edge cases, `CONTRACT_DRIFT` detection, and `--from-spec` are disabled (doctor warns).
+
+#### `/xera-feature --from-spec` (v0.18)
+
+Generate a feature from an OpenAPI document instead of a ticket:
+
+```
+/xera-feature <KEY> --from-spec [--tag <name>]... [--operation <operationId>]... [--path <template>]... [--spec <path-or-url>]
+```
+
+- `<KEY>` — a stable ticket key for the synthetic artifacts (e.g. `API-PETS-001`); matches the normal ticket-key shape.
+- `--spec` — override the configured `http.spec` for this run.
+- `--tag` / `--operation` / `--path` — repeatable filters to narrow which operations are included (union across dimensions). With no filter, all operations are included; the skill suggests filtering above ~20.
+
+It writes `.xera/<KEY>/spec-input.json` + a synthetic `story.md` + `meta.json` (`source: 'openapi'`), then the usual `test.feature`. Downstream `/xera-script` → `/xera-exec` → `/xera-report` are unchanged. Opt-in; not auto-chained from `/xera-run`.
 - `auth.strategy`: which preset to apply. `bearer` reads `tokenEnv` and prefixes `Authorization: Bearer ...`. `apiKey` reads `tokenEnv` and attaches `X-API-Key`. `basic` base64-encodes `userEnv:passEnv`. `oauth-cc` performs an OAuth client_credentials handshake against `tokenUrl`. `custom` defers to the body of your `defineHttpAuthSetup` function (e.g. a login endpoint that returns a session token). `none` disables auth.
 - `auth.ttl` / `auth.refreshBuffer`: same semantics as `web.auth`.
 - `auth.roles.<name>`: per-role env-var references. Fields used depend on strategy: `tokenEnv` (bearer / apiKey), `userEnv`+`passEnv` (basic), `tokenUrl`+`clientIdEnv`+`clientSecretEnv`+optional `scope` (oauth-cc).

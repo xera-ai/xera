@@ -51,6 +51,12 @@ describe('xera init --shape web', () => {
     // No openapi placeholder for web-only
     expect(existsSync(join(cwd, 'openapi.yaml'))).toBe(false);
 
+    // The feature-from-spec script is http-only
+    const pkg = JSON.parse(readFileSync(join(cwd, 'package.json'), 'utf8')) as {
+      scripts: Record<string, string>;
+    };
+    expect(pkg.scripts['xera:feature-spec-prepare']).toBeUndefined();
+
     // auth-setup exports only web
     const authSetup = readFileSync(join(cwd, 'shared/auth-setup.ts'), 'utf8');
     expect(authSetup).toContain("from '@xera-ai/web'");
@@ -83,6 +89,12 @@ describe('xera init --shape api', () => {
     expect(authSetup).toContain("from '@xera-ai/http'");
     expect(authSetup).toContain('export const http');
     expect(authSetup).not.toContain('export const web');
+
+    // http projects get the feature-from-spec script
+    const pkg = JSON.parse(readFileSync(join(cwd, 'package.json'), 'utf8')) as {
+      scripts: Record<string, string>;
+    };
+    expect(pkg.scripts['xera:feature-spec-prepare']).toBe('xera-internal feature-spec-prepare');
   }, 30_000);
 });
 

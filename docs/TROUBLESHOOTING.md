@@ -114,6 +114,14 @@ Soft warning when `http.spec` is unset. CONTRACT_DRIFT detection and schema-deri
 - Ask backend dev to export an OpenAPI spec (Spring/FastAPI/NestJS auto-generate them).
 - Point `http.spec` at the path or URL in `xera.config.ts`.
 
+## 13b. `/xera-feature --from-spec` produced no scenarios (v0.18+)
+
+`feature-spec-prepare` wrote an empty `spec-input.json` (its `operations` array is empty) and the skill stopped. Check the `reason` field in `.xera/<KEY>/spec-input.json`:
+
+- **`no OpenAPI spec configured`** — set `http.spec` in `xera.config.ts`, or pass `--spec <path-or-url>` on the command.
+- **`spec unreachable or not found`** — the path/URL is wrong or the server is down. Verify it loads (a local file must exist; a URL must return 200).
+- **`filter matched no operations`** — your `--tag` / `--operation` / `--path` filter excluded everything. The message lists the available operations; adjust the filter (or drop it to include all).
+
 ## 14. `XERA_AUTH_KEY mismatch — cannot decrypt`
 
 You either regenerated the key in `.env` or deleted `.env`. The auth state cache is unreadable. Fix:

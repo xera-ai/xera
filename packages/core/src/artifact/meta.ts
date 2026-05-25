@@ -5,11 +5,12 @@ import { z } from 'zod';
 export const MetaJsonSchema = z.object({
   ticket: z.string(),
   adapter: z.string(),
-  source: z.enum(['jira', 'local']).optional(),
+  source: z.enum(['jira', 'local', 'openapi']).optional(),
   xera_version: z.string(),
   prompts_version: z.string(),
   fetched_at: z.string().optional(),
   story_hash: z.string().optional(),
+  spec_hash: z.string().optional(),
   feature_generated_at: z.string().optional(),
   feature_generated_from_story_hash: z.string().optional(),
   feature_hash: z.string().optional(),

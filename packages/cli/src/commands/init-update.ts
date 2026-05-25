@@ -158,6 +158,7 @@ export async function initUpdateCommand(opts: InitUpdateOptions): Promise<void> 
   pkg.scripts['xera:disputes'] = 'xera-internal disputes';
   if (pkg.dependencies['@xera-ai/http']) {
     pkg.scripts['xera:openapi-resolve'] = 'xera-internal openapi-resolve';
+    pkg.scripts['xera:feature-spec-prepare'] = 'xera-internal feature-spec-prepare';
   }
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 

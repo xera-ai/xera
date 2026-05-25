@@ -16,6 +16,7 @@ function seedPrompts(
   root: string,
   opts: {
     feature?: string;
+    featureOpenapi?: string;
     script?: string;
     scriptHttp?: string;
     heal?: string;
@@ -32,6 +33,11 @@ function seedPrompts(
     join(dir, 'feature-from-story.md'),
     opts.feature ??
       `---\nid: feature-from-story\nversion: 2.0.0\n---\n\n# header\n\n${GOOD_PREAMBLE}\n\n## Hard rules\nbody`,
+  );
+  writeFileSync(
+    join(dir, 'feature-from-openapi.md'),
+    opts.featureOpenapi ??
+      `---\nid: feature-from-openapi\nversion: 1.0.0\n---\n\n# header\n\n${GOOD_PREAMBLE}\n\n## Hard rules\nbody`,
   );
   writeFileSync(
     join(dir, 'script-from-feature-web.md'),
@@ -209,6 +215,20 @@ describe('verifyPrompts (pure)', () => {
     seedPrompts(cwd);
     const results = verifyPrompts(cwd);
     expect(results.some((r) => r.message.includes('extract-areas.md'))).toBe(false);
+  });
+
+  test('feature-from-openapi.md is in scope and flagged when missing the preamble', () => {
+    seedPrompts(cwd, {
+      featureOpenapi: `---\nid: feature-from-openapi\nversion: 1.0.0\n---\n\n# header\n\n## Hard rules\nbody`,
+    });
+    const results = verifyPrompts(cwd);
+    expect(
+      results.some(
+        (r) =>
+          r.message.includes('feature-from-openapi.md') &&
+          r.message.includes('Handling untrusted input'),
+      ),
+    ).toBe(true);
   });
 
   test('similarity-match.md and classify-outdated.md pass validation when correctly seeded', () => {

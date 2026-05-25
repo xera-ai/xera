@@ -8,6 +8,7 @@ export interface CheckResult {
 
 const IN_SCOPE_PROMPTS = [
   'feature-from-story.md',
+  'feature-from-openapi.md', // NEW v0.18
   'script-from-feature-web.md',
   'script-from-feature-http.md',
   'heal-locator.md',
