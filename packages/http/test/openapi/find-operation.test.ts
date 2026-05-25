@@ -31,4 +31,30 @@ describe('findOperation', () => {
   test('ignores query string', () => {
     expect(findOperation(spec, 'GET', '/users/42?foo=bar')?.template).toBe('/users/{id}');
   });
+
+  // Issue #193 — Playwright APIRequestContext records absolute URLs in the
+  // trace, so the path that flows through normalize → report → contract-heal
+  // looks like `http://host:port/users/123`. The lookup must treat absolute
+  // and bare-path forms equivalently or CONTRACT_DRIFT silently never fires.
+  describe('absolute URLs (issue #193)', () => {
+    test('matches http://host/path', () => {
+      expect(findOperation(spec, 'POST', 'http://localhost:3100/users')?.template).toBe('/users');
+    });
+
+    test('matches https://host/path', () => {
+      expect(findOperation(spec, 'GET', 'https://api.example.com/users/42')?.template).toBe(
+        '/users/{id}',
+      );
+    });
+
+    test('strips query from absolute URL too', () => {
+      expect(findOperation(spec, 'GET', 'http://localhost:3100/users/42?foo=bar')?.template).toBe(
+        '/users/{id}',
+      );
+    });
+
+    test('absolute URL with unknown path still returns null', () => {
+      expect(findOperation(spec, 'GET', 'http://localhost:3100/orders')).toBeNull();
+    });
+  });
 });
