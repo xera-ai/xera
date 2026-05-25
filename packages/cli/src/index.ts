@@ -155,7 +155,16 @@ export default async function main(): Promise<void> {
           if (opts.openapiPath !== undefined) updateOpts.openapiPath = opts.openapiPath;
           if (opts.httpRoles !== undefined) updateOpts.httpRoles = opts.httpRoles;
           if (opts.stagingUrl !== undefined) updateOpts.stagingUrl = opts.stagingUrl;
-          if (opts.authEnabled !== undefined) updateOpts.authEnabled = opts.authEnabled;
+          // `--auth-enabled` is declared with a `--no-` counterpart, so cac
+          // defaults `opts.authEnabled` to `true` even when the user passed
+          // neither form. Gate on actual argv presence so init --update can
+          // tell "user opted in" from "user said nothing" (issue #186).
+          const authEnabledExplicit = process.argv.some(
+            (a) => a === '--auth-enabled' || a === '--no-auth-enabled',
+          );
+          if (authEnabledExplicit && opts.authEnabled !== undefined) {
+            updateOpts.authEnabled = opts.authEnabled;
+          }
           if (opts.roles !== undefined) updateOpts.roles = opts.roles;
           if (opts.editor !== undefined) updateOpts.editor = opts.editor;
           await initUpdateCommand(updateOpts);
