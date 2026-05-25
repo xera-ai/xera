@@ -20,6 +20,9 @@ export default defineConfig({
   web: {
     baseUrl: { staging: '{{stagingUrl}}' },
     defaultEnv: 'staging',
+    // Optional: map page routes to ticket area labels so /xera-impact links
+    // scenarios across tickets touching the same UI ('/' → 'root' by default).
+    // routeAreas: { '/': 'dashboard', '/settings/profile': 'profile' },
     {{#if authEnabled}}auth: {
       strategy: 'storageState',
       setupScript: './shared/auth-setup.ts',

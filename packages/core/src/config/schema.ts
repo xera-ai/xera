@@ -20,6 +20,9 @@ const WebSchema = z
     }),
     defaultEnv: z.string(),
     spec: z.string().optional(),
+    // Optional map of POM route → area label, used by /xera-impact to reconcile
+    // route-derived POM areas with ticket `modifiesAreas`. (#197)
+    routeAreas: z.record(z.string(), z.string()).optional(),
     auth: AuthSchema.prefault({}),
     testData: z
       .object({

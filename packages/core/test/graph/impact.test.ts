@@ -262,6 +262,103 @@ describe('walkImpact', () => {
   });
 });
 
+describe('walkImpact route→area mapping (#197)', () => {
+  function dashGraph(): Snapshot {
+    return {
+      schema_version: 1,
+      generated_at: '2026-05-15T00:00:00Z',
+      event_count: 0,
+      events_hash: 'sha256:test',
+      tickets: {
+        'XFB-7': {
+          id: 'XFB-7',
+          summary: 'login + dashboard',
+          ac: [],
+          storyHash: 'h',
+          modifiesAreas: ['dashboard'],
+          fetchedAt: '2026-05-10T00:00:00Z',
+        },
+        'XFB-26': {
+          id: 'XFB-26',
+          summary: 'overview dashboard',
+          ac: [],
+          storyHash: 'h',
+          modifiesAreas: ['dashboard'],
+          fetchedAt: '2026-05-09T00:00:00Z',
+        },
+      },
+      scenarios: {
+        'sc-26': {
+          id: 'sc-26',
+          ticketId: 'XFB-26',
+          name: 'Dashboard lists tasks',
+          gherkin: '...',
+          priority: 'p1',
+          featureHash: 'h',
+          generatedAt: '2026-05-09T00:00:00Z',
+        },
+      },
+      poms: {
+        'pom-root': {
+          id: 'pom-root',
+          ticketId: 'XFB-26',
+          filePath: 'Dashboard.ts',
+          route: '/', // landing route → slug 'root', but the dashboard area
+          locators: [],
+          scope: 'shared',
+        },
+      },
+      areas: {},
+      edges: [
+        {
+          kind: 'tests',
+          from: 'XFB-26',
+          to: 'sc-26',
+          source: 'xera-script',
+          discoveredAt: '2026-05-09T00:00:00Z',
+        },
+        {
+          kind: 'uses',
+          from: 'sc-26',
+          to: 'pom-root',
+          source: 'xera-script',
+          discoveredAt: '2026-05-09T00:00:00Z',
+        },
+        {
+          kind: 'covers',
+          from: 'pom-root',
+          to: 'root',
+          source: 'xera-script',
+          discoveredAt: '2026-05-09T00:00:00Z',
+        },
+        {
+          kind: 'modifies',
+          from: 'XFB-7',
+          to: 'dashboard',
+          source: 'extract-areas',
+          discoveredAt: '2026-05-10T00:00:00Z',
+        },
+      ],
+      latest_failures: {},
+    };
+  }
+
+  test('without routeAreas, a "/" POM (slug "root") misses a "dashboard" ticket', () => {
+    const graph = dashGraph();
+    const result = walkImpact(graph, graph.tickets['XFB-7']!, { depth: 1 });
+    expect(result).toEqual([]);
+  });
+
+  test('with routeAreas {"/":"dashboard"}, the "/" POM scenarios surface', () => {
+    const graph = dashGraph();
+    const result = walkImpact(graph, graph.tickets['XFB-7']!, {
+      depth: 1,
+      routeAreas: { '/': 'dashboard' },
+    });
+    expect(result.map((r) => r.scenarioId)).toEqual(['sc-26']);
+  });
+});
+
 describe('renderImpactMarkdown', () => {
   test('produces markdown with high/medium/low buckets', () => {
     const report: ImpactReport = {

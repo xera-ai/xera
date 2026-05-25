@@ -25,6 +25,10 @@ export default defineConfig({
       staging: '{{stagingUrl}}',
     },
     defaultEnv: 'staging',
+    // Optional: map page routes to the area labels you use in tickets so
+    // `/xera-impact` links scenarios across tickets that touch the same UI.
+    // Without this, an area is the first route segment ('/' → 'root').
+    // routeAreas: { '/': 'dashboard', '/settings/profile': 'profile' },
     {{#if authEnabled}}
     auth: {
       strategy: 'storageState',
