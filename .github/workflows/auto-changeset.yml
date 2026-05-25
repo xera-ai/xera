@@ -6,7 +6,7 @@ name: Auto-changeset
 #
 # Only runs on PRs from the same repo (not forks) because the workflow needs
 # write access to push the generated changeset back to the PR branch.
-# External-contributor PRs fall back to the manual `bunx changeset` flow,
+# External-contributor PRs fall back to the manual `npx changeset` flow,
 # which changeset-bot will flag via PR comment.
 #
 # Uses the `xera-automation` GitHub App for the push so the resulting commit
@@ -45,8 +45,10 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
 
-      - uses: oven-sh/setup-bun@v2
-        with: { bun-version: '1.3.x' }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
 
       - name: Generate changeset
         env:
@@ -54,7 +56,7 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: bun scripts/auto-changeset.mjs
+        run: node scripts/auto-changeset.mjs
 
       - name: Commit changeset to PR branch
         run: |
