@@ -1,5 +1,11 @@
 # @xera-ai/skills
 
+## 0.19.0
+
+### Minor Changes
+
+- [#182](https://github.com/xera-ai/xera/pull/182) [`04074de`](https://github.com/xera-ai/xera/commit/04074de213851232a832471df34548da76b094b5) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - CONTRACT_DRIFT on web traces + self-heal (auto-generated from [#182](https://github.com/xera-ai/xera/issues/182))
+
 ## 0.18.0
 
 ### Minor Changes
