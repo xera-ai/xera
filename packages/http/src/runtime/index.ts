@@ -5,6 +5,21 @@ import { attachTraceRecorder } from '../executor/trace-recorder';
 
 const DEFAULT_AUTH_DIR = '.xera/.auth';
 
+// Build an absolute URL by joining XERA_BASE_URL with `path`. Use this
+// instead of `api.post('/path', …)` so the request still resolves correctly
+// when XERA_BASE_URL has a path component (e.g. `http://host/api/v1`) —
+// Playwright's built-in baseURL resolver collapses path-absolute requests
+// onto the origin and drops the prefix. See issue #194.
+export function apiPath(path: string): string {
+  const baseURL = process.env.XERA_BASE_URL;
+  if (!baseURL) {
+    throw new Error('XERA_BASE_URL is not set. Run xera through the regular skill flow.');
+  }
+  const base = baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL;
+  const p = path.startsWith('/') ? path : `/${path}`;
+  return `${base}${p}`;
+}
+
 export interface AuthFilePayload {
   type: 'bearer' | 'apiKey' | 'basic' | 'cookie';
   token: string;

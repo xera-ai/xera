@@ -1,6 +1,6 @@
 ---
 name: script-from-feature-http
-version: 1.0.0
+version: 1.1.0
 inputs:
   - feature: string         # the Gherkin feature.md content
   - story: string           # the Jira story text
@@ -39,8 +39,14 @@ Required imports (verbatim):
 
 ```ts
 import { test, expect, type APIRequestContext } from '@playwright/test';
-import { newAuthedContext } from '@xera-ai/http/runtime';
+import { apiPath, newAuthedContext } from '@xera-ai/http/runtime';
 ```
+
+## URL construction
+
+**Always wrap request paths with `apiPath('/path')`.** Do not pass a bare `'/path'` string to `api.get / api.post / …`.
+
+Playwright resolves relative URLs against `baseURL` with `new URL(path, baseURL)`. When `baseURL` carries a path component (e.g. `http://localhost:3100/api/v1`), a leading-`/` path collapses onto the origin and drops the prefix — the request goes to `/auth/login` instead of `/api/v1/auth/login`. `apiPath` joins them by string-concatenation, so the call lands at the correct endpoint regardless of `baseURL` shape.
 
 ## Auth role selection
 
@@ -78,7 +84,7 @@ Do not catch + swallow errors. Let Playwright `expect` raise.
 
 ```ts
 import { test, expect, type APIRequestContext } from '@playwright/test';
-import { newAuthedContext } from '@xera-ai/http/runtime';
+import { apiPath, newAuthedContext } from '@xera-ai/http/runtime';
 
 test.describe('User registration validation', () => {
   let api: APIRequestContext;
@@ -88,7 +94,7 @@ test.describe('User registration validation', () => {
   test.afterAll(async () => { await api.dispose(); });
 
   test('Reject malformed email', async () => {
-    const res = await api.post('/users', { data: { email: 'not-an-email' } });
+    const res = await api.post(apiPath('/users'), { data: { email: 'not-an-email' } });
     expect(res.status()).toBe(422);
     const body = await res.json();
     expect(body.errors).toBeInstanceOf(Array);
