@@ -1,5 +1,15 @@
 # @xera-ai/cli
 
+## 0.20.1
+
+### Patch Changes
+
+- [#191](https://github.com/xera-ai/xera/pull/191) [`48fa862`](https://github.com/xera-ai/xera/commit/48fa8627b73a70bee0b4746300b0b1e5b8e5b60a) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - handle nested {{#if}} blocks in template renderer ([#190](https://github.com/xera-ai/xera/issues/190)) (auto-generated from [#191](https://github.com/xera-ai/xera/issues/191))
+
+- Updated dependencies []:
+  - @xera-ai/core@0.20.1
+  - @xera-ai/skills@0.20.1
+
 ## 0.20.0
 
 ### Minor Changes
