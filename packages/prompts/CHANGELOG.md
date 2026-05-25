@@ -1,5 +1,11 @@
 # @xera-ai/prompts
 
+## 0.20.0
+
+### Minor Changes
+
+- [#183](https://github.com/xera-ai/xera/pull/183) [`f414f6b`](https://github.com/xera-ai/xera/commit/f414f6b8ca69121d8df4591fdfe9c6645d4eeaf9) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - Migrate the toolchain from Bun to Node.js + Vitest + npm. Published bins now use a `node` shebang and the runtime no longer depends on Bun APIs (Node >=22 required); builds use tsup. End-user workflows — skills, `xera init` scaffolding, `doctor`, and the graph-viewer CI template — now invoke `npx xera-internal` and npm instead of `bun run xera:*`.
+
 ## 0.19.0
 
 ### Minor Changes
