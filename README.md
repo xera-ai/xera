@@ -14,6 +14,10 @@
   <a href="https://xera-ai.github.io/xera/"><img alt="Docs" src="https://img.shields.io/badge/docs-xera--ai.github.io-41d1ff"></a>
 </p>
 
+**v0.19:** [Web CONTRACT_DRIFT + self-heal](docs/ARCHITECTURE.md#v019-addition-web-contract_drift-detection-and-self-heal). `/xera-report` now matches a web test's captured network calls against OpenAPI (opt-in `xeraNetwork` recorder) and flags `CONTRACT_DRIFT` per scenario on documented endpoints. When it fires, it can auto-rewrite a single `spec.ts` assertion to match the contract, re-run, and stage the fix (http-focused) — parallel to the v0.5 selector heal.
+
+**v0.18:** [Feature-from-OpenAPI](docs/CONFIGURATION.md#xera-feature---from-spec-v018). `/xera-feature <KEY> --from-spec` generates Gherkin directly from an OpenAPI document — no fetched ticket — with `--tag` / `--operation` / `--path` filters. Also: `xera init` now scaffolds a root `AGENTS.md` orienting any AI agent (never clobbering an existing one).
+
 **v0.16:** [GitHub Issues](docs/CONFIGURATION.md#issue-tracker-jira-vs-github) as an alternative to Jira (`xera init --tracker github`, ticket keys `GH-<n>`, no token required — uses the GitHub MCP or `gh` CLI). `/xera-run` first-run fix: the health gate is split into env-only Step 0 + ticket-specific Step 1.6 (after fetch), so a fresh ticket no longer deadlocks on its own missing artifacts.
 
 **v0.9:** [Adversarial exploration](docs/ARCHITECTURE.md#v09-addition-adversarial-exploration-experimental) (experimental, opt-in). `/xera-explore <TICKET>` brainstorms negative / boundary / race / a11y / security-smell scenarios into a separate `explore.feature`, untouched by PO review of `test.feature`.
@@ -59,7 +63,7 @@ bun run xera:auth-setup         # pre-authenticate roles (writes encrypted .xera
 |---|---|
 | `/xera-run <TICKET>` | Full pipeline end-to-end (auto-checks impact after fetch) |
 | `/xera-fetch <TICKET>` | Pull story from the configured tracker (Jira or GitHub); extract modified SUT areas |
-| `/xera-feature <TICKET>` | Generate Gherkin |
+| `/xera-feature <TICKET>` | Generate Gherkin (or `--from-spec` to generate from an OpenAPI doc with no ticket) |
 | `/xera-script <TICKET>` | Generate Playwright spec + page objects (auto-detects priority) |
 | `/xera-exec <TICKET>` | Run the test only (supports `--grep` for per-scenario filter) |
 | `/xera-report <TICKET>` | 9-class classifier (`PASS`, `REAL_BUG`, `TEST_BUG`, `FLAKY`, `SELECTOR_DRIFT`, `TEST_OUTDATED`, `CONTRACT_DRIFT`, `RATE_LIMITED`, `AUTH_EXPIRED`) + post diagnosis to the tracker (Jira comment or GitHub issue comment) |
@@ -82,11 +86,11 @@ CI workflow (`.github/workflows/xera-graph.yml`, scaffolded by `xera init`) rend
 See [the design spec](docs/superpowers/specs/2026-05-14-xera-core-web-design.md) for the v0.1 architecture and [the v0.6 design](docs/superpowers/specs/2026-05-16-xera-v06-project-knowledge-graph-design.md) for the project knowledge graph layer. In short:
 
 - `@xera-ai/cli` — public CLI (`init` with `--shape web|api|mixed --tracker jira|github`, `doctor [--strict [ticket]]`, `samples remove`)
-- `@xera-ai/core` — config, artifact IO, 9-class classifier (`PASS`, `REAL_BUG`, `TEST_BUG`, `FLAKY`, `SELECTOR_DRIFT`, `TEST_OUTDATED`, `CONTRACT_DRIFT`, `RATE_LIMITED`, `AUTH_EXPIRED`), Jira + GitHub Issues client behind a unified `IssueProvider` interface, auth state, shared scrub rules, **graph module**, **coverage module**, `xera-internal` binary with 34 subcommands (incl. `auth-setup`, `coverage-prepare`, `fill-gap-*`, `explore-*`, `openapi-resolve`)
-- `@xera-ai/web` — Playwright adapter, browser-driven (supports `--grep` per-scenario)
-- `@xera-ai/http` — **v0.7** HTTP API adapter, no browser. Pre-auth helpers (`defineHttpAuthSetup` + `presetHttpAuth`), runtime `newAuthedContext`, OpenAPI loader for `CONTRACT_DRIFT` detection
+- `@xera-ai/core` — config, artifact IO, 9-class classifier (`PASS`, `REAL_BUG`, `TEST_BUG`, `FLAKY`, `SELECTOR_DRIFT`, `TEST_OUTDATED`, `CONTRACT_DRIFT`, `RATE_LIMITED`, `AUTH_EXPIRED`), Jira + GitHub Issues client behind a unified `IssueProvider` interface, auth state, shared scrub rules, **graph module**, **coverage module**, `xera-internal` binary with 36 subcommands (incl. `auth-setup`, `coverage-prepare`, `fill-gap-*`, `explore-*`, `openapi-resolve`, `feature-spec-prepare`, `contract-heal-prepare`)
+- `@xera-ai/web` — Playwright adapter, browser-driven (supports `--grep` per-scenario; opt-in `xeraNetwork` recorder feeds web `CONTRACT_DRIFT` detection)
+- `@xera-ai/http` — **v0.7** HTTP API adapter, no browser. Pre-auth helpers (`defineHttpAuthSetup` + `presetHttpAuth`), runtime `newAuthedContext`, OpenAPI loader for `CONTRACT_DRIFT` detection + `extractOperations` for `/xera-feature --from-spec`
 - `@xera-ai/skills` — Claude Code skill `.md` files (dispatch by `meta.json.adapter`)
-- `@xera-ai/prompts` — versioned LLM prompt templates including `script-from-feature-web.md` + `script-from-feature-http.md`
+- `@xera-ai/prompts` — versioned LLM prompt templates including `feature-from-openapi.md`, `script-from-feature-web.md` + `script-from-feature-http.md`, and `contract-heal.md`
 
 ## Documentation
 
@@ -111,6 +115,8 @@ See [the design spec](docs/superpowers/specs/2026-05-14-xera-core-web-design.md)
 | v0.9 | ✅ shipped | **Adversarial exploration (experimental, opt-in)** — `/xera-explore <TICKET>` brainstorms negative / boundary / race / a11y / security-smell scenarios with `category` + `severity` metadata; writes accepted proposals to a separate `explore.feature` so PO review of `test.feature` stays undisturbed. Not auto-chained from `/xera-run` |
 | v0.10–v0.15 | ✅ shipped | Multi-editor support (`xera init --editor claude\|cursor\|codex\|all`) · CLI UX hardening (help-on-no-args, did-you-mean, non-TTY guard) · cognitive AC extraction from Jira description body when no dedicated AC field is configured · `xera init --update --shape` upgrade path · http-shape `.env.example` hints `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD` · `.d.ts` declarations emitted for all packages |
 | v0.16 | ✅ shipped | **GitHub Issues tracker** (`github: { repo: 'owner/repo' }`, ticket keys `GH-<n>`, GitHub MCP + `gh` CLI fallback, no token env vars) · `/xera-run` first-run unblocked: env-only Step 0 + ticket-specific Step 1.6 after fetch (chicken-and-egg fix) · `xera doctor --strict [ticket]` accepts optional ticket arg · `samples remove` subcommand on the public CLI |
+| v0.18 | ✅ shipped | **Feature-from-OpenAPI** — `/xera-feature <KEY> --from-spec [--tag/--operation/--path]` generates Gherkin straight from an OpenAPI doc (no fetched ticket) via the deterministic `feature-spec-prepare` + `feature-from-openapi.md` prompt · `xera init` scaffolds a root `AGENTS.md` when absent (never clobbers) |
+| v0.19 | ✅ shipped | **Web CONTRACT_DRIFT + self-heal** — opt-in `xeraNetwork` recorder captures scrubbed page responses; `/xera-report` matches them to documented OpenAPI endpoints and stamps `CONTRACT_DRIFT` per scenario · self-heal rewrites a `spec.ts` assertion to the contract, re-runs, and stages on pass (http-focused; web refuses) via `contract-heal-prepare` + `contract-heal.md` |
 | v1.0 | planned | **Stability commitment** (semver from 1.0, frozen `TestAdapter` interface) · public [documentation site](https://xera-ai.github.io/xera/) · cross-adapter graph linkage (endpoint as first-class graph node) |
 | v1.x | planned | `/xera-sprint` multi-ticket orchestration · production trace → test backfill · hosted live dashboard (graph + coverage + disputes) · messaging adapters (Kafka, AMQP, WebSocket) · GraphQL · gRPC |
 | v2.0 | planned | Optional SaaS backend (only if multi-org demand) |
