@@ -16,7 +16,7 @@ export const WebAdapter: TestAdapter = {
   async generate(_input: GenerateInput): Promise<GenerateResult> {
     // Generation itself is LLM-driven via skills + prompts; the adapter
     // exposes helpers (validateGherkin, typecheckTicket, lintTicket) that
-    // the skills call via `bun run xera:*`. No direct artifact writing here.
+    // the skills call via `npx xera-internal`. No direct artifact writing here.
     return { artifacts: [], warnings: [] };
   },
 
@@ -49,7 +49,7 @@ export const WebAdapter: TestAdapter = {
       checks.push({
         name: '@playwright/test installed',
         ok: false,
-        message: 'Run `bun add -D @playwright/test`.',
+        message: 'Run `npm install -D @playwright/test`.',
       });
     }
     return { ok: checks.every((c) => c.ok), checks };

@@ -32,7 +32,7 @@ export async function authSetupCmd(argv: string[]): Promise<number> {
   const authSetupScript = join(cwd, 'shared', 'auth-setup.ts');
   if (!existsSync(authSetupScript)) {
     console.error(
-      `[xera:auth-setup] auth-setup.ts not found at ${authSetupScript}. Run 'bunx @xera-ai/cli init' first.`,
+      `[xera:auth-setup] auth-setup.ts not found at ${authSetupScript}. Run 'npx @xera-ai/cli init' first.`,
     );
     return 1;
   }

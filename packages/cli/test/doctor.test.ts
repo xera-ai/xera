@@ -33,7 +33,7 @@ describe('doctorCommand --strict flag arity (#153)', () => {
   });
 
   test('--strict (boolean, no ticket): returns 1 on any failing env check', async () => {
-    // Simulates `bunx xera doctor --strict` after cac parsing of `--strict [ticket]`
+    // Simulates `npx xera doctor --strict` after cac parsing of `--strict [ticket]`
     // with no ticket arg supplied — cac yields strict === true.
     const exit = await doctorCommand({ strict: true });
     expect(exit).toBe(1);

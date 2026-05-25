@@ -122,7 +122,7 @@ describe('authSetupCmd shape mismatch detection (#93)', () => {
 
   test('--shape all (default) on mixed config with no exports → exit 1 with both warnings', async () => {
     // This is the infinite-loop case from the issue: doctor says "run auth-setup",
-    // user runs `bun run xera:auth-setup` (no --shape flag, defaults to `all`),
+    // user runs `npx xera-internal auth-setup` (no --shape flag, defaults to `all`),
     // it used to silently no-op. Now both warnings fire from the pre-flight.
     // Using a no-export auth-setup.ts keeps the test hermetic — the web branch
     // would otherwise try to launch chromium which isn't installed in CI.

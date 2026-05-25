@@ -251,11 +251,13 @@ export function renderImpactMarkdown(report: ImpactReport): string {
   }
 
   lines.push('## Re-run commands');
-  lines.push(`- All:        \`bun run xera:exec --from-impact ${report.targetTicket}\``);
+  lines.push(`- All:        \`npx xera-internal exec --from-impact ${report.targetTicket}\``);
   lines.push(
-    `- P0 only:    \`bun run xera:exec --from-impact ${report.targetTicket} --min-priority p0\``,
+    `- P0 only:    \`npx xera-internal exec --from-impact ${report.targetTicket} --min-priority p0\``,
   );
-  lines.push(`- Select:     \`bun run xera:exec --from-impact ${report.targetTicket} --select\``);
+  lines.push(
+    `- Select:     \`npx xera-internal exec --from-impact ${report.targetTicket} --select\``,
+  );
   lines.push('');
 
   return lines.join('\n');

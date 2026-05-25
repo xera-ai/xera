@@ -39,7 +39,7 @@ export async function typecheckTicket(ticketDir: string): Promise<TypecheckResul
     };
   }
 
-  const proc = spawnSync('bunx', ['tsc', '--noEmit', '-p', tsconfig], { encoding: 'utf8' });
+  const proc = spawnSync('npx', ['tsc', '--noEmit', '-p', tsconfig], { encoding: 'utf8' });
   if (proc.status === 0) return { ok: true, errors: [] };
 
   const out = `${proc.stdout ?? ''}${proc.stderr ?? ''}`;

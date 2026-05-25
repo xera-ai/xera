@@ -36,7 +36,7 @@ export function classifyAuthExpired(input: ClassifyAuthExpiredInput): ClassifyRe
     if (fileExpired || jwtExpired) {
       return {
         class: 'AUTH_EXPIRED',
-        rationale: `HTTP 401 captured; auth file for role '${role}' is past expiry. Run: bun run xera:auth-setup --role ${role}`,
+        rationale: `HTTP 401 captured; auth file for role '${role}' is past expiry. Run: npx xera-internal auth-setup --role ${role}`,
       };
     }
   }

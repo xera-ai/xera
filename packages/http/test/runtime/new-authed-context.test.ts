@@ -31,7 +31,9 @@ const fakePlaywright = { request: pwRequest } as unknown as Parameters<typeof ne
 
 describe('newAuthedContext', () => {
   test('throws helpful error when auth file missing', async () => {
-    expect(newAuthedContext(fakePlaywright, 'user')).rejects.toThrow(/xera:auth-setup --role user/);
+    expect(newAuthedContext(fakePlaywright, 'user')).rejects.toThrow(
+      /xera-internal auth-setup --role user/,
+    );
   });
 
   test('throws expired error when auth file past expiry', async () => {
