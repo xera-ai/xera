@@ -26,7 +26,7 @@ The user invoked `/xera-script <TICKET>`. If no key, ask.
 5. Before reading the test.feature + story.md content into your generation context, mint a fresh per-invocation nonce by running:
 
    ```bash
-   bun -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"
+   node -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"
    ```
 
    Capture the single-line output (e.g. `XR_a3f9b2c14e8d`) as the nonce for this invocation. Do NOT persist it to disk, log it, or include it in spec.ts output.

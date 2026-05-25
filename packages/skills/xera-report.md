@@ -97,7 +97,7 @@ If at least one scenario is SELECTOR_DRIFT, take the FIRST such scenario (by arr
    Then run:
 
    ```bash
-   bun packages/core/bin/internal.ts heal-prepare {{TICKET}} {{RUN_ID}} "{{SCENARIO_NAME}}"
+   npx xera-internal heal-prepare {{TICKET}} {{RUN_ID}} "{{SCENARIO_NAME}}"
    ```
 
    Substitute the real runId and scenario name. The scenario name may contain spaces; quote it. Exit code 0 on success (a `heal-input.json` is written into the run dir at `.xera/{{TICKET}}/runs/{{RUN_ID}}/heal-input.json`). Exit 1 on prepare failure — surface the stderr message to the user and STOP the heal sub-flow (do NOT block the rest of /xera-report; proceed to step 5 with no heal applied).
@@ -107,7 +107,7 @@ If at least one scenario is SELECTOR_DRIFT, take the FIRST such scenario (by arr
    1. Mint a per-invocation nonce by running:
 
       ```bash
-      bun -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"
+      node -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"
       ```
 
       Capture the single-line output (e.g. `XR_a3f9b2c14e8d`) as the nonce for this invocation. Do NOT persist or log it.

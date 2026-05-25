@@ -57,7 +57,7 @@ If the input file is `{ "tickets": [] }`, skip to Step 4 — there's nothing to 
 Mint a fresh per-invocation nonce:
 
 ```bash
-bun -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"
+node -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"
 ```
 
 Capture the single-line output as the nonce.

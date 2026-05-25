@@ -71,7 +71,7 @@ The binary assembles: story, AC, existing `test.feature` (if present), existing 
 Mint a fresh per-invocation nonce:
 
 ```bash
-bun -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"
+node -e "console.log('XR_' + crypto.randomUUID().replace(/-/g,'').slice(0,12))"
 ```
 
 Capture the single-line output as the nonce.

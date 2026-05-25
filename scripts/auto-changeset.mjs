@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Auto-generate a changeset from a PR's title + diff.
  *

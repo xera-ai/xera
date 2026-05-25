@@ -12,7 +12,7 @@ This skill orchestrates the other six skills with quality gates between each ste
 Run: `npx xera doctor --strict`
 If non-zero exit → STOP. Show the output verbatim. Suggest the user fix env and re-run.
 
-This runs the environment-level checks (bun, `xera.config.ts`, baseUrl reachability, auth files, OpenAPI, `.env`, editor skill layout). The ticket-specific gate runs as Step 1.6 after fetch, since `.xera/{{TICKET}}/` legitimately does not exist on the very first invocation of `/xera-run`.
+This runs the environment-level checks (node, `xera.config.ts`, baseUrl reachability, auth files, OpenAPI, `.env`, editor skill layout). The ticket-specific gate runs as Step 1.6 after fetch, since `.xera/{{TICKET}}/` legitimately does not exist on the very first invocation of `/xera-run`.
 
 ## Step 1 — Fetch
 
