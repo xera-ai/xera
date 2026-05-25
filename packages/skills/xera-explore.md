@@ -54,7 +54,7 @@ Capture the free-text reply (may be empty). This becomes `userHint` passed to th
 Run:
 
 ```bash
-bun run xera:explore-prepare {{TICKET}} \
+npx xera-internal explore-prepare {{TICKET}} \
   --categories "<comma-separated-slugs-from-Q1>" \
   --user-hint "<reply-from-Q2-or-empty>"
 ```
@@ -137,7 +137,7 @@ Pick proposals to accept [comma-separated IDs / all / high-only / none]:
 Run:
 
 ```bash
-bun run xera:explore-finalize {{TICKET}} --accept "<comma-separated-ids-or-all-or-high-only>"
+npx xera-internal explore-finalize {{TICKET}} --accept "<comma-separated-ids-or-all-or-high-only>"
 ```
 
 The binary appends accepted scenarios to `.xera/{{TICKET}}/explore.feature`, tagged `@adversarial` (and a second tag matching the category, e.g. `@adversarial-race`). If `explore.feature` does not exist, the binary creates it with a Feature header copied from `test.feature` (or a synthesized one if no `test.feature` yet).
@@ -157,7 +157,7 @@ Wrote N adversarial scenarios to .xera/{{TICKET}}/explore.feature.
 
 Review the file, edit as needed, then either:
   (a) merge into test.feature and run /xera-script {{TICKET}} to generate spec
-  (b) keep explore.feature separate and run via: bun run xera:exec {{TICKET}} --grep "@adversarial"
+  (b) keep explore.feature separate and run via: npx xera-internal exec {{TICKET}} --grep "@adversarial"
       (when /xera-script grows multi-feature support — currently spec covers test.feature only,
        so option (a) is the only end-to-end path)
 

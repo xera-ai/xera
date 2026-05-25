@@ -53,7 +53,7 @@ describe('doctor http checks', () => {
     const checks = await runChecks(dir);
     const missing = checks.find((c) => c.name === 'http auth file present: user');
     expect(missing?.ok).toBe(false);
-    expect(missing?.message).toContain('xera:auth-setup --role user');
+    expect(missing?.message).toContain('xera-internal auth-setup --role user');
   });
 
   test('reports ✓ when auth file present and fresh', async () => {

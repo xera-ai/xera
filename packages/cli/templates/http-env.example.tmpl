@@ -12,7 +12,7 @@ JIRA_API_TOKEN=
 {{/each}}
 
 # Pure-API project tip: @playwright/test no longer auto-downloads browsers on
-# install (since Playwright 1.27), so a fresh `bun install` is already lean.
+# install (since Playwright 1.27), so a fresh `npm install` is already lean.
 # BUT if your CI pipeline calls `npx playwright install --with-deps` blindly
 # (common in container base images), export this BEFORE that step to skip the
 # ~300MB Chromium/Firefox/Webkit download — none of which are needed for HTTP

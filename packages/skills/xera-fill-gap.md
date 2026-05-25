@@ -20,7 +20,7 @@ Confirm `xera.config.ts` exists in cwd. If not, say `xera.config.ts not found â€
 Run:
 
 ```bash
-bun run xera:fill-gap-prepare {{--area <slug> | --ticket <TICKET>}}
+npx xera-internal fill-gap-prepare {{--area <slug> | --ticket <TICKET>}}
 ```
 
 Exit codes:
@@ -86,7 +86,7 @@ Ask the user: `Pick proposals to draft [comma-separated IDs / all / none]:`
 For each accepted proposal ID, run:
 
 ```bash
-bun run xera:fill-gap-finalize --accept <id> --ticket <proposal.ticketId> --source .xera/coverage/<scope>/proposals.json
+npx xera-internal fill-gap-finalize --accept <id> --ticket <proposal.ticketId> --source .xera/coverage/<scope>/proposals.json
 ```
 
 If the binary returns exit 3 (`feature.draft.md` already exists), prompt the user: `Overwrite existing draft for <TICKET>? (y/N)`. If yes, re-run with `--force`.

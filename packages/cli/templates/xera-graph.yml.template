@@ -12,17 +12,19 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-        with: { bun-version: '1.3.x' }
-      - run: bun install --frozen-lockfile
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
       - name: Build graph snapshot
-        run: bun run xera:graph-snapshot
+        run: npx xera-internal graph-snapshot
         continue-on-error: true
       - name: Build coverage report (v0.8.0+)
-        run: bun run xera:coverage-prepare --no-emit-event
+        run: npx xera-internal coverage-prepare --no-emit-event
         continue-on-error: true
       - name: Render viewer with Coverage tab
-        run: bun run xera:graph-render --include-coverage --out graph.html
+        run: npx xera-internal graph-render --include-coverage --out graph.html
         continue-on-error: true
       - name: Upload artifact
         uses: actions/upload-artifact@v4

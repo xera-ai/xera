@@ -20,7 +20,7 @@ The user invoked `/xera-script <TICKET>`. If no key, ask.
    Follow that prompt's hard rules.
 
    When `adapter === "http"`, additionally:
-   - Run `bun run xera:openapi-resolve {{TICKET}}` — this writes `.xera/{{TICKET}}/openapi-input.json`, a deterministic JSON file containing `{ openapi: <dereferenced doc> | null }`. The subcommand handles path/URL resolution and `$ref` dereferencing for you; never read the raw OpenAPI file yourself.
+   - Run `npx xera-internal openapi-resolve {{TICKET}}` — this writes `.xera/{{TICKET}}/openapi-input.json`, a deterministic JSON file containing `{ openapi: <dereferenced doc> | null }`. The subcommand handles path/URL resolution and `$ref` dereferencing for you; never read the raw OpenAPI file yourself.
    - Read `.xera/{{TICKET}}/openapi-input.json` and pass the value of its `openapi` field to your generation context as the `openapi` input (it will be `null` when `http.spec` is not configured or the spec failed to load).
 
 5. Before reading the test.feature + story.md content into your generation context, mint a fresh per-invocation nonce by running:
@@ -46,8 +46,8 @@ The user invoked `/xera-script <TICKET>`. If no key, ask.
    Do not modify anything under `shared/`. Do NOT include the nonce markers or any text outside the file bodies in the written files.
 
 7. Run quality gates:
-   - `bun run xera:typecheck {{TICKET}}` — if exit 2, read errors, fix in the generated files, retry up to 2 times.
-   - `bun run xera:lint {{TICKET}}` — same retry policy. If a CSS selector is truly necessary, add `// xera-allow-css: <reason>` on the line above it.
+   - `npx xera-internal typecheck {{TICKET}}` — if exit 2, read errors, fix in the generated files, retry up to 2 times.
+   - `npx xera-internal lint {{TICKET}}` — same retry policy. If a CSS selector is truly necessary, add `// xera-allow-css: <reason>` on the line above it.
 
 8. Update meta.json: `script_generated_at`, `script_generated_from_feature_hash`.
 
@@ -59,7 +59,7 @@ The user invoked `/xera-script <TICKET>`. If no key, ask.
 Run:
 
 ```bash
-bun run xera:graph-record script <TICKET>
+npx xera-internal graph-record script <TICKET>
 ```
 
 Non-fatal as in `/xera-fetch`.

@@ -433,7 +433,7 @@ ${trackerLine}
        cp .env.example .env
        # then edit .env to set USER_BEARER_TOKEN=...
   2) Run pre-authentication:
-       bun run xera:auth-setup
+       npx xera-internal auth-setup
   3) Start testing:
 ${editorLines}
 `
@@ -444,7 +444,7 @@ ${trackerLine}
   1) Copy .env.example to .env and set credentials (both web logins and API tokens):
        cp .env.example .env
   2) Run pre-authentication:
-       bun run xera:auth-setup
+       npx xera-internal auth-setup
   3) Start testing:
 ${editorLines}
 `
@@ -454,7 +454,7 @@ ${trackerLine}
   1) Copy .env.example to .env and set credentials:
        cp .env.example .env
   2) Run pre-authentication:
-       bun run xera:auth-setup
+       npx xera-internal auth-setup
   3) Start testing:
 ${editorLines}
 `;

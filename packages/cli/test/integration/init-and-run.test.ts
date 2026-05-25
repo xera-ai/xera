@@ -91,7 +91,7 @@ describe('xera integration — init + fetch + exec + report', () => {
     expect(await install.exited).toBe(0);
 
     // 5. Run xera-internal fetch SAMPLE-001 (uses mock-jira REST since no MCP)
-    const fetchProc = run(['npm', 'run', 'xera:fetch', '--', 'SAMPLE-001'], { cwd });
+    const fetchProc = run(['npx', 'xera-internal', 'fetch', 'SAMPLE-001'], { cwd });
     expect(await fetchProc.exited).toBe(0);
     expect(existsSync(join(cwd, '.xera/SAMPLE-001/story.md'))).toBe(true);
 

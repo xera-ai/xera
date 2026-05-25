@@ -79,13 +79,13 @@ j. Summarize to the user: number of scenarios, list of scenario names, and the o
 
    Where `XR_a3f9b2c14e8d` is the nonce minted in step 4 (substitute the real value). Then generate `.xera/{{TICKET}}/test.feature` per the prompt. Do NOT include the nonce markers or any text outside the Gherkin file body in the written file.
 
-6. Run: `bun run xera:validate-feature {{TICKET}}`
+6. Run: `npx xera-internal validate-feature {{TICKET}}`
    - Exit 0 → success.
    - Exit 2 → parse error. Read the line/message, rewrite test.feature to fix it, re-run. Try at most 2 retries. If still failing, show the user the parser output and stop.
 
 7. Update `.xera/{{TICKET}}/meta.json`:
    - `feature_generated_at` = now (ISO)
    - `feature_generated_from_story_hash` = the current `story_hash`
-   - `feature_hash` = sha256 of the file contents (the skill will compute by reading the file and using the same hashing scheme as `xera-internal`; just record `feature_generated_at` and let `xera:fetch`-style helpers re-hash as needed).
+   - `feature_hash` = sha256 of the file contents (the skill will compute by reading the file and using the same hashing scheme as `xera-internal`; just record `feature_generated_at` and let `xera-internal fetch`-style helpers re-hash as needed).
 
 8. Summarize to the user: number of scenarios, list of scenario names. Suggest: "Generate Playwright spec? `/xera-script {{TICKET}}`."

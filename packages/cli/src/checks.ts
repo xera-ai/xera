@@ -144,11 +144,11 @@ function pushTicketChecks(
 export async function runChecks(cwd: string, opts: RunChecksOptions = {}): Promise<Check[]> {
   const checks: Check[] = [];
 
-  // Bun
-  checks.push({
-    name: `bun ${process.versions.bun ?? 'unknown'}`,
-    ok: !!process.versions.bun,
-  });
+  // Node
+  const nodeMajor = Number(process.versions.node.split('.')[0]);
+  const nodeCheck: Check = { name: `node ${process.versions.node}`, ok: nodeMajor >= 20 };
+  if (nodeMajor < 20) nodeCheck.message = 'xera requires Node 20 or newer';
+  checks.push(nodeCheck);
 
   // xera.config.ts present and valid
   try {
@@ -207,7 +207,7 @@ export async function runChecks(cwd: string, opts: RunChecksOptions = {}): Promi
           checks.push({
             name: `http auth file present: ${role}`,
             ok: false,
-            message: `run: bun run xera:auth-setup --role ${role}`,
+            message: `run: npx xera-internal auth-setup --role ${role}`,
           });
           continue;
         }
@@ -217,7 +217,7 @@ export async function runChecks(cwd: string, opts: RunChecksOptions = {}): Promi
             checks.push({
               name: `http auth file readable: ${role}`,
               ok: false,
-              message: 'auth file unreadable; re-run xera:auth-setup',
+              message: 'auth file unreadable; re-run xera-internal auth-setup',
             });
             continue;
           }
@@ -226,7 +226,7 @@ export async function runChecks(cwd: string, opts: RunChecksOptions = {}): Promi
             checks.push({
               name: `http auth file fresh: ${role}`,
               ok: false,
-              message: `expired; run: bun run xera:auth-setup --role ${role}`,
+              message: `expired; run: npx xera-internal auth-setup --role ${role}`,
             });
           } else {
             const minutes = Math.round(expiresInMs / 60_000);
@@ -325,7 +325,7 @@ export async function runChecks(cwd: string, opts: RunChecksOptions = {}): Promi
               name: `${ticket.id}: ACNodes materialized`,
               ok: false,
               message:
-                'ticket has acceptance criteria but no ACNode in snapshot — rebuild via xera:graph-backfill',
+                'ticket has acceptance criteria but no ACNode in snapshot — rebuild via xera-internal graph-backfill',
             });
           }
         }
@@ -392,7 +392,7 @@ export async function runChecks(cwd: string, opts: RunChecksOptions = {}): Promi
     checks.push({
       name: '@playwright/test installed',
       ok: false,
-      message: 'run: bun add -D @playwright/test',
+      message: 'run: npm install -D @playwright/test',
     });
   }
 

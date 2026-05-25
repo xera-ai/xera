@@ -37,7 +37,7 @@ If the user did not provide a ticket key, ask: "Which ticket key?" and wait. Sho
      d. Set `XERA_MCP_GITHUB=1` for the next subprocess call.
    - Else: rely on the `gh` CLI. `xera-internal fetch` will invoke `gh issue view <number> --repo <owner/repo> --json …`. Confirm the user is authenticated by running `gh auth status` once if you have any doubt; surface a fix if not.
 
-3. Run: `bun run xera:fetch {{TICKET}}`
+3. Run: `npx xera-internal fetch {{TICKET}}`
    - Exit 0 → continue.
    - Exit 1 → user/config error. Read stderr, show the user the fix instructions, STOP.
    - Exit 4 → infra error. Show error, STOP.
@@ -76,7 +76,7 @@ If the user did not provide a ticket key, ask: "Which ticket key?" and wait. Sho
    Run:
 
    ```bash
-   bun run xera:graph-record fetch <TICKET>
+   npx xera-internal graph-record fetch <TICKET>
    ```
 
    This is non-fatal: if it exits non-zero, log a warning *"Graph event not recorded — run `xera doctor` to rebuild"* but continue. Do not block the fetch flow on this.
