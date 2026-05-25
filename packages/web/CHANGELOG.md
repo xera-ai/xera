@@ -1,5 +1,12 @@
 # @xera-ai/web
 
+## 0.18.0
+
+### Patch Changes
+
+- Updated dependencies [[`a21ca17`](https://github.com/xera-ai/xera/commit/a21ca17bff782443b22353af05c17961077101e2)]:
+  - @xera-ai/core@0.18.0
+
 ## 0.17.2
 
 ### Patch Changes

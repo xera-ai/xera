@@ -1,5 +1,16 @@
 # @xera-ai/http
 
+## 0.18.0
+
+### Minor Changes
+
+- [#179](https://github.com/xera-ai/xera/pull/179) [`a21ca17`](https://github.com/xera-ai/xera/commit/a21ca17bff782443b22353af05c17961077101e2) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - generate features from OpenAPI (/xera-feature --from-spec) (auto-generated from [#179](https://github.com/xera-ai/xera/issues/179))
+
+### Patch Changes
+
+- Updated dependencies [[`a21ca17`](https://github.com/xera-ai/xera/commit/a21ca17bff782443b22353af05c17961077101e2)]:
+  - @xera-ai/core@0.18.0
+
 ## 0.17.2
 
 ### Patch Changes
