@@ -1,5 +1,11 @@
 # @xera-ai/prompts
 
+## 0.18.0
+
+### Minor Changes
+
+- [#179](https://github.com/xera-ai/xera/pull/179) [`a21ca17`](https://github.com/xera-ai/xera/commit/a21ca17bff782443b22353af05c17961077101e2) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - generate features from OpenAPI (/xera-feature --from-spec) (auto-generated from [#179](https://github.com/xera-ai/xera/issues/179))
+
 ## 0.17.2
 
 ## 0.17.1
