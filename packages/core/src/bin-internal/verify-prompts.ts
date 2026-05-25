@@ -12,6 +12,7 @@ const IN_SCOPE_PROMPTS = [
   'script-from-feature-web.md',
   'script-from-feature-http.md',
   'heal-locator.md',
+  'contract-heal.md', // NEW v0.19
   'extract-areas.md',
   'similarity-match.md',
   'classify-outdated.md',

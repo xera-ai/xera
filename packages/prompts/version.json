@@ -1,9 +1,10 @@
 {
-  "prompts": "2.7.0",
+  "prompts": "2.8.0",
   "templates": [
     "diagnose-failure.md",
     "feature-from-story.md",
     "feature-from-openapi.md",
+    "contract-heal.md",
     "script-from-feature-web.md",
     "script-from-feature-http.md",
     "heal-locator.md",

@@ -20,6 +20,7 @@ function seedPrompts(
     script?: string;
     scriptHttp?: string;
     heal?: string;
+    contractHeal?: string;
     extractAreas?: string;
     similarityMatch?: string;
     classifyOutdated?: string;
@@ -53,6 +54,11 @@ function seedPrompts(
     join(dir, 'heal-locator.md'),
     opts.heal ??
       `---\nid: heal-locator\nversion: 1.0.0\n---\n\n# header\n\n${GOOD_PREAMBLE}\n\n## Decision rules\nbody`,
+  );
+  writeFileSync(
+    join(dir, 'contract-heal.md'),
+    opts.contractHeal ??
+      `---\nid: contract-heal\nversion: 1.0.0\n---\n\n# header\n\n${GOOD_PREAMBLE}\n\n## Decision rules\nbody`,
   );
   writeFileSync(
     join(dir, 'extract-areas.md'),
@@ -215,6 +221,19 @@ describe('verifyPrompts (pure)', () => {
     seedPrompts(cwd);
     const results = verifyPrompts(cwd);
     expect(results.some((r) => r.message.includes('extract-areas.md'))).toBe(false);
+  });
+
+  test('contract-heal.md is in scope and flagged when missing the preamble', () => {
+    seedPrompts(cwd, {
+      contractHeal: `---\nid: contract-heal\nversion: 1.0.0\n---\n\n# header\n\n## Decision rules\nbody`,
+    });
+    const results = verifyPrompts(cwd);
+    expect(
+      results.some(
+        (r) =>
+          r.message.includes('contract-heal.md') && r.message.includes('Handling untrusted input'),
+      ),
+    ).toBe(true);
   });
 
   test('feature-from-openapi.md is in scope and flagged when missing the preamble', () => {

@@ -23,6 +23,7 @@ export * from './generator/pom-scan';
 export * from './generator/promote';
 export * from './generator/selector-rules';
 export * from './generator/typecheck';
+export * from './network-recorder';
 export * from './trace-normalizer/normalize';
 export * from './trace-normalizer/parse';
 export * from './trace-normalizer/scrub';

@@ -1,6 +1,7 @@
 import { acCoverageBackfillFinalizeCmd } from './ac-coverage-backfill-finalize';
 import { acCoverageBackfillPrepareCmd } from './ac-coverage-backfill-prepare';
 import { authSetupCmd } from './auth-setup';
+import { contractHealPrepareCmd } from './contract-heal-prepare';
 import { coveragePrepareCmd } from './coverage-prepare';
 import { disputesCmd } from './disputes';
 import { doctorCmd } from './doctor';
@@ -38,6 +39,7 @@ const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
   'ac-coverage-backfill-finalize': acCoverageBackfillFinalizeCmd,
   'ac-coverage-backfill-prepare': acCoverageBackfillPrepareCmd,
   'auth-setup': authSetupCmd,
+  'contract-heal-prepare': contractHealPrepareCmd,
   'coverage-prepare': coveragePrepareCmd,
   disputes: disputesCmd,
   doctor: doctorCmd,
