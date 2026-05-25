@@ -1,5 +1,19 @@
 # @xera-ai/cli
 
+## 0.20.0
+
+### Minor Changes
+
+- [#183](https://github.com/xera-ai/xera/pull/183) [`f414f6b`](https://github.com/xera-ai/xera/commit/f414f6b8ca69121d8df4591fdfe9c6645d4eeaf9) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - Migrate the toolchain from Bun to Node.js + Vitest + npm. Published bins now use a `node` shebang and the runtime no longer depends on Bun APIs (Node >=22 required); builds use tsup. End-user workflows — skills, `xera init` scaffolding, `doctor`, and the graph-viewer CI template — now invoke `npx xera-internal` and npm instead of `bun run xera:*`.
+
+### Patch Changes
+
+- [#187](https://github.com/xera-ai/xera/pull/187) [`896c1ab`](https://github.com/xera-ai/xera/commit/896c1ab31113f9e547a7119643b4984eb68200f4) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - only warn about shape flags when actually passed ([#186](https://github.com/xera-ai/xera/issues/186)) (auto-generated from [#187](https://github.com/xera-ai/xera/issues/187))
+
+- Updated dependencies [[`f414f6b`](https://github.com/xera-ai/xera/commit/f414f6b8ca69121d8df4591fdfe9c6645d4eeaf9)]:
+  - @xera-ai/core@0.20.0
+  - @xera-ai/skills@0.20.0
+
 ## 0.19.0
 
 ### Minor Changes
