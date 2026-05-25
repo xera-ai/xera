@@ -118,4 +118,26 @@ describe('xera init --update --shape mixed (issue #91)', () => {
     const out = update.stdout + update.stderr;
     expect(out).toContain('ignored by init --update without --shape');
   }, 30_000);
+
+  test('does NOT warn about shape flags when none were passed (issue #186)', async () => {
+    const cwd = mkdtempSync(join(tmpdir(), 'xera-update-quiet-'));
+    createdDirs.push(cwd);
+
+    const init = await runXera(cwd, ['init', '--yes', '--shape', 'web']);
+    expect(init.exitCode).toBe(0);
+
+    // No --shape, no --au/--as/--hr/--su/--ro/--op/--auth-enabled.
+    // The advisory about ignored shape flags must NOT fire.
+    const update = await runXera(cwd, ['init', '--update', '--yes']);
+    expect(update.exitCode).toBe(0);
+
+    const out = update.stdout + update.stderr;
+    expect(out).not.toContain('ignored by init --update without --shape');
+
+    // And again with zero flags (not even --yes).
+    const update2 = await runXera(cwd, ['init', '--update']);
+    expect(update2.exitCode).toBe(0);
+    const out2 = update2.stdout + update2.stderr;
+    expect(out2).not.toContain('ignored by init --update without --shape');
+  }, 30_000);
 });
