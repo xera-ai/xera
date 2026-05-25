@@ -64,7 +64,7 @@ A skill is data the LLM reads to know the *workflow*. A prompt is data the LLM r
 
 ### 4.2 Packages
 
-Six packages, one fixed-group version (currently `0.16.x`). All bump in lockstep via changesets.
+Six packages, one fixed-group version (currently `0.19.x`). All bump in lockstep via changesets.
 
 | Package | One-line role |
 |---|---|
@@ -73,7 +73,7 @@ Six packages, one fixed-group version (currently `0.16.x`). All bump in lockstep
 | `@xera-ai/web` | Browser adapter — Playwright + trace normalizer + POM-scan + Gherkin lint. |
 | `@xera-ai/http` | HTTP API adapter — Playwright `APIRequestContext`, OpenAPI loader, pre-auth helpers, `CONTRACT_DRIFT` detection. |
 | `@xera-ai/skills` | The 12 user-facing `.md` workflows that drive everything from an AI coding-agent session (Claude Code, Cursor, or Codex CLI). Scaffolded per editor by `xera init`. |
-| `@xera-ai/prompts` | The 12 versioned LLM prompt templates the skills point at. |
+| `@xera-ai/prompts` | The 14 versioned LLM prompt templates the skills point at. |
 
 ### 4.3 Where data lives
 
@@ -164,6 +164,9 @@ These are the guardrails that decide design trade-offs. When in doubt, fall back
 - **Project knowledge graph** — ticket ↔ scenario ↔ POM ↔ SUT-area ↔ AC links, kept as committed event JSONL.
 - **Coverage & AC matrix** — three-state area model (UNCOVERED / STALE / COVERED) + AC-level gaps.
 - **Self-heal of selector drift** — auto-fix POM locators when the SUT moved.
+- **Self-heal of contract drift (v0.19)** — rewrite a stale `spec.ts` assertion to match the OpenAPI contract (http-focused), re-run, and stage on pass.
+- **Feature-from-OpenAPI (v0.18)** — `/xera-feature --from-spec` generates Gherkin straight from an OpenAPI doc, no fetched ticket.
+- **Web CONTRACT_DRIFT (v0.19)** — match a web test's captured network calls against OpenAPI (opt-in `xeraNetwork` recorder) on documented endpoints.
 - **Adversarial exploration (v0.9, experimental)** — separate `explore.feature` for negative / boundary / race / security-smell scenarios, opt-in only.
 
 ### Out of scope
@@ -191,6 +194,8 @@ xera releases under a single fixed-group version — all six packages bump in lo
 | v0.9 | ✅ | Adversarial exploration (experimental, opt-in). Brainstorming partner for negative / boundary / race / security-smell scenarios — kept in a separate `explore.feature` so PO review of `test.feature` is undisturbed. |
 | v0.10–v0.15 | ✅ | Multi-editor support (`--editor claude\|cursor\|codex\|all`); CLI UX hardening (help-on-no-args, did-you-mean, non-TTY guard); cognitive AC extraction from Jira description body; `init --update --shape` upgrade path. |
 | v0.16 | ✅ | **GitHub Issues** as an alternative tracker (no token, `gh` CLI + GitHub MCP); `/xera-run` first-run unblocked (split env-only Step 0 + ticket-specific Step 1.6); `samples remove` public subcommand. |
+| v0.18 | ✅ | **Feature-from-OpenAPI** — `/xera-feature --from-spec` builds Gherkin from an OpenAPI doc with no ticket; `xera init` scaffolds a root `AGENTS.md` when absent. |
+| v0.19 | ✅ | **Web CONTRACT_DRIFT + self-heal** — opt-in `xeraNetwork` recorder lets `/xera-report` flag contract drift on web tests; self-heal rewrites a `spec.ts` assertion to the contract (http-focused). |
 | v1.0 | planned | Cross-adapter graph linkage (endpoint as first-class graph node) · live dashboard. |
 | v1.x | planned | Messaging adapters (Kafka, AMQP, WebSocket) · GraphQL · gRPC. |
 | v2.0 | planned | Optional SaaS backend (only if multi-org demand). |

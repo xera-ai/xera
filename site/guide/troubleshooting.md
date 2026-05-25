@@ -114,6 +114,16 @@ Soft warning when `http.spec` is unset. CONTRACT_DRIFT detection and schema-deri
 - Ask backend dev to export an OpenAPI spec (Spring/FastAPI/NestJS auto-generate them).
 - Point `http.spec` at the path or URL in `xera.config.ts`.
 
+## 13b. `/xera-feature --from-spec` produced no scenarios (v0.18+)
+
+`feature-spec-prepare` wrote an empty `spec-input.json`. Check the `reason` field in `.xera/<KEY>/spec-input.json`: `no OpenAPI spec configured` (set `http.spec` or pass `--spec`), `spec unreachable or not found` (wrong path/URL or server down), or `filter matched no operations` (your `--tag`/`--operation`/`--path` excluded everything — the message lists what's available).
+
+## 13c. Web test `CONTRACT_DRIFT` never fires / contract self-heal refused (v0.19+)
+
+**Detection not firing:** set `web.spec` (or `http.spec` for mixed); ensure the `xeraNetwork` recorder is attached (so `.xera/<TICKET>/runs/<runId>/network.jsonl` exists after a run); remember web drift only flags **documented** endpoints — undocumented endpoints and page/asset loads are ignored to avoid false positives.
+
+**Contract self-heal refused:** when `/xera-report` classifies CONTRACT_DRIFT it may rewrite the `spec.ts` assertion to the OpenAPI contract. It refuses with a category: `web-no-assertion` (UI test — nothing to rewrite), `no-spec`, `unsupported-edit` (needs more than one assertion line), `real-bug` (the server response violates the contract — rewriting would hide a real bug; investigate the backend), or `low-confidence`. Heal is http-focused and never auto-commits — it stages with `git add` only after a verified pass.
+
 ## 14. `XERA_AUTH_KEY mismatch — cannot decrypt`
 
 You either regenerated the key in `.env` or deleted `.env`. The auth state cache is unreadable. Fix:
