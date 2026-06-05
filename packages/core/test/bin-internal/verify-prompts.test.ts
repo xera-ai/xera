@@ -26,6 +26,7 @@ function seedPrompts(
     classifyOutdated?: string;
     mapAcToScenarios?: string;
     proposeScenarios?: string;
+    httpAuthDiscover?: string;
   } = {},
 ): void {
   const dir = join(root, 'packages/prompts');
@@ -84,6 +85,11 @@ function seedPrompts(
     join(dir, 'propose-scenarios.md'),
     opts.proposeScenarios ??
       `---\nid: propose-scenarios\nversion: 1.0.0\n---\n\n${GOOD_PREAMBLE}\n\n## Output shape\nbody`,
+  );
+  writeFileSync(
+    join(dir, 'http-auth-discover.md'),
+    opts.httpAuthDiscover ??
+      `---\nname: http-auth-discover\nversion: 1.0.0\n---\n\n${GOOD_PREAMBLE}\n\n## Decision rules\nbody`,
   );
   // Out-of-scope prompts that must NOT be validated:
   writeFileSync(
