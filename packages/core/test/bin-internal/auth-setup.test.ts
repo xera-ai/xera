@@ -12,8 +12,18 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { authSetupCmd } from '../../src/bin-internal/auth-setup';
+
+const chromiumLaunchMock = vi.fn(async (_opts?: unknown) => ({ close: async () => {} }));
+
+vi.mock('@playwright/test', () => ({
+  chromium: { launch: (opts?: unknown) => chromiumLaunchMock(opts) },
+}));
+
+vi.mock('@xera-ai/web', () => ({
+  runAuthSetup: async () => {},
+}));
 
 // test file is packages/core/test/bin-internal/, repo root is 3 levels up.
 const REPO_ROOT = resolve(import.meta.dirname, '../../../..');
@@ -186,5 +196,44 @@ describe('authSetupCmd unknown role detection (#98)', () => {
     // unknown-role error must NOT be emitted for a valid role.
     expect(exit).toBe(1);
     expect(stderr).not.toContain('unknown role');
+  });
+});
+
+describe('authSetupCmd headed opt-in (#213)', () => {
+  const repoRoot = REPO_ROOT;
+
+  beforeEach(() => {
+    chromiumLaunchMock.mockClear();
+    process.env.A_E = 'admin@example.com';
+    process.env.A_P = 'secret';
+  });
+
+  afterEach(() => {
+    delete process.env.A_E;
+    delete process.env.A_P;
+    delete process.env.XERA_HEADED;
+  });
+
+  test('launches headless by default', async () => {
+    writeConfig(webOnlyConfig(repoRoot));
+    writeAuthSetup(WEB_ONLY_SETUP);
+
+    await authSetupCmd(['--shape', 'web']);
+
+    expect(chromiumLaunchMock).toHaveBeenCalledTimes(1);
+    const opts = chromiumLaunchMock.mock.calls[0]![0] as { headless?: boolean };
+    expect(opts?.headless).toBe(true);
+  });
+
+  test('XERA_HEADED=1 launches headed for SSO/MFA flows', async () => {
+    writeConfig(webOnlyConfig(repoRoot));
+    writeAuthSetup(WEB_ONLY_SETUP);
+    process.env.XERA_HEADED = '1';
+
+    await authSetupCmd(['--shape', 'web']);
+
+    expect(chromiumLaunchMock).toHaveBeenCalledTimes(1);
+    const opts = chromiumLaunchMock.mock.calls[0]![0] as { headless?: boolean };
+    expect(opts?.headless).toBe(false);
   });
 });

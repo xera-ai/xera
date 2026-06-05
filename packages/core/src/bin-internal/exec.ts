@@ -88,7 +88,10 @@ export async function execCmd(argv: string[]): Promise<number> {
 
     // Auth refresh per role declared in xera.config.ts
     if (webConfig.auth.strategy === 'storageState' && webConfig.auth.setupScript) {
-      const browser = await chromium.launch();
+      // XERA_HEADED=1 launches a visible browser so a human can complete
+      // interactive flows (SSO/MFA). Default is headless for CI (#213).
+      const headed = process.env.XERA_HEADED === '1';
+      const browser = await chromium.launch({ headless: !headed });
       try {
         for (const [roleName, roleCreds] of Object.entries(webConfig.auth.roles)) {
           const entry = readAuthState(paths.authDir, roleName);
@@ -101,10 +104,15 @@ export async function execCmd(argv: string[]): Promise<number> {
             const email = process.env[roleCreds.envEmail];
             const password = process.env[roleCreds.envPassword];
             if (!email || !password) {
-              console.error(
-                `[xera:exec] missing env ${roleCreds.envEmail} or ${roleCreds.envPassword} for role "${roleName}"`,
+              // A run only fails roles it actually uses, so skip — don't abort
+              // the whole exec. If the spec under test needs this role,
+              // Playwright will fail with a clearer "missing storageState"
+              // error at the actual test boundary (#212).
+              console.warn(
+                `[xera:exec] skipping refresh for role "${roleName}": ${roleCreds.envEmail} or ${roleCreds.envPassword} not set`,
               );
-              return 1;
+              log.log({ step: 'auth-refresh-skipped', role: roleName, reason: 'missing-creds' });
+              continue;
             }
             await runAuthSetup({
               role: roleName,
