@@ -69,6 +69,18 @@ export default defineConfig({
 `;
 }
 
+function httpNoneConfig(repoRoot: string): string {
+  return `
+import { defineConfig } from '${join(repoRoot, 'packages/core/src/index.ts')}';
+export default defineConfig({
+  jira: { baseUrl: 'https://x.atlassian.net', projectKeys: ['X'], fields: { story: 'description' } },
+  http: { baseUrl: { dev: 'https://api.x.com' }, defaultEnv: 'dev',
+    auth: { strategy: 'none', roles: { 'role-a': {} } } },
+  adapters: ['http'],
+});
+`;
+}
+
 function webOnlyConfig(repoRoot: string): string {
   return `
 import { defineConfig } from '${join(repoRoot, 'packages/core/src/index.ts')}';
@@ -196,6 +208,37 @@ describe('authSetupCmd unknown role detection (#98)', () => {
     // unknown-role error must NOT be emitted for a valid role.
     expect(exit).toBe(1);
     expect(stderr).not.toContain('unknown role');
+  });
+});
+
+describe("authSetupCmd http strategy 'none' (#220)", () => {
+  const repoRoot = REPO_ROOT;
+
+  test('skips http roles without invoking the setupFn when strategy: none', async () => {
+    writeConfig(httpNoneConfig(repoRoot));
+    // Scaffolded http setupFn — calling it would throw since strategy: 'none'.
+    writeAuthSetup(`export const http = async () => { throw new Error("should not be called"); };`);
+
+    const captureStdout = (): { restore: () => string } => {
+      const original = console.log;
+      const chunks: string[] = [];
+      console.log = (...args: unknown[]) => {
+        chunks.push(args.map((a) => String(a)).join(' '));
+      };
+      return {
+        restore: () => {
+          console.log = original;
+          return chunks.join('\n');
+        },
+      };
+    };
+
+    const cap = captureStdout();
+    const exit = await authSetupCmd(['--shape', 'http']);
+    const stdout = cap.restore();
+
+    expect(exit).toBe(0);
+    expect(stdout).toContain("http: skipped (strategy: 'none'");
   });
 });
 

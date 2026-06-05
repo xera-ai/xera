@@ -113,6 +113,29 @@ describe('doctor http checks', () => {
     expect(checks.find((c) => c.name === 'http auth file present: user')?.ok).toBe(true);
   });
 
+  test("skips http auth-file checks when strategy is 'none' (#218)", async () => {
+    writeFileSync(
+      join(dir, 'xera.config.ts'),
+      `export default {
+  adapters: ['http'],
+  jira: { baseUrl: 'https://x.atlassian.net', projectKeys: ['PROJ'], fields: { story: 'description' } },
+  http: { baseUrl: { dev: 'http://localhost:65535' }, defaultEnv: 'dev', auth: { strategy: 'none', roles: { 'role-a': {}, 'role-b': {} } } },
+};`,
+    );
+    writeFileSync(join(dir, '.env'), `XERA_AUTH_KEY=${'a'.repeat(64)}\n`);
+    mkdirSync(join(dir, '.claude', 'skills'), { recursive: true });
+
+    const checks = await runChecks(dir);
+
+    // No per-role failures
+    expect(checks.find((c) => c.name === 'http auth file present: role-a')).toBeUndefined();
+    expect(checks.find((c) => c.name === 'http auth file present: role-b')).toBeUndefined();
+    // Single roll-up entry marks the gate as N/A
+    const rollup = checks.find((c) => c.name === 'http auth files');
+    expect(rollup?.ok).toBe(true);
+    expect(rollup?.message).toContain("strategy 'none'");
+  });
+
   test('reports OpenAPI not configured (soft ok) when http.spec absent', async () => {
     writeMinHttpConfig(dir, false);
     const checks = await runChecks(dir);
