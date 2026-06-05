@@ -118,7 +118,11 @@ export async function authSetupCmd(argv: string[]): Promise<number> {
       webConfig.baseUrl[webConfig.defaultEnv];
     const { runAuthSetup } = await import('@xera-ai/web');
     const { chromium } = await import('@playwright/test');
-    const browser = await chromium.launch();
+    // XERA_HEADED=1 launches a visible browser so a human can complete
+    // interactive flows (SSO/MFA) once before the encrypted session is cached
+    // and subsequent runs work headless (#213).
+    const headed = process.env.XERA_HEADED === '1';
+    const browser = await chromium.launch({ headless: !headed });
     try {
       for (const [roleName, roleCreds] of Object.entries(webConfig.auth.roles)) {
         if (opts.role && roleName !== opts.role) continue;

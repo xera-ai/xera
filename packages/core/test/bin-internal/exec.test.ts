@@ -9,6 +9,7 @@ const DEFINE_PATH = resolve(__dirname, '../../src/config/define.ts');
 
 const runAuthSetupMock = vi.fn(async () => {});
 const runPlaywrightMock = vi.fn(async () => ({ exitCode: 0, outcome: 'PASS' as const }));
+const chromiumLaunchMock = vi.fn(async (_opts?: unknown) => ({ close: async () => {} }));
 
 vi.mock('@xera-ai/web', () => ({
   runAuthSetup: (...args: unknown[]) => runAuthSetupMock(...args),
@@ -17,7 +18,7 @@ vi.mock('@xera-ai/web', () => ({
 }));
 
 vi.mock('@playwright/test', () => ({
-  chromium: { launch: async () => ({ close: async () => {} }) },
+  chromium: { launch: (opts?: unknown) => chromiumLaunchMock(opts) },
 }));
 
 describe('xera-internal exec', () => {
@@ -56,17 +57,24 @@ describe('xera-internal exec auth refresh', () => {
     originalCwd = process.cwd();
     runAuthSetupMock.mockClear();
     runPlaywrightMock.mockClear();
+    chromiumLaunchMock.mockClear();
   });
   afterEach(() => {
     process.chdir(originalCwd);
   });
 
-  function scaffoldProject(opts: { baseUrlEnv?: string }): string {
+  function scaffoldProject(opts: {
+    baseUrlEnv?: string;
+    roles?: Record<string, { envEmail: string; envPassword: string }>;
+  }): string {
     const cwd = mkdtempSync(join(tmpdir(), 'xera-exec-auth-'));
     mkdirSync(join(cwd, '.xera/JIRA-1'), { recursive: true });
     mkdirSync(join(cwd, 'shared'), { recursive: true });
     writeFileSync(join(cwd, 'shared/auth-setup.ts'), 'export default async () => ({});\n');
     writeFileSync(join(cwd, 'playwright.config.ts'), 'export default {};\n');
+    const roles = opts.roles ?? {
+      admin: { envEmail: 'XERA_TEST_EMAIL', envPassword: 'XERA_TEST_PASSWORD' },
+    };
     writeFileSync(
       join(cwd, 'xera.config.ts'),
       `
@@ -81,7 +89,7 @@ describe('xera-internal exec auth refresh', () => {
             setupScript: 'shared/auth-setup.ts',
             ttl: '8h',
             refreshBuffer: '30m',
-            roles: { admin: { envEmail: 'XERA_TEST_EMAIL', envPassword: 'XERA_TEST_PASSWORD' } },
+            roles: ${JSON.stringify(roles)},
           },
         },
         adapters: ['web'],
@@ -125,6 +133,66 @@ describe('xera-internal exec auth refresh', () => {
     delete process.env['XERA_TEST_EMAIL'];
     delete process.env['XERA_TEST_PASSWORD'];
     delete process.env.XERA_BASE_URL;
+    rmSync(cwd, { recursive: true });
+  });
+
+  test('skips role with missing creds instead of failing the whole run (#212)', async () => {
+    const cwd = scaffoldProject({
+      roles: {
+        admin: { envEmail: 'XERA_TEST_EMAIL', envPassword: 'XERA_TEST_PASSWORD' },
+        reader: { envEmail: 'XERA_READER_EMAIL', envPassword: 'XERA_READER_PASSWORD' },
+      },
+    });
+    process.env['XERA_TEST_EMAIL'] = 'admin@example.com';
+    process.env['XERA_TEST_PASSWORD'] = 'secret';
+    // XERA_READER_* intentionally unset
+    process.chdir(cwd);
+
+    expect(await execCmd(['JIRA-1'])).toBe(0);
+
+    expect(runAuthSetupMock).toHaveBeenCalledTimes(1);
+    const call = runAuthSetupMock.mock.calls[0]![0] as { role: string };
+    expect(call.role).toBe('admin');
+    expect(runPlaywrightMock).toHaveBeenCalledTimes(1);
+
+    delete process.env['XERA_TEST_EMAIL'];
+    delete process.env['XERA_TEST_PASSWORD'];
+    rmSync(cwd, { recursive: true });
+  });
+
+  test('launches headless by default (#213)', async () => {
+    const cwd = scaffoldProject({});
+    process.env['XERA_TEST_EMAIL'] = 'admin@example.com';
+    process.env['XERA_TEST_PASSWORD'] = 'secret';
+    process.chdir(cwd);
+
+    expect(await execCmd(['JIRA-1'])).toBe(0);
+
+    expect(chromiumLaunchMock).toHaveBeenCalledTimes(1);
+    const opts = chromiumLaunchMock.mock.calls[0]![0] as { headless?: boolean };
+    expect(opts?.headless).toBe(true);
+
+    delete process.env['XERA_TEST_EMAIL'];
+    delete process.env['XERA_TEST_PASSWORD'];
+    rmSync(cwd, { recursive: true });
+  });
+
+  test('XERA_HEADED=1 launches headed for interactive SSO/MFA (#213)', async () => {
+    const cwd = scaffoldProject({});
+    process.env['XERA_TEST_EMAIL'] = 'admin@example.com';
+    process.env['XERA_TEST_PASSWORD'] = 'secret';
+    process.env.XERA_HEADED = '1';
+    process.chdir(cwd);
+
+    expect(await execCmd(['JIRA-1'])).toBe(0);
+
+    expect(chromiumLaunchMock).toHaveBeenCalledTimes(1);
+    const opts = chromiumLaunchMock.mock.calls[0]![0] as { headless?: boolean };
+    expect(opts?.headless).toBe(false);
+
+    delete process.env['XERA_TEST_EMAIL'];
+    delete process.env['XERA_TEST_PASSWORD'];
+    delete process.env.XERA_HEADED;
     rmSync(cwd, { recursive: true });
   });
 });
