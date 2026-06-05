@@ -1,5 +1,35 @@
 # @xera-ai/core
 
+## 0.20.5
+
+### Patch Changes
+
+- [#216](https://github.com/xera-ai/xera/pull/216) [`9127edd`](https://github.com/xera-ai/xera/commit/9127edd26edb21426e434a650b3f420968df8ce2) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - render AC labels 1-based in graph viewer + coverage CLI (auto-generated from [#216](https://github.com/xera-ai/xera/issues/216))
+
+- Updated dependencies []:
+  - @xera-ai/web@0.20.5
+  - @xera-ai/http@0.20.5
+
+## 0.20.4
+
+### Patch Changes
+
+- [#214](https://github.com/xera-ai/xera/pull/214) [`a5a6aa6`](https://github.com/xera-ai/xera/commit/a5a6aa67228133e37a7d513d079f6d075c8714f2) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - skip roles with missing creds + honor XERA_HEADED ([#212](https://github.com/xera-ai/xera/issues/212), [#213](https://github.com/xera-ai/xera/issues/213)) (auto-generated from [#214](https://github.com/xera-ai/xera/issues/214))
+
+- Updated dependencies []:
+  - @xera-ai/web@0.20.4
+  - @xera-ai/http@0.20.4
+
+## 0.20.3
+
+### Patch Changes
+
+- [#210](https://github.com/xera-ai/xera/pull/210) [`30cdb83`](https://github.com/xera-ai/xera/commit/30cdb83fb49ad2cea8473260f5fcd46cc8e48433) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - pass baseURL into exec auth-refresh ([#209](https://github.com/xera-ai/xera/issues/209)) (auto-generated from [#210](https://github.com/xera-ai/xera/issues/210))
+
+- Updated dependencies []:
+  - @xera-ai/web@0.20.3
+  - @xera-ai/http@0.20.3
+
 ## 0.20.2
 
 ### Patch Changes

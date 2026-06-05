@@ -75,9 +75,23 @@ export async function execCmd(argv: string[]): Promise<number> {
     }
     const webConfig = config.web;
 
+    // Resolve baseURL once for both the auth-refresh context and the
+    // Playwright run. Precedence matches the standalone `auth-setup` command:
+    // XERA_BASE_URL > web.baseUrl[env] > web.baseUrl[defaultEnv]. Without
+    // this, a setupScript using a relative `page.goto('/login')` would fail
+    // with "Cannot navigate to invalid URL" during implicit refresh (#209).
+    const envName = process.env.XERA_ENV ?? webConfig.defaultEnv;
+    const baseURL =
+      process.env.XERA_BASE_URL ??
+      webConfig.baseUrl[envName] ??
+      webConfig.baseUrl[webConfig.defaultEnv]!;
+
     // Auth refresh per role declared in xera.config.ts
     if (webConfig.auth.strategy === 'storageState' && webConfig.auth.setupScript) {
-      const browser = await chromium.launch();
+      // XERA_HEADED=1 launches a visible browser so a human can complete
+      // interactive flows (SSO/MFA). Default is headless for CI (#213).
+      const headed = process.env.XERA_HEADED === '1';
+      const browser = await chromium.launch({ headless: !headed });
       try {
         for (const [roleName, roleCreds] of Object.entries(webConfig.auth.roles)) {
           const entry = readAuthState(paths.authDir, roleName);
@@ -90,10 +104,15 @@ export async function execCmd(argv: string[]): Promise<number> {
             const email = process.env[roleCreds.envEmail];
             const password = process.env[roleCreds.envPassword];
             if (!email || !password) {
-              console.error(
-                `[xera:exec] missing env ${roleCreds.envEmail} or ${roleCreds.envPassword} for role "${roleName}"`,
+              // A run only fails roles it actually uses, so skip — don't abort
+              // the whole exec. If the spec under test needs this role,
+              // Playwright will fail with a clearer "missing storageState"
+              // error at the actual test boundary (#212).
+              console.warn(
+                `[xera:exec] skipping refresh for role "${roleName}": ${roleCreds.envEmail} or ${roleCreds.envPassword} not set`,
               );
-              return 1;
+              log.log({ step: 'auth-refresh-skipped', role: roleName, reason: 'missing-creds' });
+              continue;
             }
             await runAuthSetup({
               role: roleName,
@@ -101,6 +120,7 @@ export async function execCmd(argv: string[]): Promise<number> {
               setupScriptPath: join(cwd, webConfig.auth.setupScript),
               authDir: paths.authDir,
               browser,
+              ...(baseURL ? { baseURL } : {}),
             });
             log.log({ step: 'auth-refresh', role: roleName });
           }
@@ -133,9 +153,6 @@ export async function execCmd(argv: string[]): Promise<number> {
 
     const runDir = paths.runPath(runId).runDir;
     mkdirSync(runDir, { recursive: true });
-
-    const envName = process.env.XERA_ENV ?? webConfig.defaultEnv;
-    const baseURL = webConfig.baseUrl[envName] ?? webConfig.baseUrl[webConfig.defaultEnv]!;
 
     const reportJsonPath = join(runDir, 'report.json');
 

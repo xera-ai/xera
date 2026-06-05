@@ -168,7 +168,7 @@ describe('coverage-prepare --why', () => {
       );
       expect(stdout).toContain('Ticket: PROJ-105');
       expect(stdout).toContain('0/2 ACs covered');
-      expect(stdout).toContain('✗ AC-0  Subtotal');
+      expect(stdout).toContain('✗ AC-1  Subtotal');
     } finally {
       process.chdir(prevCwd);
       rmSync(dir, { recursive: true, force: true });
