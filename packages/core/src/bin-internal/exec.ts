@@ -18,6 +18,20 @@ export async function execCmd(argv: string[]): Promise<number> {
   }
   const grepIdx = argv.indexOf('--grep');
   const grep = grepIdx > -1 ? argv[grepIdx + 1] : undefined;
+  // --reporter passthrough: comma-separated reporter list appended to the
+  // always-on `json` reporter (which `normalize` depends on). Repeatable for
+  // convenience: `--reporter html --reporter line` is equivalent to
+  // `--reporter html,line`. (#224)
+  const reporters: string[] = [];
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === '--reporter' && argv[i + 1]) {
+      reporters.push(
+        ...argv[i + 1]!.split(',')
+          .map((r) => r.trim())
+          .filter(Boolean),
+      );
+    }
+  }
   const cwd = process.cwd();
   const config = await loadConfig(cwd);
   const paths = resolveArtifactPaths(cwd, ticket);
@@ -155,8 +169,12 @@ export async function execCmd(argv: string[]): Promise<number> {
     mkdirSync(runDir, { recursive: true });
 
     const reportJsonPath = join(runDir, 'report.json');
+    // When --reporter html is requested, route the report into the run dir and
+    // suppress Playwright's auto-open server so the exec does not block (#224).
+    const wantsHtml = reporters.includes('html');
+    const htmlReportDir = wantsHtml ? join(runDir, 'html') : undefined;
 
-    log.log({ step: 'exec.start', runId, env: envName, baseURL });
+    log.log({ step: 'exec.start', runId, env: envName, baseURL, reporters });
     const r = await runPlaywright({
       specPath: paths.specPath,
       configPath: cfgPath,
@@ -172,8 +190,13 @@ export async function execCmd(argv: string[]): Promise<number> {
         // to a file inside the run dir so xera:normalize has a deterministic
         // path to read.
         PLAYWRIGHT_JSON_OUTPUT_NAME: reportJsonPath,
+        ...(htmlReportDir && {
+          PLAYWRIGHT_HTML_REPORT: htmlReportDir,
+          PW_TEST_HTML_REPORT_OPEN: 'never',
+        }),
       },
       ...(grep && { grep }),
+      ...(reporters.length > 0 && { reporters }),
     });
     log.log({ step: 'exec.done', runId, exit: r.exitCode, ms: Date.now() - t0 });
 

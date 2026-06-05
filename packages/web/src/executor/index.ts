@@ -13,6 +13,12 @@ export interface RunPlaywrightInput {
   configPath: string;
   outputDir: string;
   grep?: string;
+  /**
+   * Extra Playwright reporters to add alongside the always-on `json` reporter
+   * that `normalize` reads. e.g. `['html']` writes an HTML report into the run
+   * dir (#224). Multiple reporters are passed comma-joined to Playwright.
+   */
+  reporters?: string[];
   env?: NodeJS.ProcessEnv;
   spawn?: SpawnFn;
 }
@@ -36,6 +42,7 @@ export async function runPlaywright(input: RunPlaywrightInput): Promise<RunPlayw
     configPath: input.configPath,
     outputDir: input.outputDir,
     ...(input.grep && { grep: input.grep }),
+    ...(input.reporters && { reporters: input.reporters }),
   });
   const spawn = input.spawn ?? defaultSpawn;
   const { exitCode } = await spawn('npx', ['playwright', ...args], {
