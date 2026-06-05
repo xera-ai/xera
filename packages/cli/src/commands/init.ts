@@ -354,6 +354,9 @@ export async function initCommand(opts: InitOptions): Promise<void> {
     const skillInput = { base, body, frontmatter };
     for (const editorName of editorTargets) {
       const adapter = editors[editorName];
+      // Clean retired files first (idempotent) so a re-init on a stale tree
+      // doesn't leave .claude/commands/<xera-*>.md ghosts behind. (#231)
+      adapter.legacyCleanup?.(cwd, base);
       adapter.scaffoldSkill(cwd, skillInput);
       adapter.scaffoldCommand?.(cwd, skillInput);
     }
