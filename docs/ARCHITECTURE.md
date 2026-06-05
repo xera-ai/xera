@@ -80,9 +80,9 @@ A repo-local event-sourced data layer running parallel to the v0.1 artifact pipe
 | `@xera-ai/skills` | 12 AI coding-agent skill `.md` files (`xera-run`, `xera-fetch`, `xera-feature`, `xera-script`, `xera-exec`, `xera-report`, `xera-impact`, `xera-promote`, `xera-eval`, `xera-coverage`, `xera-fill-gap`, `xera-explore`); scaffolded per editor (Claude Code / Cursor / Codex CLI) by `xera init`; dispatch by `meta.json.adapter` | — |
 | `@xera-ai/prompts` | 14 versioned LLM prompt templates: `diagnose-failure`, `feature-from-story`, `feature-from-openapi` (v0.18), `script-from-feature-web`, `script-from-feature-http`, `heal-locator`, `contract-heal` (v0.19), `extract-areas`, `similarity-match`, `classify-outdated`, `eval-rubric`, `map-ac-to-scenarios`, `propose-scenarios`, `adversarial-scenarios` | — |
 
-## `xera-internal` subcommands (36)
+## `xera-internal` subcommands (37)
 
-**Core flow (v0.1+):** `fetch`, `validate-feature`, `typecheck`, `lint`, `exec`, `normalize`, `report`, `post`, `status`, `unlock`, `promote`
+**Core flow (v0.1+):** `fetch`, `validate-feature`, `typecheck`, `lint`, `exec` (supports `--grep` and `--reporter html` in space or equals form since v0.21), `normalize`, `report`, `post`, `status`, `unlock`, `promote`
 
 **Eval harness (v0.2):** `eval-prepare`, `eval-deterministic`, `eval-report`
 
@@ -119,6 +119,9 @@ A repo-local event-sourced data layer running parallel to the v0.1 artifact pipe
 
 **CONTRACT_DRIFT self-heal (v0.19):**
 - `contract-heal-prepare <TICKET> <RUN_ID> <SCENARIO>` — assembles the drifting call + OpenAPI contract (documented statuses + required fields) + the `spec.ts` assertion line; web adapter short-circuits with `web-no-assertion`
+
+**HTML report enablement (v0.21):**
+- `stage-auth [--role <role>]` — decrypts the encrypted web `storageState` into `.xera/.auth/.cache/<role>.json` (the path generated `spec.ts` references via `test.use({ storageState })`) so `npx playwright test`, `--ui` mode, and IDE test explorers run against the same session. Refreshes expired entries when creds are available; missing creds warn-and-skip instead of aborting (mirrors `exec` semantics). Honors `XERA_HEADED=1` and `XERA_BASE_URL`. Pairs with `xera show-report <TICKET>` on the public CLI, which spawns `playwright show-report <runDir>/html` with `--host` / `--port` passthrough (depends on `exec --reporter=html`).
 
 **Universal:** `verify-prompts`, `doctor` (with `--auto-enrich` for CI; `--shape`-aware HTTP auth file + OpenAPI checks in v0.7; 3 new coverage checks in v0.8; `--strict [ticket]` accepts optional ticket since v0.16.1 — `--strict` alone runs strict env-only checks, `--strict <TICKET>` adds ticket-specific checks. See [#149](https://github.com/xera-ai/xera/issues/149) for the chicken-and-egg root cause).
 
