@@ -1,5 +1,15 @@
 # @xera-ai/cli
 
+## 0.21.2
+
+### Patch Changes
+
+- [#231](https://github.com/xera-ai/xera/pull/231) [`bd85c8a`](https://github.com/xera-ai/xera/commit/bd85c8ada35c603e6942e940ae95020a229837b0) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - retire .claude/commands/&lt;xera&gt;.md dual write (auto-generated from [#231](https://github.com/xera-ai/xera/issues/231))
+
+- Updated dependencies []:
+  - @xera-ai/core@0.21.2
+  - @xera-ai/skills@0.21.2
+
 ## 0.21.1
 
 ### Patch Changes
