@@ -53,67 +53,55 @@ function classifyKind(raw: string): FailedLocatorKind {
   return 'other';
 }
 
+// Extract the page state at the moment the failing assertion or action raised
+// an error. Playwright 1.60 stores rendered DOM inline as a JSON tree on
+// `frame-snapshot` events (no `resourceName`) plus, for matcher-based
+// assertions, an `ariaSnapshot` of the page in `result.received` on the
+// error-bearing `after` event. The aria tree is semantic (role + name + level)
+// and maps directly to what `heal-locator` needs to propose a `getByRole(...)`,
+// so we prefer it. Falls back to the served `.html` resource (lex-sort) only
+// when no aria snapshot is recorded — useful for traces of non-SPA targets
+// where the response body IS the rendered DOM. (#207)
 function extractDomSnapshot(tracePath: string): string {
   if (!existsSync(tracePath)) return '';
   const buf = readFileSync(tracePath);
   const entries = unzipSync(buf);
 
-  // Strategy: parse the .trace JSONL event file to find the last frame-snapshot
-  // event, then extract the HTML resource it references. This gives us the DOM
-  // snapshot closest to the failure point rather than a lexicographic approximation.
-  // Falls back to last .html by lex sort if the .trace file is missing or unparseable.
-  const traceKey = Object.keys(entries).find((name) => name.endsWith('.trace'));
-  let chosenKey: string | null = null;
-
-  if (traceKey) {
+  // A trace.zip can carry multiple `.trace` files: a test-runner trace
+  // (`test.trace`) and one or more library traces (`<idx>-trace.trace`). The
+  // library trace is where matcher errors with `ariaSnapshot` live, but its
+  // filename is not fixed, so scan every `.trace` entry.
+  const traceKeys = Object.keys(entries).filter((name) => name.endsWith('.trace'));
+  for (const traceKey of traceKeys) {
     const traceText = new TextDecoder().decode(entries[traceKey]!);
-    const lines = traceText.split('\n').filter(Boolean);
-    // Walk events in REVERSE order to find the most recent frame-snapshot.
-    for (let i = lines.length - 1; i >= 0; i--) {
+    for (const line of traceText.split('\n')) {
+      if (!line) continue;
+      let evt: Record<string, unknown>;
       try {
-        const evt = JSON.parse(lines[i]!);
-        const isSnapshot = evt.type === 'frame-snapshot' || evt.type === 'snapshot';
-        if (!isSnapshot) continue;
-        const snap = evt.snapshot ?? {};
-        // Try direct resource reference (older format).
-        const resourceName: unknown = snap.resourceName;
-        if (typeof resourceName === 'string') {
-          if (entries[resourceName]) {
-            chosenKey = resourceName;
-            break;
-          }
-          // Some traces store .html files under resources/ with the resourceName as the basename.
-          const guessed = `resources/${resourceName.replace(/^resources\//, '')}`;
-          if (entries[guessed]) {
-            chosenKey = guessed;
-            break;
-          }
-        }
-        // Try snapshot name → look for matching .html in resources/.
-        const snapshotName: unknown = snap.snapshotName;
-        if (typeof snapshotName === 'string') {
-          const directGuess = Object.keys(entries).find(
-            (k) => k.endsWith('.html') && k.includes(snapshotName),
-          );
-          if (directGuess) {
-            chosenKey = directGuess;
-            break;
-          }
-        }
+        evt = JSON.parse(line) as Record<string, unknown>;
       } catch {
-        // Skip unparseable trace lines.
+        continue;
+      }
+      if (evt.type !== 'after') continue;
+      if ((evt as { error?: unknown }).error === undefined) continue;
+      const received = (evt as { result?: { received?: { ariaSnapshot?: unknown } } }).result
+        ?.received;
+      const aria = received?.ariaSnapshot;
+      if (typeof aria === 'string' && aria.length > 0) {
+        return scrubFreeText(aria);
       }
     }
   }
 
-  // Fallback: last .html by lexicographic sort (existing heuristic).
-  if (!chosenKey) {
-    const htmlKeys = Object.keys(entries)
-      .filter((name) => name.endsWith('.html'))
-      .sort();
-    chosenKey = htmlKeys[htmlKeys.length - 1] ?? null;
-  }
-
+  // Fallback: last .html by lexicographic sort. For non-SPA targets this is
+  // typically the served response body, which is the rendered DOM. For SPA
+  // targets with no ariaSnapshot recorded this returns the pre-hydration shell
+  // — better than nothing, but `heal-locator` will likely refuse with
+  // `low-confidence` from lack of evidence.
+  const htmlKeys = Object.keys(entries)
+    .filter((name) => name.endsWith('.html'))
+    .sort();
+  const chosenKey = htmlKeys[htmlKeys.length - 1];
   if (!chosenKey) return '';
   const html = new TextDecoder().decode(entries[chosenKey]!);
   return scrubFreeText(html);
