@@ -22,10 +22,25 @@ export default defineConfig({
     defaultEnv: 'staging',
     {{#if openapiPath}}spec: '{{openapiPath}}',{{/if}}
     auth: {
+      // Strategies: 'bearer' | 'apiKey' | 'basic' | 'oauth-cc' | 'custom' | 'none'
+      // | 'reuse-web-session' (declaratively replay the web SSO session's
+      //   cookies — for APIs that share a parent-domain session with the web
+      //   app. Run /xera-http-auth-discover <role> to propose the block below.)
       strategy: '{{authStrategy}}',
       roles: {
         {{#each httpRoles}}{{this}}: { tokenEnv: '{{upper this}}_BEARER_TOKEN' },
         {{/each}}
+        // Example for reuse-web-session — uncomment and replace the role above:
+        // admin: {
+        //   reuseWebSession: {
+        //     domainContains: 'api.your-domain.test',
+        //     cookies: {
+        //       access:  { match: { regex: '_at$' } },
+        //       refresh: { match: { regex: '_rt$' }, path: '/auth' },
+        //       csrf:    { match: { regex: 'csrf' }, header: 'X-CSRF-Token' },
+        //     },
+        //   },
+        // },
       },
     },
   },
