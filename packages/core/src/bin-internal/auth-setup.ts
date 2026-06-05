@@ -161,24 +161,34 @@ export async function authSetupCmd(argv: string[]): Promise<number> {
     config.http &&
     typeof mod.http === 'function'
   ) {
-    // The auth-setup.ts template reads config via globalThis; set it for the user's function.
-    (globalThis as Record<string, unknown>).__XERA_HTTP_CONFIG__ = config.http;
+    // strategy: 'none' means the HTTP adapter applies no per-role auth, so
+    // there's nothing to seed — but the scaffolded auth-setup.ts still calls
+    // presetHttpAuth, which throws for 'none'. Skip the http roles entirely
+    // instead of invoking the setupFn (#220).
+    if (config.http.auth.strategy === 'none') {
+      console.log(
+        `[xera:auth-setup] http: skipped (strategy: 'none' — no per-role auth state required)`,
+      );
+    } else {
+      // The auth-setup.ts template reads config via globalThis; set it for the user's function.
+      (globalThis as Record<string, unknown>).__XERA_HTTP_CONFIG__ = config.http;
 
-    const { runHttpAuthSetup } = await import('@xera-ai/http');
-    for (const roleName of Object.keys(config.http.auth.roles)) {
-      if (opts.role && roleName !== opts.role) continue;
-      try {
-        await runHttpAuthSetup({
-          authDir: join(cwd, '.xera', '.auth'),
-          role: roleName,
-          config: config.http,
-          setupFn: mod.http as Parameters<typeof runHttpAuthSetup>[0]['setupFn'],
-          creds: { email: '', password: '' },
-        });
-        console.log(`[xera:auth-setup] ✓ http/${roleName}.json`);
-      } catch (e) {
-        console.error(`[xera:auth-setup] ✗ http/${roleName}: ${(e as Error).message}`);
-        exitCode = 1;
+      const { runHttpAuthSetup } = await import('@xera-ai/http');
+      for (const roleName of Object.keys(config.http.auth.roles)) {
+        if (opts.role && roleName !== opts.role) continue;
+        try {
+          await runHttpAuthSetup({
+            authDir: join(cwd, '.xera', '.auth'),
+            role: roleName,
+            config: config.http,
+            setupFn: mod.http as Parameters<typeof runHttpAuthSetup>[0]['setupFn'],
+            creds: { email: '', password: '' },
+          });
+          console.log(`[xera:auth-setup] ✓ http/${roleName}.json`);
+        } catch (e) {
+          console.error(`[xera:auth-setup] ✗ http/${roleName}: ${(e as Error).message}`);
+          exitCode = 1;
+        }
       }
     }
   }

@@ -207,49 +207,60 @@ export async function runChecks(cwd: string, opts: RunChecksOptions = {}): Promi
         }
       }
 
-      // http auth files
-      const httpAuthDir = join(cwd, '.xera', '.auth', 'http');
-      for (const role of Object.keys(cfg.http.auth.roles)) {
-        const filePath = join(httpAuthDir, `${role}.json`);
-        if (!existsSync(filePath)) {
-          checks.push({
-            name: `http auth file present: ${role}`,
-            ok: false,
-            message: `run: npx xera-internal auth-setup --role ${role}`,
-          });
-          continue;
-        }
-        try {
-          const entry = readAuthState(httpAuthDir, role);
-          if (!entry) {
+      // http auth files — only required when the strategy actually produces
+      // per-role state. With strategy: 'none' the HTTP adapter applies no
+      // auth, so demanding a file would hard-fail doctor for projects that
+      // intentionally opt out (#218).
+      if (cfg.http.auth.strategy === 'none') {
+        checks.push({
+          name: 'http auth files',
+          ok: true,
+          message: "strategy 'none' — no per-role auth state required",
+        });
+      } else {
+        const httpAuthDir = join(cwd, '.xera', '.auth', 'http');
+        for (const role of Object.keys(cfg.http.auth.roles)) {
+          const filePath = join(httpAuthDir, `${role}.json`);
+          if (!existsSync(filePath)) {
             checks.push({
-              name: `http auth file readable: ${role}`,
+              name: `http auth file present: ${role}`,
               ok: false,
-              message: 'auth file unreadable; re-run xera-internal auth-setup',
+              message: `run: npx xera-internal auth-setup --role ${role}`,
             });
             continue;
           }
-          const expiresInMs = new Date(entry.expires_at).getTime() - Date.now();
-          if (expiresInMs <= 0) {
+          try {
+            const entry = readAuthState(httpAuthDir, role);
+            if (!entry) {
+              checks.push({
+                name: `http auth file readable: ${role}`,
+                ok: false,
+                message: 'auth file unreadable; re-run xera-internal auth-setup',
+              });
+              continue;
+            }
+            const expiresInMs = new Date(entry.expires_at).getTime() - Date.now();
+            if (expiresInMs <= 0) {
+              checks.push({
+                name: `http auth file fresh: ${role}`,
+                ok: false,
+                message: `expired; run: npx xera-internal auth-setup --role ${role}`,
+              });
+            } else {
+              const minutes = Math.round(expiresInMs / 60_000);
+              checks.push({
+                name: `http auth file present: ${role}`,
+                ok: true,
+                message: `expires in ${minutes}m`,
+              });
+            }
+          } catch (e) {
             checks.push({
-              name: `http auth file fresh: ${role}`,
+              name: `http auth file readable: ${role}`,
               ok: false,
-              message: `expired; run: npx xera-internal auth-setup --role ${role}`,
-            });
-          } else {
-            const minutes = Math.round(expiresInMs / 60_000);
-            checks.push({
-              name: `http auth file present: ${role}`,
-              ok: true,
-              message: `expires in ${minutes}m`,
+              message: String((e as Error).message),
             });
           }
-        } catch (e) {
-          checks.push({
-            name: `http auth file readable: ${role}`,
-            ok: false,
-            message: String((e as Error).message),
-          });
         }
       }
 

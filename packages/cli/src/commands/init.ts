@@ -15,7 +15,7 @@ const CLI_VERSION = (require('../package.json') as { version: string }).version;
 
 export type ProjectShape = 'web' | 'api' | 'mixed';
 export type IssueTracker = 'jira' | 'github';
-export type HttpAuthStrategy = 'bearer' | 'apiKey' | 'basic' | 'oauth-cc' | 'none';
+export type HttpAuthStrategy = 'bearer' | 'apiKey' | 'basic' | 'oauth-cc' | 'custom' | 'none';
 
 export interface InitOptions {
   yes: boolean;

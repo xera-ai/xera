@@ -16,7 +16,14 @@ const require = createRequire(import.meta.url);
 const VERSION = (require('../package.json') as { version: string }).version;
 
 const VALID_SHAPES: ProjectShape[] = ['web', 'api', 'mixed'];
-const VALID_AUTH_STRATEGIES: HttpAuthStrategy[] = ['bearer', 'apiKey', 'basic', 'oauth-cc', 'none'];
+const VALID_AUTH_STRATEGIES: HttpAuthStrategy[] = [
+  'bearer',
+  'apiKey',
+  'basic',
+  'oauth-cc',
+  'custom',
+  'none',
+];
 const KNOWN_COMMANDS = ['init', 'doctor', 'samples'];
 
 function levenshtein(a: string, b: string): number {
