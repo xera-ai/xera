@@ -1,5 +1,15 @@
 # @xera-ai/cli
 
+## 0.20.6
+
+### Patch Changes
+
+- [#222](https://github.com/xera-ai/xera/pull/222) [`1333f43`](https://github.com/xera-ai/xera/commit/1333f433665e4f28e255dfe674262b6e50e2b05c) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - align http auth strategy handling ([#218](https://github.com/xera-ai/xera/issues/218), [#219](https://github.com/xera-ai/xera/issues/219), [#220](https://github.com/xera-ai/xera/issues/220)) (auto-generated from [#222](https://github.com/xera-ai/xera/issues/222))
+
+- Updated dependencies [[`d13f7a5`](https://github.com/xera-ai/xera/commit/d13f7a57a961327923669f33dbe4c02e0ecbaa9a), [`1333f43`](https://github.com/xera-ai/xera/commit/1333f433665e4f28e255dfe674262b6e50e2b05c)]:
+  - @xera-ai/core@0.20.6
+  - @xera-ai/skills@0.20.6
+
 ## 0.20.5
 
 ### Patch Changes
