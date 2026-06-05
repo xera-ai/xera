@@ -1,0 +1,10 @@
+{
+  "role": "admin",
+  "apiHostHint": "api.shared.test",
+  "cookies": [
+    { "name": "app_at", "domain": "api.shared.test", "path": "/", "expiresInSeconds": 900, "httpOnly": true, "sameSite": "None" },
+    { "name": "app_rt", "domain": "api.shared.test", "path": "/auth", "expiresInSeconds": 86400, "httpOnly": true, "sameSite": "None" },
+    { "name": "app_csrf", "domain": "api.shared.test", "path": "/", "expiresInSeconds": 86400, "httpOnly": false, "sameSite": "Lax" },
+    { "name": "_ga", "domain": ".shared.test", "path": "/", "expiresInSeconds": 63072000, "httpOnly": false, "sameSite": "Lax" }
+  ]
+}
