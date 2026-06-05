@@ -111,7 +111,7 @@ export function buildWhyTicket(
       .map((e) => e.from);
     const scenarioRef =
       satisfyingScenarios.length > 0 ? ` — scenario "${satisfyingScenarios[0]}"` : '';
-    lines.push(`  ${marker} AC-${ac.index}  ${ac.text}${scenarioRef}`);
+    lines.push(`  ${marker} AC-${ac.index + 1}  ${ac.text}${scenarioRef}`);
   }
   lines.push('');
   if (status === 'INCOMPLETE') {

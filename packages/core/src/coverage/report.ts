@@ -188,7 +188,7 @@ export function renderMarkdown(report: CoverageReport, options: RenderOptions = 
         `  ${t.id}  ${t.satisfiedCount}/${t.acCount} ACs covered · gap_score ${t.gapScore}`,
       );
       for (const ac of t.unsatisfiedAcs) {
-        lines.push(`    ✗ AC-${ac.index}  ${ac.text}`);
+        lines.push(`    ✗ AC-${ac.index + 1}  ${ac.text}`);
       }
       lines.push('');
     }

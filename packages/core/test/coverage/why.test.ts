@@ -121,9 +121,9 @@ describe('buildWhyTicket', () => {
     expect(out).toContain('Fetched: 2026-05-08');
     expect(out).toContain('recency boost ×1.0');
     expect(out).toContain('AC gap score: 2');
-    expect(out).toContain('✓ AC-0');
-    expect(out).toContain('✗ AC-1');
+    expect(out).toContain('✓ AC-1');
     expect(out).toContain('✗ AC-2');
+    expect(out).toContain('✗ AC-3');
     expect(out).toContain('/xera-fill-gap --ticket PROJ-105');
   });
 

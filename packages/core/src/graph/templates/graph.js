@@ -403,7 +403,7 @@
         const [cls, glyph] = marks[e.state];
         li.appendChild(el('span', `sp-ac-mark ${cls}`, glyph));
         const txt = el('span', 'sp-ac-text');
-        txt.appendChild(el('span', 'sp-ac-num', `AC-${e.index}`));
+        txt.appendChild(el('span', 'sp-ac-num', `AC-${e.index + 1}`));
         const detail = allAcs[e.index];
         if (detail) txt.appendChild(document.createTextNode(` ${detail}`));
         li.appendChild(txt);
@@ -1027,7 +1027,7 @@ function openCovDrawer(areaId) {
           ${acGaps
             .map(
               (t) =>
-                `<li><div class="cov-drawer-ac"><strong>${covEscape(t.id)}</strong> — ${t.satisfiedCount}/${t.acCount} covered<div class="cov-drawer-ac-tags">${t.unsatisfiedAcs.map((ac) => `<span class="cov-drawer-ac-tag">AC-${ac.index}</span>`).join('')}</div></div></li>`,
+                `<li><div class="cov-drawer-ac"><strong>${covEscape(t.id)}</strong> — ${t.satisfiedCount}/${t.acCount} covered<div class="cov-drawer-ac-tags">${t.unsatisfiedAcs.map((ac) => `<span class="cov-drawer-ac-tag">AC-${ac.index + 1}</span>`).join('')}</div></div></li>`,
             )
             .join('')}
         </ul>
@@ -1103,7 +1103,7 @@ function renderCoverageList() {
         t.id,
         `${t.satisfiedCount}/${t.acCount}`,
         String(t.gapScore),
-        t.unsatisfiedAcs.map((ac) => `AC-${ac.index}`).join(', '),
+        t.unsatisfiedAcs.map((ac) => `AC-${ac.index + 1}`).join(', '),
       ];
       for (const c of cells) {
         const td = document.createElement('td');
