@@ -1,5 +1,15 @@
 # @xera-ai/core
 
+## 0.21.1
+
+### Patch Changes
+
+- [#229](https://github.com/xera-ai/xera/pull/229) [`cd973a8`](https://github.com/xera-ai/xera/commit/cd973a890cb374e9a2fbd33e053eb2e273e22051) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - accept --reporter=html (equals form) in exec ([#224](https://github.com/xera-ai/xera/issues/224) follow-up) (auto-generated from [#229](https://github.com/xera-ai/xera/issues/229))
+
+- Updated dependencies []:
+  - @xera-ai/web@0.21.1
+  - @xera-ai/http@0.21.1
+
 ## 0.21.0
 
 ### Minor Changes
