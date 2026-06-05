@@ -1,6 +1,6 @@
 {
   "name": "@xera-ai/http",
-  "version": "0.20.6",
+  "version": "0.21.0",
   "type": "module",
   "license": "Apache-2.0",
   "repository": {
@@ -39,7 +39,7 @@
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "11.7.0",
     "@playwright/test": "1.60.0",
-    "@xera-ai/core": "^0.20.6",
+    "@xera-ai/core": "^0.21.0",
     "yaml": "2.9.0",
     "zod": "4.4.3"
   }

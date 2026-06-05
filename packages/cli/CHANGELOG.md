@@ -1,5 +1,17 @@
 # @xera-ai/cli
 
+## 0.21.0
+
+### Minor Changes
+
+- [#227](https://github.com/xera-ai/xera/pull/227) [`5695622`](https://github.com/xera-ai/xera/commit/569562219a20f7fac0b7816e62972fb0d4c40a68) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - HTML report enablement set ([#224](https://github.com/xera-ai/xera/issues/224), [#225](https://github.com/xera-ai/xera/issues/225), [#226](https://github.com/xera-ai/xera/issues/226)) (auto-generated from [#227](https://github.com/xera-ai/xera/issues/227))
+
+### Patch Changes
+
+- Updated dependencies [[`5695622`](https://github.com/xera-ai/xera/commit/569562219a20f7fac0b7816e62972fb0d4c40a68)]:
+  - @xera-ai/core@0.21.0
+  - @xera-ai/skills@0.21.0
+
 ## 0.20.6
 
 ### Patch Changes
