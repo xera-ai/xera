@@ -82,5 +82,11 @@ export async function presetHttpAuth(input: PresetHttpAuthInput): Promise<HttpAu
       );
     case 'none':
       throw new Error(`Strategy 'none' should not call presetHttpAuth.`);
+    case 'reuse-web-session':
+      // Implemented in a follow-up task; reject until then so existing flows
+      // surface a clear error instead of falling through to undefined.
+      throw new Error(
+        `Strategy 'reuse-web-session' is not yet wired in presetHttpAuth (see Task 3).`,
+      );
   }
 }
