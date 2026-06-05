@@ -210,3 +210,79 @@ describe('execCmd --grep flag parsing', () => {
     expect(argv[grepIdx + 1]).toBe('user signs in');
   });
 });
+
+describe('execCmd --reporter passthrough (#224)', () => {
+  let originalCwd: string;
+  beforeEach(() => {
+    originalCwd = process.cwd();
+    runAuthSetupMock.mockClear();
+    runPlaywrightMock.mockClear();
+    chromiumLaunchMock.mockClear();
+  });
+  afterEach(() => {
+    process.chdir(originalCwd);
+  });
+
+  function scaffoldMinimal(): string {
+    const d = mkdtempSync(join(tmpdir(), 'xera-exec-rep-'));
+    mkdirSync(join(d, '.xera/JIRA-1'), { recursive: true });
+    writeFileSync(join(d, 'playwright.config.ts'), 'export default {};\n');
+    writeFileSync(
+      join(d, 'xera.config.ts'),
+      `
+      import { defineConfig } from '${DEFINE_PATH}';
+      export default defineConfig({
+        jira: { baseUrl: 'https://x.atlassian.net', projectKeys: ['JIRA'], fields: { story: 'description' } },
+        web: { baseUrl: { staging: 'https://x.com' }, defaultEnv: 'staging', auth: { strategy: 'none' } },
+        adapters: ['web'],
+      });
+    `,
+    );
+    return d;
+  }
+
+  test('forwards --reporter html to runPlaywright + sets HTML report env', async () => {
+    const cwd = scaffoldMinimal();
+    process.chdir(cwd);
+
+    expect(await execCmd(['JIRA-1', '--reporter', 'html'])).toBe(0);
+
+    const call = runPlaywrightMock.mock.calls[0]![0] as {
+      reporters?: string[];
+      env: Record<string, string>;
+    };
+    expect(call.reporters).toEqual(['html']);
+    expect(call.env.PLAYWRIGHT_HTML_REPORT).toMatch(/\/html$/);
+    expect(call.env.PW_TEST_HTML_REPORT_OPEN).toBe('never');
+
+    rmSync(cwd, { recursive: true });
+  });
+
+  test('comma-separated --reporter value splits into multiple reporters', async () => {
+    const cwd = scaffoldMinimal();
+    process.chdir(cwd);
+
+    expect(await execCmd(['JIRA-1', '--reporter', 'html,line'])).toBe(0);
+
+    const call = runPlaywrightMock.mock.calls[0]![0] as { reporters?: string[] };
+    expect(call.reporters).toEqual(['html', 'line']);
+
+    rmSync(cwd, { recursive: true });
+  });
+
+  test('omitting --reporter sends no reporters and no html env', async () => {
+    const cwd = scaffoldMinimal();
+    process.chdir(cwd);
+
+    expect(await execCmd(['JIRA-1'])).toBe(0);
+
+    const call = runPlaywrightMock.mock.calls[0]![0] as {
+      reporters?: string[];
+      env: Record<string, string>;
+    };
+    expect(call.reporters).toBeUndefined();
+    expect(call.env.PLAYWRIGHT_HTML_REPORT).toBeUndefined();
+
+    rmSync(cwd, { recursive: true });
+  });
+});

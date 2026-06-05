@@ -35,4 +35,26 @@ describe('buildPlaywrightArgs', () => {
     });
     expect(args).not.toContain('--grep');
   });
+
+  test('appends extra reporters after the always-on json reporter (#224)', () => {
+    const args = buildPlaywrightArgs({
+      specPath: '/r/.xera/JIRA-1/spec.ts',
+      outputDir: '/r/.xera/JIRA-1/runs/2026-05-14T10-30',
+      configPath: '/r/.xera/JIRA-1/playwright.config.ts',
+      reporters: ['html'],
+    });
+    // json must come first — normalize depends on it.
+    expect(args).toContain('--reporter=json,html');
+    expect(args).not.toContain('--reporter=json');
+  });
+
+  test('multiple extra reporters preserve order', () => {
+    const args = buildPlaywrightArgs({
+      specPath: '/r/.xera/JIRA-1/spec.ts',
+      outputDir: '/r/.xera/JIRA-1/runs/2026-05-14T10-30',
+      configPath: '/r/.xera/JIRA-1/playwright.config.ts',
+      reporters: ['html', 'line'],
+    });
+    expect(args).toContain('--reporter=json,html,line');
+  });
 });

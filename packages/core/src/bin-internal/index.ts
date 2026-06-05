@@ -30,6 +30,7 @@ import { openapiResolveCmd } from './openapi-resolve';
 import { postCmd } from './post';
 import { promoteCmd } from './promote';
 import { reportCmd } from './report';
+import { stageAuthCmd } from './stage-auth';
 import { statusCmd } from './status-cmd';
 import { typecheckCmd } from './typecheck';
 import { unlockCmd } from './unlock';
@@ -69,6 +70,7 @@ const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
   post: postCmd,
   promote: promoteCmd,
   report: reportCmd,
+  'stage-auth': stageAuthCmd,
   status: statusCmd,
   typecheck: typecheckCmd,
   unlock: unlockCmd,

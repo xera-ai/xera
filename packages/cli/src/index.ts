@@ -11,6 +11,7 @@ import {
 } from './commands/init';
 import { type InitUpdateOptions, initUpdateCommand } from './commands/init-update';
 import { samplesRemoveCommand } from './commands/samples';
+import { showReportCommand } from './commands/show-report';
 
 const require = createRequire(import.meta.url);
 const VERSION = (require('../package.json') as { version: string }).version;
@@ -24,7 +25,7 @@ const VALID_AUTH_STRATEGIES: HttpAuthStrategy[] = [
   'custom',
   'none',
 ];
-const KNOWN_COMMANDS = ['init', 'doctor', 'samples'];
+const KNOWN_COMMANDS = ['init', 'doctor', 'samples', 'show-report'];
 
 function levenshtein(a: string, b: string): number {
   const m = a.length;
@@ -250,6 +251,23 @@ export default async function main(): Promise<void> {
     .option('--usage', 'Show token/usage summary from recent runs')
     .action(async (opts: { strict?: string | boolean; logs?: string; usage?: boolean }) => {
       const exit = await doctorCommand(opts);
+      process.exit(exit);
+    });
+
+  cli
+    .command('show-report <ticket>', "Serve a run's Playwright HTML report in the browser")
+    .option('--run <id>', 'Specific run id (default: latest)')
+    .option('--host <host>', 'Bind host (default: 127.0.0.1)')
+    .option('--port <port>', 'Bind port (default: 9323)')
+    .example('xera show-report XFB-9')
+    .example('xera show-report XFB-9 --run 2026-06-05T11-22-33')
+    .action(async (ticket: string, opts: { run?: string; host?: string; port?: string }) => {
+      const exit = await showReportCommand({
+        ticket,
+        ...(opts.run !== undefined && { run: opts.run }),
+        ...(opts.host !== undefined && { host: opts.host }),
+        ...(opts.port !== undefined && { port: opts.port }),
+      });
       process.exit(exit);
     });
 
