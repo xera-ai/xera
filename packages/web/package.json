@@ -1,6 +1,6 @@
 {
   "name": "@xera-ai/web",
-  "version": "0.21.0",
+  "version": "0.21.1",
   "type": "module",
   "license": "Apache-2.0",
   "repository": {
@@ -35,7 +35,7 @@
     "@cucumber/gherkin": "39.1.0",
     "@cucumber/messages": "32.3.1",
     "@playwright/test": "1.60.0",
-    "@xera-ai/core": "^0.21.0",
+    "@xera-ai/core": "^0.21.1",
     "fflate": "0.8.3"
   }
 }
