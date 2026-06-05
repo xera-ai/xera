@@ -75,6 +75,17 @@ export async function execCmd(argv: string[]): Promise<number> {
     }
     const webConfig = config.web;
 
+    // Resolve baseURL once for both the auth-refresh context and the
+    // Playwright run. Precedence matches the standalone `auth-setup` command:
+    // XERA_BASE_URL > web.baseUrl[env] > web.baseUrl[defaultEnv]. Without
+    // this, a setupScript using a relative `page.goto('/login')` would fail
+    // with "Cannot navigate to invalid URL" during implicit refresh (#209).
+    const envName = process.env.XERA_ENV ?? webConfig.defaultEnv;
+    const baseURL =
+      process.env.XERA_BASE_URL ??
+      webConfig.baseUrl[envName] ??
+      webConfig.baseUrl[webConfig.defaultEnv]!;
+
     // Auth refresh per role declared in xera.config.ts
     if (webConfig.auth.strategy === 'storageState' && webConfig.auth.setupScript) {
       const browser = await chromium.launch();
@@ -101,6 +112,7 @@ export async function execCmd(argv: string[]): Promise<number> {
               setupScriptPath: join(cwd, webConfig.auth.setupScript),
               authDir: paths.authDir,
               browser,
+              ...(baseURL ? { baseURL } : {}),
             });
             log.log({ step: 'auth-refresh', role: roleName });
           }
@@ -133,9 +145,6 @@ export async function execCmd(argv: string[]): Promise<number> {
 
     const runDir = paths.runPath(runId).runDir;
     mkdirSync(runDir, { recursive: true });
-
-    const envName = process.env.XERA_ENV ?? webConfig.defaultEnv;
-    const baseURL = webConfig.baseUrl[envName] ?? webConfig.baseUrl[webConfig.defaultEnv]!;
 
     const reportJsonPath = join(runDir, 'report.json');
 
