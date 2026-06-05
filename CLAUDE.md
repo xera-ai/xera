@@ -20,9 +20,11 @@ packages/
                                 CONTRACT_DRIFT/RATE_LIMITED/AUTH_EXPIRED),
                                 auth state, graph + coverage modules,
                                 xera-internal binary
-    src/bin-internal/           35 subcommands invoked by skills via `npx xera-internal`
+    src/bin-internal/           37 subcommands invoked by skills via `npx xera-internal`
                                 v0.1: fetch, validate-feature, typecheck, lint,
-                                      exec (supports --grep), normalize, report,
+                                      exec (--grep since v0.6.4; --reporter
+                                      passthrough since v0.21 — accepts space
+                                      AND equals forms), normalize, report,
                                       post, status, unlock, promote
                                 v0.2: eval-prepare, eval-deterministic, eval-report
                                 v0.5: heal-prepare
@@ -40,6 +42,10 @@ packages/
                                       --from-spec; http only)
                                 v0.19: contract-heal-prepare (web CONTRACT_DRIFT
                                       detection wiring + spec.ts assertion heal)
+                                v0.21: stage-auth (decrypt storageState into
+                                      .xera/.auth/.cache/<role>.json so a user
+                                      can `npx playwright test` directly — for
+                                      --ui mode, HTML report, IDE explorer)
                                 universal: verify-prompts, doctor (--auto-enrich,
                                   --strict [ticket] split since v0.16)
     src/adapter/types.ts        TestAdapter interface — extension point
@@ -71,10 +77,19 @@ packages/
                                 /xera-feature --from-spec)
   cli/       @xera-ai/cli       public `xera` CLI: `init` (--shape web|api|mixed
                                 --tracker jira|github --editor claude|cursor|codex|all),
-                                `doctor` (--strict [ticket]), `samples remove`
-    src/commands/               init, init-update, doctor, samples
+                                `doctor` (--strict [ticket]), `samples remove`,
+                                `show-report <TICKET> [--run <id>]` (v0.21 — serves
+                                  the run's Playwright HTML report at
+                                  127.0.0.1:9323; depends on exec --reporter=html)
+    src/commands/               init, init-update, doctor, samples, show-report
     src/editors/                v0.10 — per-editor scaffold adapters
-                                (claude, cursor, codex registry)
+                                (claude, cursor, codex registry). Claude adapter
+                                no longer writes .claude/commands/<xera>.md as
+                                of v0.21.2 (#231): Claude Code resolves
+                                /<skill-name> via the Skill tool from
+                                .claude/skills/, so the dual write was retired
+                                and `init`/`init --update` auto-clean the
+                                leftover files.
     src/checks.ts, scaffold.ts  shared init/doctor helpers (env, deps, prereqs)
     templates/                  scaffold templates (xera.config, playwright.config,
                                 tsconfig, env.example, auth-setup, sample/,

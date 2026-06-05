@@ -52,6 +52,24 @@ The skill retries automatically. If it still fails, open `.xera/<TICKET>/test.fe
 
 The shared/auth-setup.ts couldn't log in. Most often: selectors changed in your login page. Edit it manually to match your current UI. Run `npx xera-internal exec <TICKET>` to test in isolation.
 
+### Variant: setupScript hangs at MFA / SSO challenge
+
+If your identity provider enforces MFA, the default headless Chromium can't complete the human step and times out at `waitForURL(...)`. Set `XERA_HEADED=1` to launch a visible browser, complete MFA once, and the encrypted session is cached for subsequent headless runs:
+
+```bash
+XERA_HEADED=1 npx xera-internal auth-setup --role admin
+```
+
+The flag also works on `exec`'s implicit auth-refresh and `stage-auth`. (v0.20.4)
+
+### Variant: `Cannot navigate to invalid URL` during `exec`
+
+Setup scripts using a **relative** `page.goto('/login')` need a `baseURL`. The standalone `auth-setup` command resolves one, but `exec`'s implicit auth-refresh used to omit it. Fixed in v0.20.3: the refresh path now reads `XERA_BASE_URL ?? web.baseUrl[XERA_ENV] ?? web.baseUrl[defaultEnv]` (#209). Upgrade or set `XERA_BASE_URL` if you're stuck on an older version.
+
+### Variant: `exec` aborts because another role lacks creds
+
+`exec`'s auth-refresh iterates every configured `web.auth.roles`. Before v0.20.4 a single role with missing env vars would abort the whole run. Now it warns + skips so the spec under test can still proceed (#212). If the spec actually needs the skipped role, Playwright surfaces a clearer "missing storageState" error at the test boundary.
+
 ## 8. `.lock file stale`
 
 Another xera run was killed mid-run. To force-clear:
@@ -69,6 +87,8 @@ The `.claude/skills/` directory is missing or out of date.
 npx xera init --update
 # Restart Claude Code to refresh skill discovery.
 ```
+
+In v0.21.2 the dual write to `.claude/commands/<xera>.md` was retired — Claude Code resolves `/<skill-name>` through the Skill tool against `.claude/skills/<skill-name>/SKILL.md`. `xera init --update` now auto-removes the leftover `.claude/commands/xera-*.md` files (#231). If you're still on an earlier upgrade and see stale slash-command behavior, run `init --update` once.
 
 ### Skill not discovered in Cursor / Codex
 
