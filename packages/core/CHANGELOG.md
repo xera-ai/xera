@@ -1,5 +1,15 @@
 # @xera-ai/core
 
+## 0.20.5
+
+### Patch Changes
+
+- [#216](https://github.com/xera-ai/xera/pull/216) [`9127edd`](https://github.com/xera-ai/xera/commit/9127edd26edb21426e434a650b3f420968df8ce2) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - render AC labels 1-based in graph viewer + coverage CLI (auto-generated from [#216](https://github.com/xera-ai/xera/issues/216))
+
+- Updated dependencies []:
+  - @xera-ai/web@0.20.5
+  - @xera-ai/http@0.20.5
+
 ## 0.20.4
 
 ### Patch Changes
