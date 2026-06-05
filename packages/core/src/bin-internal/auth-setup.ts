@@ -161,11 +161,35 @@ export async function authSetupCmd(argv: string[]): Promise<number> {
     config.http &&
     typeof mod.http === 'function'
   ) {
-    // strategy: 'none' means the HTTP adapter applies no per-role auth, so
-    // there's nothing to seed — but the scaffolded auth-setup.ts still calls
-    // presetHttpAuth, which throws for 'none'. Skip the http roles entirely
-    // instead of invoking the setupFn (#220).
-    if (config.http.auth.strategy === 'none') {
+    // strategy: 'reuse-web-session' bypasses the user's http setupFn entirely
+    // and lifts cookies/headers/tokens from the already-cached web storageState
+    // via presetHttpAuth. This is what makes the strategy "deterministic" — the
+    // user can't accidentally break it by editing shared/auth-setup.ts.
+    if (config.http.auth.strategy === 'reuse-web-session') {
+      const { runHttpAuthSetup, presetHttpAuth } = await import('@xera-ai/http');
+      const webAuthDir = join(cwd, '.xera', '.auth');
+      for (const roleName of Object.keys(config.http.auth.roles)) {
+        if (opts.role && roleName !== opts.role) continue;
+        try {
+          await runHttpAuthSetup({
+            authDir: webAuthDir,
+            role: roleName,
+            config: config.http,
+            setupFn: async (request, role) =>
+              presetHttpAuth({ request, role, config: config.http!, webAuthDir }),
+            creds: { email: '', password: '' },
+          });
+          console.log(`[xera:auth-setup] ✓ http/${roleName}.json (reuse-web-session)`);
+        } catch (e) {
+          console.error(`[xera:auth-setup] ✗ http/${roleName}: ${(e as Error).message}`);
+          exitCode = 1;
+        }
+      }
+    } else if (config.http.auth.strategy === 'none') {
+      // strategy: 'none' means the HTTP adapter applies no per-role auth, so
+      // there's nothing to seed — but the scaffolded auth-setup.ts still calls
+      // presetHttpAuth, which throws for 'none'. Skip the http roles entirely
+      // instead of invoking the setupFn (#220).
       console.log(
         `[xera:auth-setup] http: skipped (strategy: 'none' — no per-role auth state required)`,
       );
