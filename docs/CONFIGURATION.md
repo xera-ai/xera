@@ -285,6 +285,40 @@ npx xera-internal stage-auth --role admin            # one role only
 
 `stage-auth` also refreshes expired entries when creds are available (same logic as `exec`'s implicit refresh, including `XERA_HEADED=1` and `XERA_BASE_URL`). Missing creds warn-and-skip instead of aborting, so you can stage the roles that *are* set up without first completing onboarding for every role.
 
+## HTTP auth strategy `'reuse-web-session'`
+
+When the API is authenticated by the **same SSO session as the web app** (shared parent-domain cookies, no static bearer token), `'reuse-web-session'` is the declarative way to wire it. xera reads the persisted web `storageState`, filters cookies by domain, and emits a `cookie`-type http auth file — no hand-rolled `defineHttpAuthSetup`.
+
+```ts
+http: {
+  baseUrl: { dev: 'https://api.your-domain.test' },
+  defaultEnv: 'dev',
+  auth: {
+    strategy: 'reuse-web-session',
+    roles: {
+      admin: {
+        reuseWebSession: {
+          domainContains: 'your-domain.test',          // substring filter on cookie.domain
+          cookies: {
+            access:  { match: { regex: '_at$' } },     // short-lived; drives expiresAt by default
+            refresh: { match: { regex: '_rt$' }, path: '/auth' },   // optional, persisted for #221 refresh
+            csrf:    { match: { literal: 'xs_csrf' }, header: 'X-CSRF-Token' },   // optional
+          },
+        },
+      },
+    },
+  },
+},
+```
+
+`match` is a discriminated union — pick exactly one of `literal`, `glob`, or `regex` per cookie. Glob supports `*` (zero-or-more chars) and `?` (one char). Regex is anchored loosely (no `^`/`$` added automatically) and matched case-insensitively — convenient for vendor-prefixed cookies but explicit users should still anchor (`/^session_at$/`).
+
+`access.driveExpiry: true` (the default) ties the http auth file's `expires_at` to the access cookie's `expires` field; set it to `false` to fall back to `http.auth.ttl`. CSRF is lifted from the *live* persisted cookie into the configured request header at `newAuthedContext` creation time — POST/PUT/PATCH/DELETE flows that need it don't need any caller-side wiring.
+
+**Prerequisites:** run `auth-setup --shape web` first to capture the SSO session. `auth-setup --shape http` then derives the http file from it; the user's `http` export in `shared/auth-setup.ts` is unused for this strategy.
+
+**Don't know which cookies to nominate?** Run `/xera-http-auth-discover <role>` once for an AI-proposed `reuseWebSession` block. Cookie *values* never leave the local disk — discovery sends names + metadata (`domain`, `path`, `expiresInSeconds`, `httpOnly`, `sameSite`) only.
+
 ## HTTP auth strategy `'none'` (v0.20.6)
 
 When `http.auth.strategy: 'none'` (the HTTP adapter applies no per-role auth), two surfaces honor it automatically:
