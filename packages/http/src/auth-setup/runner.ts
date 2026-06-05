@@ -31,6 +31,11 @@ export async function runHttpAuthSetup(input: RunHttpAuthSetupInput): Promise<vo
         (result.type === 'bearer' ? 'Bearer' : result.type === 'basic' ? 'Basic' : ''),
     };
     if (result.cookies && result.cookies.length > 0) payload.cookies = result.cookies;
+    if (result.meta) {
+      for (const [k, v] of Object.entries(result.meta)) {
+        payload[k] = v;
+      }
+    }
 
     writeAuthState(join(input.authDir, 'http'), {
       role: input.role,
