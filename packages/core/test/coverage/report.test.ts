@@ -160,8 +160,8 @@ describe('renderMarkdown', () => {
     expect(md).toContain('PROJ-105');
     expect(md).toContain('3/5 ACs covered');
     expect(md).toContain('gap_score 4');
-    expect(md).toContain('✗ AC-2  Tax line shows');
-    expect(md).toContain('✗ AC-4  Receipt email');
+    expect(md).toContain('✗ AC-3  Tax line shows');
+    expect(md).toContain('✗ AC-5  Receipt email');
   });
 
   test('default omits COVERED rows, shows count line with hint', () => {
