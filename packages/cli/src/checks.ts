@@ -210,57 +210,139 @@ export async function runChecks(cwd: string, opts: RunChecksOptions = {}): Promi
       // http auth files — only required when the strategy actually produces
       // per-role state. With strategy: 'none' the HTTP adapter applies no
       // auth, so demanding a file would hard-fail doctor for projects that
-      // intentionally opt out (#218).
-      if (cfg.http.auth.strategy === 'none') {
-        checks.push({
-          name: 'http auth files',
-          ok: true,
-          message: "strategy 'none' — no per-role auth state required",
-        });
-      } else {
-        const httpAuthDir = join(cwd, '.xera', '.auth', 'http');
-        for (const role of Object.keys(cfg.http.auth.roles)) {
-          const filePath = join(httpAuthDir, `${role}.json`);
-          if (!existsSync(filePath)) {
-            checks.push({
-              name: `http auth file present: ${role}`,
-              ok: false,
-              message: `run: npx xera-internal auth-setup --role ${role}`,
-            });
-            continue;
-          }
-          try {
-            const entry = readAuthState(httpAuthDir, role);
-            if (!entry) {
+      // intentionally opt out (#218). With strategy: 'reuse-web-session' the
+      // doctor must verify BOTH the web auth file (the input) and the http
+      // auth file (the lifted output), plus the persisted cookies array is
+      // non-empty.
+      switch (cfg.http.auth.strategy) {
+        case 'none':
+          checks.push({
+            name: 'http auth files',
+            ok: true,
+            message: "strategy 'none' — no per-role auth state required",
+          });
+          break;
+        case 'reuse-web-session': {
+          const webAuthDir = join(cwd, '.xera', '.auth');
+          const httpAuthDir = join(cwd, '.xera', '.auth', 'http');
+          for (const role of Object.keys(cfg.http.auth.roles)) {
+            const webPath = join(webAuthDir, `${role}.json`);
+            if (!existsSync(webPath)) {
               checks.push({
-                name: `http auth file readable: ${role}`,
+                name: `reuse-web-session: web auth file present for role '${role}'`,
                 ok: false,
-                message: 'auth file unreadable; re-run xera-internal auth-setup',
+                message: `Missing ${webPath}. Run: npx xera-internal auth-setup --role ${role} --shape web`,
               });
               continue;
             }
-            const expiresInMs = new Date(entry.expires_at).getTime() - Date.now();
-            if (expiresInMs <= 0) {
-              checks.push({
-                name: `http auth file fresh: ${role}`,
-                ok: false,
-                message: `expired; run: npx xera-internal auth-setup --role ${role}`,
-              });
-            } else {
-              const minutes = Math.round(expiresInMs / 60_000);
+            checks.push({
+              name: `reuse-web-session: web auth file present for role '${role}'`,
+              ok: true,
+            });
+            const httpPath = join(httpAuthDir, `${role}.json`);
+            if (!existsSync(httpPath)) {
               checks.push({
                 name: `http auth file present: ${role}`,
-                ok: true,
-                message: `expires in ${minutes}m`,
+                ok: false,
+                message: `Missing ${httpPath}. Run: npx xera-internal auth-setup --role ${role} --shape http`,
+              });
+              continue;
+            }
+            try {
+              const entry = readAuthState(httpAuthDir, role);
+              if (!entry) {
+                checks.push({
+                  name: `http auth file readable: ${role}`,
+                  ok: false,
+                  message: 'auth file unreadable; re-run xera-internal auth-setup',
+                });
+                continue;
+              }
+              const expiresInMs = new Date(entry.expires_at).getTime() - Date.now();
+              if (expiresInMs <= 0) {
+                checks.push({
+                  name: `http auth file fresh: ${role}`,
+                  ok: false,
+                  message: `expired; run: npx xera-internal auth-setup --role ${role} --shape http`,
+                });
+              } else {
+                const minutes = Math.round(expiresInMs / 60_000);
+                checks.push({
+                  name: `http auth file present: ${role}`,
+                  ok: true,
+                  message: `expires in ${minutes}m`,
+                });
+              }
+              const cookies = Array.isArray(
+                (entry.payload as { cookies?: unknown[] }).cookies,
+              )
+                ? ((entry.payload as { cookies?: unknown[] }).cookies as unknown[])
+                : [];
+              const cookieCheck: Check = {
+                name: `reuse-web-session: cookies persisted for role '${role}'`,
+                ok: cookies.length > 0,
+              };
+              if (cookies.length === 0) {
+                cookieCheck.message =
+                  'no cookies — preset may not have matched any; re-run auth-setup --shape http';
+              }
+              checks.push(cookieCheck);
+            } catch (e) {
+              checks.push({
+                name: `http auth file readable: ${role}`,
+                ok: false,
+                message: String((e as Error).message),
               });
             }
-          } catch (e) {
-            checks.push({
-              name: `http auth file readable: ${role}`,
-              ok: false,
-              message: String((e as Error).message),
-            });
           }
+          break;
+        }
+        default: {
+          const httpAuthDir = join(cwd, '.xera', '.auth', 'http');
+          for (const role of Object.keys(cfg.http.auth.roles)) {
+            const filePath = join(httpAuthDir, `${role}.json`);
+            if (!existsSync(filePath)) {
+              checks.push({
+                name: `http auth file present: ${role}`,
+                ok: false,
+                message: `run: npx xera-internal auth-setup --role ${role}`,
+              });
+              continue;
+            }
+            try {
+              const entry = readAuthState(httpAuthDir, role);
+              if (!entry) {
+                checks.push({
+                  name: `http auth file readable: ${role}`,
+                  ok: false,
+                  message: 'auth file unreadable; re-run xera-internal auth-setup',
+                });
+                continue;
+              }
+              const expiresInMs = new Date(entry.expires_at).getTime() - Date.now();
+              if (expiresInMs <= 0) {
+                checks.push({
+                  name: `http auth file fresh: ${role}`,
+                  ok: false,
+                  message: `expired; run: npx xera-internal auth-setup --role ${role}`,
+                });
+              } else {
+                const minutes = Math.round(expiresInMs / 60_000);
+                checks.push({
+                  name: `http auth file present: ${role}`,
+                  ok: true,
+                  message: `expires in ${minutes}m`,
+                });
+              }
+            } catch (e) {
+              checks.push({
+                name: `http auth file readable: ${role}`,
+                ok: false,
+                message: String((e as Error).message),
+              });
+            }
+          }
+          break;
         }
       }
 
