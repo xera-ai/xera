@@ -1,5 +1,15 @@
 # @xera-ai/core
 
+## 0.20.3
+
+### Patch Changes
+
+- [#210](https://github.com/xera-ai/xera/pull/210) [`30cdb83`](https://github.com/xera-ai/xera/commit/30cdb83fb49ad2cea8473260f5fcd46cc8e48433) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - pass baseURL into exec auth-refresh ([#209](https://github.com/xera-ai/xera/issues/209)) (auto-generated from [#210](https://github.com/xera-ai/xera/issues/210))
+
+- Updated dependencies []:
+  - @xera-ai/web@0.20.3
+  - @xera-ai/http@0.20.3
+
 ## 0.20.2
 
 ### Patch Changes
