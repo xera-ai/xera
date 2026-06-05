@@ -19,14 +19,23 @@ export async function execCmd(argv: string[]): Promise<number> {
   const grepIdx = argv.indexOf('--grep');
   const grep = grepIdx > -1 ? argv[grepIdx + 1] : undefined;
   // --reporter passthrough: comma-separated reporter list appended to the
-  // always-on `json` reporter (which `normalize` depends on). Repeatable for
-  // convenience: `--reporter html --reporter line` is equivalent to
-  // `--reporter html,line`. (#224)
+  // always-on `json` reporter (which `normalize` depends on). Accepts both
+  // `--reporter html` (space) and `--reporter=html` (equals) forms — the
+  // latter matches Playwright's own CLI syntax. Repeatable. (#224)
   const reporters: string[] = [];
   for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === '--reporter' && argv[i + 1]) {
+    const a = argv[i]!;
+    let value: string | undefined;
+    if (a === '--reporter' && argv[i + 1]) {
+      value = argv[i + 1];
+      i++;
+    } else if (a.startsWith('--reporter=')) {
+      value = a.slice('--reporter='.length);
+    }
+    if (value) {
       reporters.push(
-        ...argv[i + 1]!.split(',')
+        ...value
+          .split(',')
           .map((r) => r.trim())
           .filter(Boolean),
       );

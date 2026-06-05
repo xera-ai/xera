@@ -258,6 +258,34 @@ describe('execCmd --reporter passthrough (#224)', () => {
     rmSync(cwd, { recursive: true });
   });
 
+  test('accepts --reporter=html (equals form) the same as space form (#224 follow-up)', async () => {
+    const cwd = scaffoldMinimal();
+    process.chdir(cwd);
+
+    expect(await execCmd(['JIRA-1', '--reporter=html'])).toBe(0);
+
+    const call = runPlaywrightMock.mock.calls[0]![0] as {
+      reporters?: string[];
+      env: Record<string, string>;
+    };
+    expect(call.reporters).toEqual(['html']);
+    expect(call.env.PLAYWRIGHT_HTML_REPORT).toMatch(/\/html$/);
+
+    rmSync(cwd, { recursive: true });
+  });
+
+  test('--reporter=html,line equals form splits comma-joined list', async () => {
+    const cwd = scaffoldMinimal();
+    process.chdir(cwd);
+
+    expect(await execCmd(['JIRA-1', '--reporter=html,line'])).toBe(0);
+
+    const call = runPlaywrightMock.mock.calls[0]![0] as { reporters?: string[] };
+    expect(call.reporters).toEqual(['html', 'line']);
+
+    rmSync(cwd, { recursive: true });
+  });
+
   test('comma-separated --reporter value splits into multiple reporters', async () => {
     const cwd = scaffoldMinimal();
     process.chdir(cwd);
