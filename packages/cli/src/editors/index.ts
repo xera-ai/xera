@@ -25,8 +25,23 @@ export interface EditorAdapter {
   name: EditorName;
   detect(cwd: string): boolean;
   scaffoldSkill(cwd: string, input: SkillInput): void;
+  /**
+   * Write an editor-specific slash command file. Optional because not all
+   * editors have a project-level slash mechanism (e.g. Codex), and not all
+   * editors need one alongside the skill (Claude Code now resolves slash
+   * commands through the Skill tool, so the dual `.claude/commands/` write
+   * was retired — see legacyCleanup).
+   */
   scaffoldCommand?(cwd: string, input: SkillInput): void;
   legacyMigrate?(cwd: string, base: string): boolean;
+  /**
+   * One-shot cleanup of files retired by a layout/design change (e.g. the
+   * `.claude/commands/<skill>.md` files made redundant when Claude Code
+   * started resolving `/<skill>` through the Skill tool). Returns true if
+   * something was removed. Init / init --update call this per skill so users
+   * upgrading land in the current layout without manual cleanup.
+   */
+  legacyCleanup?(cwd: string, base: string): boolean;
   doctorChecks(cwd: string, requiredSkills: string[]): Check[];
 }
 

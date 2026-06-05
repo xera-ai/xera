@@ -182,9 +182,10 @@ export function serializeFrontmatter(
 
 - `detect`: `existsSync(join(cwd, '.claude'))`
 - `scaffoldSkill`: write `.claude/skills/<base>/SKILL.md` — frontmatter from source, body verbatim
-- `scaffoldCommand`: write `.claude/commands/<base>.md` — full source content (frontmatter + body)
+- ~~`scaffoldCommand`: write `.claude/commands/<base>.md`~~ **Retired in #231.** Current Claude Code resolves `/<name>` through the Skill tool from `.claude/skills/`, so the dual write was redundant and a drift hazard. Adapter no longer defines `scaffoldCommand`.
 - `legacyMigrate`: if `.claude/skills/<base>.md` exists and `.claude/skills/<base>/SKILL.md` doesn't, move content + delete legacy. (Same logic as PR #106, just extracted into the adapter.)
-- `doctorChecks`: per-skill, check `.claude/skills/<base>/SKILL.md` and `.claude/commands/<base>.md` exist; flag legacy flat layout with `xera init --update --editor claude` hint.
+- `legacyCleanup` (#231): if `.claude/commands/<base>.md` exists (left over from older `xera init` runs), delete it. Called once per skill from both `xera init` and `xera init --update` so an upgrade lands in the current single-source layout without manual cleanup.
+- `doctorChecks`: per-skill, check `.claude/skills/<base>/SKILL.md` exists; flag legacy flat layout with `xera init --update --editor claude` hint.
 
 ### 2.5 Cursor adapter
 
@@ -300,7 +301,7 @@ description: Run the full xera pipeline for a Jira ticket end-to-end...
 | Target file | Frontmatter written | Body |
 |---|---|---|
 | `.claude/skills/xera-run/SKILL.md` | source verbatim (`name:` + `description:`) | verbatim |
-| `.claude/commands/xera-run.md` | source verbatim | verbatim |
+| ~~`.claude/commands/xera-run.md`~~ | retired in #231 — slash commands now resolved via Skill tool from `.claude/skills/` | n/a |
 | `.cursor/rules/xera-run/RULE.md` | `description:` + `alwaysApply: false` (drop `name:`) | verbatim |
 | `.cursor/commands/xera-run.md` | `description:` only (drop `name:` and any other Claude fields; no `alwaysApply`) | verbatim |
 | `.agents/skills/xera-run/SKILL.md` | source verbatim (`name:` + `description:`) | verbatim |
@@ -330,7 +331,7 @@ When `xera init` (no `--yes`, no `--editor`, no detected dirs) reaches the edito
 
 ```
 Which editor(s) should xera scaffold integration for?
-  [x] Claude Code      (.claude/skills/, .claude/commands/)
+  [x] Claude Code      (.claude/skills/)
   [ ] Cursor           (.cursor/rules/, .cursor/commands/)
   [ ] OpenAI Codex CLI (.agents/skills/)
 (Multi-select; default: Claude Code. You can add more later with `xera init --update --editor <n>`.)
@@ -364,7 +365,7 @@ Next:
 
 Per editor adapter, unit tests under `packages/cli/test/editors/`:
 
-- `claude.test.ts` — scaffold writes `.claude/skills/<n>/SKILL.md` + `.claude/commands/<n>.md` with correct frontmatter; `legacyMigrate` moves flat file to dir + SKILL.md.
+- `claude.test.ts` — scaffold writes `.claude/skills/<n>/SKILL.md` with correct frontmatter; `scaffoldCommand` is undefined (retired in #231); `legacyMigrate` moves flat file to dir + SKILL.md; `legacyCleanup` removes any leftover `.claude/commands/<n>.md`.
 - `cursor.test.ts` — scaffold writes `.cursor/rules/<n>/RULE.md` + `.cursor/commands/<n>.md` with **transformed** frontmatter (`name` dropped, `alwaysApply: false` added); body preserved byte-for-byte.
 - `codex.test.ts` — scaffold writes `.agents/skills/<n>/SKILL.md` with source frontmatter intact; no command file produced.
 - `detect.test.ts` — every combination of `.claude/`, `.cursor/`, `.agents/` presence returns the right editor set.

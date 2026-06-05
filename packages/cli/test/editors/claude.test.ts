@@ -28,10 +28,20 @@ describe('claudeAdapter', () => {
     expect(readFileSync(path, 'utf8')).toBe(SRC);
   });
 
-  test('scaffoldCommand writes .claude/commands/<base>.md verbatim', () => {
-    claudeAdapter.scaffoldCommand!(dir, input());
-    const path = join(dir, '.claude/commands/xera-run.md');
-    expect(readFileSync(path, 'utf8')).toBe(SRC);
+  test('scaffoldCommand is undefined — slash commands resolve through the Skill tool now (#231)', () => {
+    expect(claudeAdapter.scaffoldCommand).toBeUndefined();
+  });
+
+  test('legacyCleanup removes retired .claude/commands/<base>.md', () => {
+    mkdirSync(join(dir, '.claude/commands'), { recursive: true });
+    writeFileSync(join(dir, '.claude/commands/xera-run.md'), SRC);
+    const cleaned = claudeAdapter.legacyCleanup!(dir, 'xera-run');
+    expect(cleaned).toBe(true);
+    expect(existsSync(join(dir, '.claude/commands/xera-run.md'))).toBe(false);
+  });
+
+  test('legacyCleanup is a no-op when no retired file exists', () => {
+    expect(claudeAdapter.legacyCleanup!(dir, 'xera-run')).toBe(false);
   });
 
   test('legacyMigrate moves flat .md to directory layout and deletes original', () => {

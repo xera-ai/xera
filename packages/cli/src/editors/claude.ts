@@ -20,11 +20,13 @@ export const claudeAdapter: EditorAdapter = {
     writeFileSync(target, renderSource(input));
   },
 
-  scaffoldCommand(cwd, input) {
-    const target = join(cwd, '.claude/commands', `${input.base}.md`);
-    mkdirSync(dirname(target), { recursive: true });
-    writeFileSync(target, renderSource(input));
-  },
+  // scaffoldCommand intentionally omitted (#231).
+  //
+  // Earlier `xera init` wrote the same content twice: once as a skill
+  // (`.claude/skills/<base>/SKILL.md`) and once as a custom slash command
+  // (`.claude/commands/<base>.md`). Current Claude Code resolves `/<name>`
+  // through the Skill tool against `.claude/skills/`, making the second
+  // write redundant and a drift hazard if one location gets stale.
 
   legacyMigrate(cwd, base) {
     const flat = join(cwd, '.claude/skills', `${base}.md`);
@@ -34,6 +36,15 @@ export const claudeAdapter: EditorAdapter = {
     mkdirSync(dirname(dir), { recursive: true });
     writeFileSync(dir, content);
     unlinkSync(flat);
+    return true;
+  },
+
+  legacyCleanup(cwd, base) {
+    // Remove the retired `.claude/commands/<base>.md` slash-command file
+    // scaffolded by older `xera init` runs (see scaffoldCommand note above).
+    const legacy = join(cwd, '.claude/commands', `${base}.md`);
+    if (!existsSync(legacy)) return false;
+    unlinkSync(legacy);
     return true;
   },
 

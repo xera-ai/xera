@@ -220,6 +220,8 @@ export async function initUpdateCommand(opts: InitUpdateOptions): Promise<void> 
         const adapter = editors[editorName];
         const migrated = adapter.legacyMigrate?.(cwd, base) ?? false;
         if (migrated) p.log.success(`migrated ${base} (${editorName}) to new layout`);
+        const cleaned = adapter.legacyCleanup?.(cwd, base) ?? false;
+        if (cleaned) p.log.success(`removed retired ${base} (${editorName}) legacy file`);
         // Write fresh content — overwrites existing files. The 3-way prompt
         // from PR #106 is intentionally dropped because (a) the prior logic
         // only ever applied to Claude and (b) we now have a clear single
