@@ -1,7 +1,7 @@
 import type { APIRequestContext } from '@playwright/test';
 import { readAuthState, type XeraConfig } from '@xera-ai/core';
 import type { HttpAuthSetupResult } from './define';
-import { pickOne, serializeMatch, type CookieMatch } from './match';
+import { type CookieMatch, pickOne, serializeMatch } from './match';
 
 export interface PresetHttpAuthInput {
   request: APIRequestContext;
@@ -132,7 +132,9 @@ export async function presetHttpAuth(input: PresetHttpAuthInput): Promise<HttpAu
       const csrfCookie = rws.cookies.csrf
         ? pickOne(domainCookies, rws.cookies.csrf.match as CookieMatch)
         : undefined;
-      const selected = [accessCookie, refreshCookie, csrfCookie].filter(Boolean) as typeof allCookies;
+      const selected = [accessCookie, refreshCookie, csrfCookie].filter(
+        Boolean,
+      ) as typeof allCookies;
       const driveExpiry = rws.cookies.access.driveExpiry ?? true;
       const reuseExpiresAt = driveExpiry
         ? accessCookie.expires && accessCookie.expires > 0

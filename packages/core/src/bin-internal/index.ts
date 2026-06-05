@@ -23,10 +23,7 @@ import { graphRecordCmd } from './graph-record';
 import { graphRenderCmd } from './graph-render';
 import { graphSnapshotCmd } from './graph-snapshot';
 import { healPrepareCmd } from './heal-prepare';
-import {
-  httpAuthDiscoverFinalize,
-  httpAuthDiscoverPrepare,
-} from './http-auth-discover';
+import { httpAuthDiscoverFinalize, httpAuthDiscoverPrepare } from './http-auth-discover';
 import { impactPrepareCmd } from './impact-prepare';
 import { lintCmd } from './lint';
 import { normalizeCmd } from './normalize';

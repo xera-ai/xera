@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { z } from 'zod';
-import { loadConfig } from '../config/load';
 import { readAuthState } from '../auth/state';
+import { loadConfig } from '../config/load';
 import { resolveOpenApiSpec } from '../config/schema';
 
 interface DiscoverOpts {
@@ -68,8 +68,9 @@ export async function httpAuthDiscoverPrepare(argv: string[]): Promise<number> {
   }>;
   const nowSec = Math.floor(Date.now() / 1000);
   const specPath = resolveOpenApiSpec(cfg);
-  const fallbackHost =
-    specPath && specPath.startsWith('http') ? specPath : cfg.http.baseUrl[cfg.http.defaultEnv];
+  const fallbackHost = specPath?.startsWith('http')
+    ? specPath
+    : cfg.http.baseUrl[cfg.http.defaultEnv];
   const apiHostHint = hostnameOf(fallbackHost);
 
   const input = {
@@ -135,7 +136,9 @@ export async function httpAuthDiscoverFinalize(argv: string[]): Promise<number> 
   try {
     raw = JSON.parse(readFileSync(outPath, 'utf8'));
   } catch (e) {
-    console.error(`[xera:http-auth-discover] LLM output is not valid JSON: ${(e as Error).message}`);
+    console.error(
+      `[xera:http-auth-discover] LLM output is not valid JSON: ${(e as Error).message}`,
+    );
     return 1;
   }
   const parsed = DiscoveryOutputSchema.safeParse(raw);

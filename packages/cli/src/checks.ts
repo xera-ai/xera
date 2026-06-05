@@ -273,9 +273,7 @@ export async function runChecks(cwd: string, opts: RunChecksOptions = {}): Promi
                   message: `expires in ${minutes}m`,
                 });
               }
-              const cookies = Array.isArray(
-                (entry.payload as { cookies?: unknown[] }).cookies,
-              )
+              const cookies = Array.isArray((entry.payload as { cookies?: unknown[] }).cookies)
                 ? ((entry.payload as { cookies?: unknown[] }).cookies as unknown[])
                 : [];
               const cookieCheck: Check = {

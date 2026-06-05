@@ -1,7 +1,4 @@
-export type CookieMatch =
-  | { literal: string }
-  | { glob: string }
-  | { regex: string };
+export type CookieMatch = { literal: string } | { glob: string } | { regex: string };
 
 export function globToRegex(glob: string): RegExp {
   const escaped = glob.replace(/[.+^${}()|[\]\\]/g, '\\$&');
@@ -27,10 +24,7 @@ export interface MatchableCookie {
   expires?: number;
 }
 
-export function pickOne<T extends { name: string }>(
-  cookies: T[],
-  m: CookieMatch,
-): T | undefined {
+export function pickOne<T extends { name: string }>(cookies: T[], m: CookieMatch): T | undefined {
   const match = cookieMatcher(m);
   return cookies.find((c) => match(c.name));
 }
