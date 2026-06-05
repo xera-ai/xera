@@ -1,5 +1,15 @@
 # @xera-ai/core
 
+## 0.20.4
+
+### Patch Changes
+
+- [#214](https://github.com/xera-ai/xera/pull/214) [`a5a6aa6`](https://github.com/xera-ai/xera/commit/a5a6aa67228133e37a7d513d079f6d075c8714f2) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - skip roles with missing creds + honor XERA_HEADED ([#212](https://github.com/xera-ai/xera/issues/212), [#213](https://github.com/xera-ai/xera/issues/213)) (auto-generated from [#214](https://github.com/xera-ai/xera/issues/214))
+
+- Updated dependencies []:
+  - @xera-ai/web@0.20.4
+  - @xera-ai/http@0.20.4
+
 ## 0.20.3
 
 ### Patch Changes
