@@ -83,6 +83,10 @@ function seedGoodRepo(root: string): void {
     join(root, 'packages/prompts/contract-heal.md'),
     `---\nid: contract-heal\nversion: 1.0.0\n---\n\n# h\n\n${goodPreamble}\n\n## Decision rules\nbody`,
   );
+  writeFileSync(
+    join(root, 'packages/prompts/http-auth-discover.md'),
+    `---\nname: http-auth-discover\nversion: 1.0.0\n---\n\n${goodPreamble}\n\n## Decision rules\nbody`,
+  );
   mkdirSync(join(root, 'packages/skills'), { recursive: true });
   writeFileSync(
     join(root, 'packages/skills/xera-eval.md'),
