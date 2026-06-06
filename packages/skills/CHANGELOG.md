@@ -1,5 +1,11 @@
 # @xera-ai/skills
 
+## 0.22.0
+
+### Minor Changes
+
+- [#235](https://github.com/xera-ai/xera/pull/235) [`45c215b`](https://github.com/xera-ai/xera/commit/45c215b15dc4117b05fa5c49e2b393ef933ab5f6) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - reuse-web-session strategy + AI cookie discovery (auto-generated from [#235](https://github.com/xera-ai/xera/issues/235))
+
 ## 0.21.2
 
 ## 0.21.1
