@@ -192,6 +192,11 @@ const GraphSchema = z
   })
   .prefault({});
 
+const DashboardSchema = z.object({
+  staleAfterDays: z.number().int().positive().default(7),
+  recentFailureLimit: z.number().int().positive().default(10),
+});
+
 export const XeraConfigSchema = z
   .strictObject({
     jira: JiraSchema.optional(),
@@ -203,6 +208,7 @@ export const XeraConfigSchema = z
     run: RunSchema.prefault({}),
     coverage: CoverageSchema,
     graph: GraphSchema,
+    dashboard: DashboardSchema.optional(),
     adapters: z
       .array(z.enum(['web', 'http']))
       .min(1)
