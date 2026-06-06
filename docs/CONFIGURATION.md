@@ -289,6 +289,8 @@ npx xera-internal stage-auth --role admin            # one role only
 
 When the API is authenticated by the **same SSO session as the web app** (shared parent-domain cookies, no static bearer token), `'reuse-web-session'` is the declarative way to wire it. xera reads the persisted web `storageState`, filters cookies by domain, and emits a `cookie`-type http auth file — no hand-rolled `defineHttpAuthSetup`.
 
+📖 **End-to-end tutorial:** [docs/guides/reuse-web-session.md](guides/reuse-web-session.md) — walkthrough đầy đủ từ `xera init` đến `/xera-run`, có example output và troubleshooting table.
+
 ### Quickstart (5 phút từ chưa biết cookie → chạy `/xera-run`)
 
 1. **Init** — `xera init`. Khi prompt hỏi "Does your API share an SSO session with the web app?" chọn yes (sẽ scaffold sẵn `strategy: 'reuse-web-session'` + commented role block).
