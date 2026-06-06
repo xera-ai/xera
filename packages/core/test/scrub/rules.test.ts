@@ -17,6 +17,7 @@ describe('SENSITIVE_HEADERS', () => {
     expect(SENSITIVE_HEADERS).toContain('set-cookie');
     expect(SENSITIVE_HEADERS).toContain('x-api-key');
     expect(SENSITIVE_HEADERS).toContain('x-auth-token');
+    expect(SENSITIVE_HEADERS).toContain('x-csrf-token');
   });
 });
 
@@ -30,6 +31,10 @@ describe('scrubHeaders', () => {
     const r = scrubHeaders({ AUTHORIZATION: 'x', cookie: 'y' });
     expect(r.AUTHORIZATION).toBe('[REDACTED]');
     expect(r.cookie).toBe('[REDACTED]');
+  });
+  test('scrubs X-CSRF-Token header value (reuse-web-session)', () => {
+    const r = scrubHeaders({ 'X-CSRF-Token': 'SECRET_CSRF_VALUE' });
+    expect(r['X-CSRF-Token']).toBe('[REDACTED]');
   });
 });
 

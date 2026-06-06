@@ -18,6 +18,7 @@ export interface HttpAuthSetupResult {
     expires?: number;
   }>;
   expiresAt?: number;
+  meta?: Record<string, unknown>;
 }
 
 export type HttpAuthSetupFn = (

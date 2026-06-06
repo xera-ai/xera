@@ -35,6 +35,34 @@ const WebSchema = z
     path: ['defaultEnv'],
   });
 
+const CookieMatchSchema = z.union([
+  z.object({ literal: z.string().min(1) }),
+  z.object({ glob: z.string().min(1) }),
+  z.object({ regex: z.string().min(1) }),
+]);
+
+const ReuseWebSessionSchema = z.object({
+  domainContains: z.string().min(1),
+  cookies: z.object({
+    access: z.object({
+      match: CookieMatchSchema,
+      driveExpiry: z.boolean().default(true),
+    }),
+    refresh: z
+      .object({
+        match: CookieMatchSchema,
+        path: z.string().optional(),
+      })
+      .optional(),
+    csrf: z
+      .object({
+        match: CookieMatchSchema,
+        header: z.string().min(1),
+      })
+      .optional(),
+  }),
+});
+
 const HttpAuthRoleSchema = z.object({
   tokenEnv: z.string().optional(),
   userEnv: z.string().optional(),
@@ -43,14 +71,31 @@ const HttpAuthRoleSchema = z.object({
   clientIdEnv: z.string().optional(),
   clientSecretEnv: z.string().optional(),
   scope: z.string().optional(),
+  reuseWebSession: ReuseWebSessionSchema.optional(),
 });
 
-const HttpAuthSchema = z.object({
-  strategy: z.enum(['bearer', 'apiKey', 'basic', 'oauth-cc', 'custom', 'none']).default('none'),
-  ttl: z.string().default('8h'),
-  refreshBuffer: z.string().default('30m'),
-  roles: z.record(z.string(), HttpAuthRoleSchema).default({}),
-});
+const HttpAuthSchema = z
+  .object({
+    strategy: z
+      .enum(['bearer', 'apiKey', 'basic', 'oauth-cc', 'custom', 'none', 'reuse-web-session'])
+      .default('none'),
+    ttl: z.string().default('8h'),
+    refreshBuffer: z.string().default('30m'),
+    roles: z.record(z.string(), HttpAuthRoleSchema).default({}),
+  })
+  .superRefine((val, ctx) => {
+    if (val.strategy === 'reuse-web-session') {
+      for (const [roleName, role] of Object.entries(val.roles)) {
+        if (!role.reuseWebSession) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['roles', roleName, 'reuseWebSession'],
+            message: `Role '${roleName}' requires \`reuseWebSession\` when http.auth.strategy is 'reuse-web-session'.`,
+          });
+        }
+      }
+    }
+  });
 
 const HttpSchema = z
   .object({

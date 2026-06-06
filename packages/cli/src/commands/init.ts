@@ -15,7 +15,14 @@ const CLI_VERSION = (require('../package.json') as { version: string }).version;
 
 export type ProjectShape = 'web' | 'api' | 'mixed';
 export type IssueTracker = 'jira' | 'github';
-export type HttpAuthStrategy = 'bearer' | 'apiKey' | 'basic' | 'oauth-cc' | 'custom' | 'none';
+export type HttpAuthStrategy =
+  | 'bearer'
+  | 'apiKey'
+  | 'basic'
+  | 'oauth-cc'
+  | 'custom'
+  | 'none'
+  | 'reuse-web-session';
 
 export interface InitOptions {
   yes: boolean;
@@ -178,14 +185,32 @@ export async function initCommand(opts: InitOptions): Promise<void> {
         initialValue: './openapi.yaml',
       }),
     );
+    // For mixed projects (web + http), ask first whether the API shares the
+    // web SSO session — if yes, pre-select reuse-web-session so the user
+    // doesn't have to know the exact strategy name. (QA4)
+    let sharesWebSession = false;
+    if (wantsWeb && !opts.yes && !opts.authStrategy) {
+      const ans = await p.confirm({
+        message:
+          'Does the API share an SSO session with the web app? (shared parent-domain cookies)',
+        initialValue: false,
+      });
+      if (p.isCancel(ans)) {
+        p.cancel('Cancelled.');
+        process.exit(0);
+      }
+      sharesWebSession = ans === true;
+    }
+    const defaultStrategy: HttpAuthStrategy = sharesWebSession ? 'reuse-web-session' : 'bearer';
     authStrategy = await prompt<HttpAuthStrategy>(
       opts.authStrategy,
-      opts.yes ? 'bearer' : undefined,
+      opts.yes ? defaultStrategy : undefined,
       () =>
         p.select({
           message: 'API auth strategy',
-          initialValue: 'bearer' as HttpAuthStrategy,
+          initialValue: defaultStrategy,
           options: [
+            { value: 'reuse-web-session', label: 'Reuse web SSO session (shared cookies)' },
             { value: 'bearer', label: 'Bearer token (env var)' },
             { value: 'apiKey', label: 'API key (header)' },
             { value: 'basic', label: 'Basic auth (env vars)' },
@@ -227,6 +252,8 @@ export async function initCommand(opts: InitOptions): Promise<void> {
     apiBaseUrl,
     openapiPath,
     authStrategy,
+    isReuseWebSession: authStrategy === 'reuse-web-session',
+    isNotReuseWebSession: authStrategy !== 'reuse-web-session',
     httpRoles: httpRoles
       ? httpRoles
           .split(',')

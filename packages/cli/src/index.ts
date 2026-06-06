@@ -24,6 +24,7 @@ const VALID_AUTH_STRATEGIES: HttpAuthStrategy[] = [
   'oauth-cc',
   'custom',
   'none',
+  'reuse-web-session',
 ];
 const KNOWN_COMMANDS = ['init', 'doctor', 'samples', 'show-report'];
 

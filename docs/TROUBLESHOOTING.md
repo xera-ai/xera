@@ -304,3 +304,15 @@ npx xera-internal graph-query --area <slug>
 ```
 
 If the ticket is missing entirely from the graph (no fetch event), run `/xera-fetch <TICKET>` first and then retry `/xera-fill-gap`.
+
+### API returns 403 on POST after `reuse-web-session` auth-setup
+
+The CSRF cookie was captured but no CSRF header is configured. Add `csrf: { match: …, header: 'X-CSRF-Token' }` under `reuseWebSession.cookies` (the exact header name is API-specific — check what the web app sends in its DevTools network tab). After updating `xera.config.ts`, re-run `npx xera-internal auth-setup --role <role> --shape http`.
+
+### `Strategy 'reuse-web-session' requires a web auth file at …`
+
+The http preset reads the *web* file as its input. Run `npx xera-internal auth-setup --role <role> --shape web` first (set `XERA_HEADED=1` if you need a visible browser for SSO/MFA). Then re-run `--shape http`.
+
+### `/xera-http-auth-discover` proposes the wrong cookies
+
+The discovery skill only sees cookies that the web `auth-setup` captured. If the API session cookies are only set after a post-login navigation (some apps set them on the first dashboard load, not on the SSO landing page), the captured `storageState` may be missing them. Edit `shared/auth-setup.ts` to add a `page.goto(<a page that exercises the API>)` after the login, re-run `auth-setup --shape web`, then re-run `/xera-http-auth-discover <role>`. You can inspect the captured cookies via `npx xera-internal stage-auth --role <role>` (v0.21).

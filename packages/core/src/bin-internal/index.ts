@@ -23,6 +23,7 @@ import { graphRecordCmd } from './graph-record';
 import { graphRenderCmd } from './graph-render';
 import { graphSnapshotCmd } from './graph-snapshot';
 import { healPrepareCmd } from './heal-prepare';
+import { httpAuthDiscoverFinalize, httpAuthDiscoverPrepare } from './http-auth-discover';
 import { impactPrepareCmd } from './impact-prepare';
 import { lintCmd } from './lint';
 import { normalizeCmd } from './normalize';
@@ -35,6 +36,7 @@ import { statusCmd } from './status-cmd';
 import { typecheckCmd } from './typecheck';
 import { unlockCmd } from './unlock';
 import { validateFeatureCmd } from './validate-feature';
+import { verifyHttpAuthCmd } from './verify-http-auth';
 import { verifyPromptsCmd } from './verify-prompts';
 
 const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
@@ -63,6 +65,8 @@ const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
   'graph-record': graphRecordCmd,
   'graph-snapshot': graphSnapshotCmd,
   'heal-prepare': healPrepareCmd,
+  'http-auth-discover-finalize': httpAuthDiscoverFinalize,
+  'http-auth-discover-prepare': httpAuthDiscoverPrepare,
   'impact-prepare': impactPrepareCmd,
   lint: lintCmd,
   normalize: normalizeCmd,
@@ -75,6 +79,7 @@ const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
   typecheck: typecheckCmd,
   unlock: unlockCmd,
   'validate-feature': validateFeatureCmd,
+  'verify-http-auth': verifyHttpAuthCmd,
   'verify-prompts': verifyPromptsCmd,
 };
 

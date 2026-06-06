@@ -14,6 +14,8 @@
 {{#if wantsHttp}}export const http = defineHttpAuthSetup(async (request, role, creds) => {
   // Default preset — reads tokenEnv from xera.config.ts http.auth.roles.<role>.tokenEnv.
   // Replace this body with a custom login flow if your API doesn't use static tokens.
+  // For http.auth.strategy === 'reuse-web-session' this function is unused —
+  // the auth-setup binary reads the web auth file directly via presetHttpAuth.
   return presetHttpAuth({
     request,
     role,

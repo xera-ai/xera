@@ -26,6 +26,7 @@ export interface AuthFilePayload {
   header: string;
   scheme: string;
   cookies?: Array<{ name: string; value: string; domain: string; path: string; expires?: number }>;
+  csrf?: { cookieName: string; header: string };
 }
 
 interface PlaywrightLike {
@@ -77,6 +78,17 @@ export async function newAuthedContext(
       })),
       origins: [],
     };
+  }
+  if (payload.csrf) {
+    const csrfCfg = payload.csrf;
+    const csrfCookie = (payload.cookies ?? []).find((c) => c.name === csrfCfg.cookieName);
+    if (csrfCookie) {
+      extraHTTPHeaders[csrfCfg.header] = csrfCookie.value;
+    } else {
+      console.warn(
+        `[xera:http] reuse-web-session: csrf cookie '${csrfCfg.cookieName}' not present in stored cookies. POST/PUT/PATCH/DELETE may 403. Re-run: npx xera-internal auth-setup --role ${role} --shape http`,
+      );
+    }
   }
   const ctx = await playwright.request.newContext(opts);
   const traceFile = process.env.XERA_HTTP_TRACE;

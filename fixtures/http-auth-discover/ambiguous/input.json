@@ -1,0 +1,22 @@
+{
+  "role": "admin",
+  "apiHostHint": "api.shared.test",
+  "cookies": [
+    {
+      "name": "session_a",
+      "domain": "api.shared.test",
+      "path": "/",
+      "expiresInSeconds": 600,
+      "httpOnly": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "session_b",
+      "domain": "api.shared.test",
+      "path": "/",
+      "expiresInSeconds": 800,
+      "httpOnly": true,
+      "sameSite": "None"
+    }
+  ]
+}

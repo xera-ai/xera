@@ -1,0 +1,9 @@
+{
+  "type": "cookie",
+  "header": "Authorization",
+  "scheme": "",
+  "cookieNames": ["session_at", "session_rt", "xs_csrf"],
+  "accessMatch": { "regex": "_at$" },
+  "refreshable": { "match": { "regex": "_rt$" }, "path": "/auth" },
+  "csrf": { "cookieName": "xs_csrf", "header": "X-CSRF-Token" }
+}
