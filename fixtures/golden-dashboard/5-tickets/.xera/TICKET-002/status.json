@@ -1,0 +1,9 @@
+{
+  "ticket": "TICKET-002",
+  "result": "FAIL",
+  "classification": "REAL_BUG",
+  "confidence": "high",
+  "scenarios": { "total": 5, "passed": 3, "failed": 2, "skipped": 0 },
+  "lastRun": "2026-06-06T07:00:00.000Z",
+  "history": []
+}

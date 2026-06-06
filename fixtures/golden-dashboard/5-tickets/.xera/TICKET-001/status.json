@@ -1,0 +1,9 @@
+{
+  "ticket": "TICKET-001",
+  "result": "PASS",
+  "classification": "PASS",
+  "confidence": "high",
+  "scenarios": { "total": 5, "passed": 5, "failed": 0, "skipped": 0 },
+  "lastRun": "2026-06-06T08:00:00.000Z",
+  "history": [{ "ts": "2026-06-06T08:00:00.000Z", "result": "PASS", "class": "PASS" }]
+}
