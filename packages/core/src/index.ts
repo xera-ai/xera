@@ -9,6 +9,7 @@ export * from './auth/refresh';
 export * from './auth/state';
 export type { OpenAPIDocument, OpenAPISchema } from './classifier/contract-drift';
 export * from './config/define';
+export * from './dashboard';
 export * from './config/load';
 export * from './config/schema';
 export * from './github/client';
