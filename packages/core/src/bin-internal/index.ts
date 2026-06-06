@@ -4,6 +4,7 @@ import { authSetupCmd } from './auth-setup';
 import { classifyDriftCmd } from './classify-drift';
 import { contractHealPrepareCmd } from './contract-heal-prepare';
 import { coveragePrepareCmd } from './coverage-prepare';
+import { dashboardCmd } from './dashboard';
 import { disputesCmd } from './disputes';
 import { doctorCmd } from './doctor';
 import { evalDeterministicCmd } from './eval-deterministic';
@@ -46,6 +47,7 @@ const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
   'classify-drift': classifyDriftCmd,
   'contract-heal-prepare': contractHealPrepareCmd,
   'coverage-prepare': coveragePrepareCmd,
+  dashboard: dashboardCmd,
   disputes: disputesCmd,
   doctor: doctorCmd,
   'eval-deterministic': evalDeterministicCmd,
