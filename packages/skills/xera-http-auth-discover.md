@@ -45,22 +45,49 @@ Run: `npx xera-internal http-auth-discover-finalize --role <role>`
 
 The binary validates your JSON, asserts every nominated cookie name exists in the captured set, and prints a paste-ready TS block on stdout (or exits non-zero with a precise error).
 
-## Step 7 — Present to the user
+## Step 7 — Apply the discovered config to `xera.config.ts`
 
-Show the user:
+You DRIVE the edit — the user reviews via the Edit tool's diff prompt, accepts or rejects there. Do NOT ask the user to copy-paste.
 
-1. The paste-ready `reuseWebSession: { ... }` block printed by finalize.
-2. The confidence summary line.
-3. Exact next steps (verbatim):
+### 7a. Read `xera.config.ts`
 
-   > Paste the block under `http.auth.roles.<role>` in `xera.config.ts`, then:
-   >
-   > ```bash
-   > npx xera doctor
-   > npx xera-internal auth-setup --role <role> --shape http
-   > ```
+Use the Read tool on `xera.config.ts` at the project root.
 
-Do NOT edit `xera.config.ts` yourself — the user reviews and pastes.
+### 7b. Locate the insertion point
+
+Inside `http.auth.roles`, find the entry keyed by the role name (e.g. `<role>: { ... }`). Two cases:
+
+- **Role already exists** with other fields (e.g. `tokenEnv` from a prior strategy) — replace the entire role body with `{ reuseWebSession: {...} }`. The other fields are unused for this strategy.
+- **Role does not exist** — insert the new role entry alongside any existing roles, preserving trailing commas and indentation.
+
+If `http.auth.roles` itself is missing or `http.auth.strategy` is not `'reuse-web-session'`, STOP and tell the user — finalize would not have succeeded if these were correct, but double-check.
+
+### 7c. Show the proposed edit + confidence summary
+
+Before invoking Edit, print to the user:
+
+1. The full `reuseWebSession: { ... }` block exactly as finalize emitted it.
+2. The confidence summary line (e.g. `Confidence — access: 0.95, refresh: 0.95, csrf: 0.9`).
+3. A one-line plan: `I'll Edit xera.config.ts to add this under http.auth.roles.<role> — you'll see the diff and can accept or reject.`
+
+### 7d. Invoke Edit
+
+Use the Edit tool with an `old_string` large enough to make the match unique (typically the closing `},` of the previous sibling entry plus a few lines of surrounding context) and a `new_string` that includes the inserted/replaced block. Preserve existing indentation and trailing commas exactly.
+
+If Edit fails (string not unique, file format unexpected), DO NOT retry blindly. Surface the error, print the paste-ready block, and tell the user to paste manually as a fallback.
+
+### 7e. Run verification + auth-setup
+
+After the user accepts the Edit, run these in order and stream the output:
+
+```bash
+npx xera doctor
+npx xera-internal auth-setup --role <role> --shape http
+```
+
+If `doctor` flags a problem with the new block (e.g. a matcher that doesn't hit any cookie), surface the error and suggest re-running `/xera-http-auth-discover <role>` or editing the matcher manually. Do NOT proceed to `auth-setup` if doctor fails.
+
+If `auth-setup --shape http` succeeds, report back: `✓ http auth file produced at .xera/.auth/http/<role>.json — role is ready for /xera-run.`
 
 ## Refusal
 
