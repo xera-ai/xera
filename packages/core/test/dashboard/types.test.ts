@@ -25,12 +25,12 @@ describe('DashboardSnapshotSchema', () => {
       totals: { tickets: 1, last_pass: 0, last_fail: 1, never_run: 0, scenarios_pass: 3, scenarios_fail: 2 },
       classifications: [{ classification: 'REAL_BUG', count: 1 }],
       tickets: [{
-        ticketId: 'TICKET-001', result: 'FAIL', classification: 'REAL_BUG', confidence: 0.85,
+        ticketId: 'TICKET-001', result: 'FAIL', classification: 'REAL_BUG', confidence: 'high',
         scenarios: { total: 5, passed: 3, failed: 2 }, lastRun: '2026-06-06T08:23:14.000Z',
         areas: ['checkout'], has_html_report: true,
       }],
       recent_failures: [{
-        ticketId: 'TICKET-001', classification: 'REAL_BUG', confidence: 0.85,
+        ticketId: 'TICKET-001', classification: 'REAL_BUG', confidence: 'high',
         lastRun: '2026-06-06T08:23:14.000Z', scenarios_failed: 2, scenarios_total: 5, areas: ['checkout'],
       }],
       critical_alerts: [{ area: 'checkout', failing_tickets: ['TICKET-001'], is_critical: true }],

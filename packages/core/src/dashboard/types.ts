@@ -6,7 +6,7 @@ export const TicketRowSchema = z.object({
   ticketId: z.string(),
   result: TicketResultEnum,
   classification: z.string().nullable(),
-  confidence: z.number().nullable(),
+  confidence: z.enum(['low', 'medium', 'high']).nullable(),
   scenarios: z.object({
     total: z.number().int().nonnegative(),
     passed: z.number().int().nonnegative(),
@@ -20,7 +20,7 @@ export const TicketRowSchema = z.object({
 export const RecentFailureSchema = z.object({
   ticketId: z.string(),
   classification: z.string(),
-  confidence: z.number(),
+  confidence: z.enum(['low', 'medium', 'high']),
   lastRun: z.string(),
   scenarios_failed: z.number().int().nonnegative(),
   scenarios_total: z.number().int().nonnegative(),
