@@ -13,9 +13,9 @@ export default {
           reuseWebSession: {
             domainContains: 'test.local',
             cookies: {
-              access:  { match: { regex: '_at$' } },
+              access: { match: { regex: '_at$' } },
               refresh: { match: { regex: '_rt$' }, path: '/auth' },
-              csrf:    { match: { literal: 'xs_csrf' }, header: 'X-CSRF-Token' },
+              csrf: { match: { literal: 'xs_csrf' }, header: 'X-CSRF-Token' },
             },
           },
         },
