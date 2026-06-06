@@ -12,11 +12,50 @@ This file orients any AI agent (Claude Code, Cursor, OpenAI Codex CLI).
 - `/xera-script <TICKET>` — generate the runnable spec
 - `/xera-exec <TICKET>` / `/xera-report <TICKET>` — run tests + classify failures
 - `/xera-coverage`, `/xera-impact`, `/xera-promote` — coverage, blast-radius, PR promotion
+{{#if isReuseWebSession}}- `/xera-http-auth-discover <role>` — one-shot AI discovery of cookies for
+  `reuse-web-session` strategy. Drives the Edit tool to apply the proposed
+  `reuseWebSession: { ... }` block to `xera.config.ts`. Runs once after the
+  web auth-setup; do NOT auto-trigger from `/xera-run`.
+{{/if}}
 
 ## Scripts (deterministic plumbing the skills call)
 
-You rarely run these directly: `npx xera-internal fetch`, `xera-internal exec`, `xera-internal report`,
-`xera-internal doctor`, etc. Health check: `npx @xera-ai/cli doctor`.
+You rarely run these directly. The skills do. But if you need to:
+
+| Command | When to run |
+|---|---|
+| `npx xera-internal fetch --ticket <TICKET>` | Pull ticket into `.xera/<TICKET>/` |
+| `npx xera-internal exec --ticket <TICKET>` | Run Playwright/HTTP tests |
+| `npx xera-internal report --ticket <TICKET>` | Classify failures + write report |
+| `npx xera doctor` | Health check (config schema, prompts, auth files) |
+| `npx xera doctor --strict` | Stricter gating (used by `/xera-run` Step 0) |
+{{#if wantsWeb}}| `XERA_HEADED=1 npx xera-internal auth-setup --role <role> --shape web` | Capture web SSO session (1×, headed for MFA) |
+{{/if}}{{#if wantsHttp}}| `npx xera-internal auth-setup --role <role> --shape http` | Produce HTTP auth file from config |
+{{#if isReuseWebSession}}| `npx xera-internal verify-http-auth --role <role> --path /api/health` | Smoke test: real GET against API, surface 401/403 with hints |
+| `npx xera-internal stage-auth --role <role>` | Decrypt auth state to `.xera/.auth/.cache/` for debugging |
+{{/if}}{{/if}}
+
+{{#if isReuseWebSession}}## HTTP auth: reuse-web-session lifecycle
+
+This project's HTTP API rides the web app's SSO session (shared parent-domain cookies). Important cycle:
+
+1. **One-shot setup** (do once per project):
+   - `XERA_HEADED=1 npx xera-internal auth-setup --role <role> --shape web` — login, navigate through ≥1 page that calls the API (this sets the CSRF cookie), close browser.
+   - `/xera-http-auth-discover <role>` — AI proposes cookie names. The skill Edits `xera.config.ts` for you; review the diff before accepting.
+   - `npx xera-internal auth-setup --role <role> --shape http` — derive the HTTP auth file from the web one.
+
+2. **Refresh cycle** (recurring):
+   - **Every ~15 minutes** (access cookie TTL): `npx xera-internal auth-setup --role <role> --shape http`. No web re-login needed.
+   - **Every ~8 hours** (SSO session TTL): `XERA_HEADED=1 npx xera-internal auth-setup --role <role> --shape web`, THEN re-derive http. `xera.config.ts` is unchanged.
+   - Doctor warns 30 minutes before web expiry.
+
+3. **Debugging surface errors**:
+   - `doctor` reports `CSRF cookie 'X' not present` → re-run web auth-setup, click through an API-calling page before closing.
+   - `doctor` reports `cookies persisted: false` → the preset matchers didn't hit anything; tighten them via `/xera-http-auth-discover` re-run or hand-edit.
+   - POST returns 403 but GET works → CSRF header name mismatch. Open DevTools on the web app, inspect a POST request's `X-*` headers, fix `csrf.header` in `xera.config.ts`.
+
+NEVER hand-edit `.xera/.auth/*.json` (encrypted) or generated artifacts under `.xera/<TICKET>/`. Always go through `auth-setup` and skills.
+{{/if}}
 
 ## Project conventions
 
@@ -24,6 +63,7 @@ You rarely run these directly: `npx xera-internal fetch`, `xera-internal exec`, 
 {{/if}}{{#if wantsHttp}}- HTTP API tests (`@xera-ai/http`), OpenAPI-aware when `http.spec` is set.
 {{/if}}- Generated artifacts live under `.xera/<TICKET>/` — do not hand-edit; re-run the skill.
 - Configuration is in `xera.config.ts`. Secrets go in `.env` (never commit it).
+- Auth state lives under `.xera/.auth/` — AES-256-GCM encrypted, gitignored. Use `stage-auth` to inspect.
 - Run `npx @xera-ai/cli doctor` if anything looks misconfigured.
 
 <!-- Scaffolded by `xera init`. Safe to edit — xera will not overwrite this file. -->
