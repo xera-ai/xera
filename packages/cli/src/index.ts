@@ -2,6 +2,7 @@ import { createRequire } from 'node:module';
 import { ensureTsRuntime } from '@xera-ai/core';
 import { cac } from 'cac';
 import pc from 'picocolors';
+import { type DashboardOptions, dashboardCommand } from './commands/dashboard';
 import { doctorCommand } from './commands/doctor';
 import {
   type HttpAuthStrategy,
@@ -10,7 +11,6 @@ import {
   type ProjectShape,
 } from './commands/init';
 import { type InitUpdateOptions, initUpdateCommand } from './commands/init-update';
-import { type DashboardOptions, dashboardCommand } from './commands/dashboard';
 import { samplesRemoveCommand } from './commands/samples';
 import { showReportCommand } from './commands/show-report';
 

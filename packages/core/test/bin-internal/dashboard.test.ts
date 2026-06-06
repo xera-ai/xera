@@ -1,7 +1,7 @@
-import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { cpSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { dashboardCmd } from '../../src/bin-internal/dashboard';
 
 const FIXTURE = join(__dirname, '..', '..', '..', '..', 'fixtures/golden-dashboard/5-tickets');

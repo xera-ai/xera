@@ -21,9 +21,7 @@ function parseDurationMs(s: string): number {
   if (!m) throw new Error(`invalid --since '${s}' (expected like '24h', '7d')`);
   const n = Number(m[1]);
   const unit = m[2];
-  return (
-    n * (unit === 's' ? 1000 : unit === 'm' ? 60_000 : unit === 'h' ? 3_600_000 : DAY_MS)
-  );
+  return n * (unit === 's' ? 1000 : unit === 'm' ? 60_000 : unit === 'h' ? 3_600_000 : DAY_MS);
 }
 
 function hasPlaywrightReport(xeraDir: string, ticketId: string): boolean {
@@ -35,10 +33,7 @@ function hasPlaywrightReport(xeraDir: string, ticketId: string): boolean {
   return existsSync(join(runsDir, latest, 'playwright-report', 'index.html'));
 }
 
-export async function collectDashboard(
-  cwd: string,
-  opts: CollectOpts,
-): Promise<DashboardSnapshot> {
+export async function collectDashboard(cwd: string, opts: CollectOpts): Promise<DashboardSnapshot> {
   const config = await loadConfig(cwd);
   const xeraDir = join(cwd, '.xera');
   const events = loadAllEvents(cwd);
@@ -111,9 +106,7 @@ export async function collectDashboard(
   if (opts.failingOnly) filtered = filtered.filter((t) => t.result === 'FAIL');
   if (opts.classifications?.length) {
     const set = new Set(opts.classifications);
-    filtered = filtered.filter(
-      (t) => t.classification !== null && set.has(t.classification),
-    );
+    filtered = filtered.filter((t) => t.classification !== null && set.has(t.classification));
   }
   if (opts.areas?.length) {
     const set = new Set(opts.areas);
@@ -179,13 +172,11 @@ export async function collectDashboard(
       else areaToTickets.set(a, [t.ticketId]);
     }
   }
-  const allAreas: AreaStat[] = Array.from(areaToTickets.entries()).map(
-    ([area, tickets]) => ({
-      area,
-      failing_tickets: tickets,
-      is_critical: criticalAreaSet.has(area),
-    }),
-  );
+  const allAreas: AreaStat[] = Array.from(areaToTickets.entries()).map(([area, tickets]) => ({
+    area,
+    failing_tickets: tickets,
+    is_critical: criticalAreaSet.has(area),
+  }));
 
   const critical_alerts = allAreas.filter((a) => a.is_critical);
   const top_failing_areas = [...allAreas]

@@ -4,7 +4,14 @@ import type { DashboardSnapshot } from '../../src/dashboard/types';
 
 const snap: DashboardSnapshot = {
   generated_at: '2026-06-06T09:00:00.000Z',
-  totals: { tickets: 5, last_pass: 2, last_fail: 2, never_run: 1, scenarios_pass: 15, scenarios_fail: 4 },
+  totals: {
+    tickets: 5,
+    last_pass: 2,
+    last_fail: 2,
+    never_run: 1,
+    scenarios_pass: 15,
+    scenarios_fail: 4,
+  },
   classifications: [
     { classification: 'PASS', count: 2 },
     { classification: 'REAL_BUG', count: 1 },
@@ -66,7 +73,12 @@ describe('renderText', () => {
   });
 
   test('suppresses empty sections', () => {
-    const empty: DashboardSnapshot = { ...snap, recent_failures: [], stale: [], critical_alerts: [] };
+    const empty: DashboardSnapshot = {
+      ...snap,
+      recent_failures: [],
+      stale: [],
+      critical_alerts: [],
+    };
     const out = renderText(empty, { color: false });
     expect(out).not.toContain('Recent failures');
     expect(out).not.toContain('Stale');

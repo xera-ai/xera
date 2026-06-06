@@ -74,7 +74,9 @@ export function renderText(snap: DashboardSnapshot, opts: RenderTextOpts = {}): 
     const maxCount = Math.max(...snap.classifications.map((c) => c.count));
     const maxLabel = Math.max(...snap.classifications.map((c) => c.classification.length), 12);
     for (const c of snap.classifications) {
-      lines.push(`  ${pad(c.classification, maxLabel)} ${pad(bar(c.count, maxCount), 14)} ${c.count}`);
+      lines.push(
+        `  ${pad(c.classification, maxLabel)} ${pad(bar(c.count, maxCount), 14)} ${c.count}`,
+      );
     }
     lines.push('');
   }
@@ -112,7 +114,10 @@ export function renderText(snap: DashboardSnapshot, opts: RenderTextOpts = {}): 
 
   if (snap.top_failing_areas.length > 0) {
     lines.push('Top failing areas:');
-    lines.push('  ' + snap.top_failing_areas.map((a) => `${a.area} (${a.failing_tickets.length})`).join('   '));
+    lines.push(
+      '  ' +
+        snap.top_failing_areas.map((a) => `${a.area} (${a.failing_tickets.length})`).join('   '),
+    );
     lines.push('');
   }
 
