@@ -289,6 +289,34 @@ npx xera-internal stage-auth --role admin            # one role only
 
 When the API is authenticated by the **same SSO session as the web app** (shared parent-domain cookies, no static bearer token), `'reuse-web-session'` is the declarative way to wire it. xera reads the persisted web `storageState`, filters cookies by domain, and emits a `cookie`-type http auth file — no hand-rolled `defineHttpAuthSetup`.
 
+### Quickstart (5 phút từ chưa biết cookie → chạy `/xera-run`)
+
+1. **Init** — `xera init`. Khi prompt hỏi "Does your API share an SSO session with the web app?" chọn yes (sẽ scaffold sẵn `strategy: 'reuse-web-session'` + commented role block).
+2. **Đăng nhập web 1 lần** —
+   ```bash
+   XERA_HEADED=1 npx xera-internal auth-setup --role admin --shape web
+   ```
+   Browser mở, hoàn thành SSO/MFA bằng tay, **đi qua ít nhất 1 trang gọi API** (để API set tất cả cookies kể cả CSRF), rồi đóng browser.
+3. **AI discover cookies** — trong Claude Code session:
+   ```
+   /xera-http-auth-discover admin
+   ```
+   Skill tự chạy: prepare → LLM phân loại cookies → finalize in proposed block với confidence. Nếu CSRF có mặt, skill in cảnh báo nhắc verify header trong DevTools. Skill drive Edit tool — review diff, accept.
+4. **Derive http auth** —
+   ```bash
+   npx xera-internal auth-setup --role admin --shape http
+   ```
+   Xong là có `.xera/.auth/http/admin.json`.
+5. **Verify & chạy** —
+   ```bash
+   npx xera doctor                      # tất cả check phải xanh
+   /xera-run TICKET-001                 # POST/PUT tự có CSRF header
+   ```
+
+Khi access cookie hết hạn (~15 phút): chỉ chạy lại step 4. Khi web session hết (~8h Entra default): chạy lại step 2 — doctor sẽ cảnh báo trước 30 phút.
+
+### Reference
+
 ```ts
 http: {
   baseUrl: { dev: 'https://api.your-domain.test' },

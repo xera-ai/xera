@@ -1,8 +1,8 @@
-import { describe, expect, test, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { writeAuthState } from '@xera-ai/core';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { presetHttpAuth } from '../../src/auth-setup/preset';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -73,11 +73,7 @@ describe('presetHttpAuth reuse-web-session', () => {
       webAuthDir: dir,
     });
     expect(res.type).toBe('cookie');
-    expect(res.cookies?.map((c) => c.name).sort()).toEqual([
-      'session_at',
-      'session_rt',
-      'xs_csrf',
-    ]);
+    expect(res.cookies?.map((c) => c.name).sort()).toEqual(['session_at', 'session_rt', 'xs_csrf']);
     expect(res.expiresAt).toBe((now + 900) * 1000);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((res as any).meta?.csrf).toEqual({ cookieName: 'xs_csrf', header: 'X-CSRF-Token' });
@@ -132,6 +128,20 @@ describe('presetHttpAuth reuse-web-session', () => {
     await expect(
       presetHttpAuth({ request: fakeRequest, role: 'admin', config: cfg, webAuthDir: dir }),
     ).rejects.toThrow(/access.*refresh.*same cookie/);
+  });
+
+  test('throws when access.match resolves to multiple cookies (e.g. loose regex /_at/)', async () => {
+    const cfg = JSON.parse(JSON.stringify(baseConfig));
+    cfg.auth.roles.admin.reuseWebSession.cookies.access.match = { regex: '_at' };
+    delete cfg.auth.roles.admin.reuseWebSession.cookies.refresh;
+    delete cfg.auth.roles.admin.reuseWebSession.cookies.csrf;
+    seedWebState([
+      { name: 'session_at', value: 'A', domain: 'api.x.com', path: '/' },
+      { name: '_atomic_event', value: 'B', domain: 'api.x.com', path: '/' },
+    ]);
+    await expect(
+      presetHttpAuth({ request: fakeRequest, role: 'admin', config: cfg, webAuthDir: dir }),
+    ).rejects.toThrow(/access\.match matched multiple.*Tighten/);
   });
 
   test('falls back to auth.ttl when driveExpiry=false', async () => {

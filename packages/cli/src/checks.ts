@@ -239,6 +239,25 @@ export async function runChecks(cwd: string, opts: RunChecksOptions = {}): Promi
               name: `reuse-web-session: web auth file present for role '${role}'`,
               ok: true,
             });
+            try {
+              const webEntry = readAuthState(webAuthDir, role);
+              if (webEntry) {
+                const webExpiresInMs = new Date(webEntry.expires_at).getTime() - Date.now();
+                const webFreshCheck: Check = {
+                  name: `reuse-web-session: web auth file fresh for role '${role}'`,
+                  ok: webExpiresInMs > 0,
+                };
+                if (webExpiresInMs <= 0) {
+                  webFreshCheck.message = `web session expired; re-login with: XERA_HEADED=1 npx xera-internal auth-setup --role ${role} --shape web`;
+                } else if (webExpiresInMs < 30 * 60_000) {
+                  const minutes = Math.round(webExpiresInMs / 60_000);
+                  webFreshCheck.message = `web session expires in ${minutes}m — plan to re-login soon (XERA_HEADED=1 ... --shape web)`;
+                }
+                checks.push(webFreshCheck);
+              }
+            } catch {
+              // Decryption failure on web file is surfaced elsewhere; don't double-report here.
+            }
             const httpPath = join(httpAuthDir, `${role}.json`);
             if (!existsSync(httpPath)) {
               checks.push({
@@ -273,9 +292,11 @@ export async function runChecks(cwd: string, opts: RunChecksOptions = {}): Promi
                   message: `expires in ${minutes}m`,
                 });
               }
-              const cookies = Array.isArray((entry.payload as { cookies?: unknown[] }).cookies)
-                ? ((entry.payload as { cookies?: unknown[] }).cookies as unknown[])
-                : [];
+              const payloadObj = entry.payload as {
+                cookies?: Array<{ name: string }>;
+                csrf?: { cookieName: string; header: string };
+              };
+              const cookies = Array.isArray(payloadObj.cookies) ? payloadObj.cookies : [];
               const cookieCheck: Check = {
                 name: `reuse-web-session: cookies persisted for role '${role}'`,
                 ok: cookies.length > 0,
@@ -285,6 +306,18 @@ export async function runChecks(cwd: string, opts: RunChecksOptions = {}): Promi
                   'no cookies — preset may not have matched any; re-run auth-setup --shape http';
               }
               checks.push(cookieCheck);
+              if (payloadObj.csrf) {
+                const csrfName = payloadObj.csrf.cookieName;
+                const csrfPresent = cookies.some((c) => c.name === csrfName);
+                const csrfCheck: Check = {
+                  name: `reuse-web-session: CSRF cookie '${csrfName}' present for role '${role}'`,
+                  ok: csrfPresent,
+                };
+                if (!csrfPresent) {
+                  csrfCheck.message = `POST/PUT/PATCH/DELETE will 403. The CSRF cookie wasn't captured — re-login web (--shape web with XERA_HEADED=1) and visit a page that exercises the API before closing the browser.`;
+                }
+                checks.push(csrfCheck);
+              }
             } catch (e) {
               checks.push({
                 name: `http auth file readable: ${role}`,

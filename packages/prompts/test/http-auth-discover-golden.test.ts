@@ -1,6 +1,6 @@
-import { describe, expect, test } from 'vitest';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { describe, expect, test } from 'vitest';
 
 const ROOT = join(__dirname, '..', '..', '..', 'fixtures/http-auth-discover');
 

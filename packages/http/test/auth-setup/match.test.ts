@@ -39,7 +39,7 @@ describe('pickOne', () => {
   const cookies = [
     { name: 'session_at', value: 'a', domain: '.x.com', path: '/' },
     { name: 'session_rt', value: 'r', domain: '.x.com', path: '/' },
-    { name: '_ga',        value: 'g', domain: '.x.com', path: '/' },
+    { name: '_ga', value: 'g', domain: '.x.com', path: '/' },
   ];
   test('returns first match', () => {
     expect(pickOne(cookies, { regex: '_at$' })?.name).toBe('session_at');

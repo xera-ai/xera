@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { writeAuthState } from '@xera-ai/core';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { newAuthedContext } from '../../src/runtime';
 
 let dir: string;
@@ -18,14 +18,18 @@ beforeEach(() => {
 });
 afterEach(() => {
   rmSync(dir, { recursive: true, force: true });
-  if (origKey === undefined) delete process.env.XERA_AUTH_KEY; else process.env.XERA_AUTH_KEY = origKey;
-  if (origAuthDir === undefined) delete process.env.XERA_AUTH_DIR; else process.env.XERA_AUTH_DIR = origAuthDir;
-  if (origBaseUrl === undefined) delete process.env.XERA_BASE_URL; else process.env.XERA_BASE_URL = origBaseUrl;
+  if (origKey === undefined) delete process.env.XERA_AUTH_KEY;
+  else process.env.XERA_AUTH_KEY = origKey;
+  if (origAuthDir === undefined) delete process.env.XERA_AUTH_DIR;
+  else process.env.XERA_AUTH_DIR = origAuthDir;
+  if (origBaseUrl === undefined) delete process.env.XERA_BASE_URL;
+  else process.env.XERA_BASE_URL = origBaseUrl;
 });
 
 function seed(payload: Record<string, unknown>) {
   writeAuthState(join(dir, 'http'), {
-    role: 'admin', strategy: 'apiToken',
+    role: 'admin',
+    strategy: 'apiToken',
     created_at: new Date().toISOString(),
     expires_at: new Date(Date.now() + 900_000).toISOString(),
     payload,
@@ -50,10 +54,13 @@ function fakePlaywright() {
 describe('newAuthedContext CSRF lift', () => {
   test('lifts CSRF cookie value into extraHTTPHeaders[header]', async () => {
     seed({
-      type: 'cookie', token: '', header: 'Authorization', scheme: '',
+      type: 'cookie',
+      token: '',
+      header: 'Authorization',
+      scheme: '',
       cookies: [
         { name: 'session_at', value: 'A', domain: 'api.example.test', path: '/' },
-        { name: 'xs_csrf',    value: 'CCC', domain: 'api.example.test', path: '/' },
+        { name: 'xs_csrf', value: 'CCC', domain: 'api.example.test', path: '/' },
       ],
       csrf: { cookieName: 'xs_csrf', header: 'X-CSRF-Token' },
     });
@@ -64,7 +71,10 @@ describe('newAuthedContext CSRF lift', () => {
 
   test('warns and does NOT throw when csrf cookieName missing from cookies', async () => {
     seed({
-      type: 'cookie', token: '', header: 'Authorization', scheme: '',
+      type: 'cookie',
+      token: '',
+      header: 'Authorization',
+      scheme: '',
       cookies: [{ name: 'session_at', value: 'A', domain: 'api.example.test', path: '/' }],
       csrf: { cookieName: 'xs_csrf', header: 'X-CSRF-Token' },
     });
@@ -77,7 +87,10 @@ describe('newAuthedContext CSRF lift', () => {
 
   test('no csrf field → no header set, no warning', async () => {
     seed({
-      type: 'cookie', token: '', header: 'Authorization', scheme: '',
+      type: 'cookie',
+      token: '',
+      header: 'Authorization',
+      scheme: '',
       cookies: [{ name: 'session_at', value: 'A', domain: 'api.example.test', path: '/' }],
     });
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});

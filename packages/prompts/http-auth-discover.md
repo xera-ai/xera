@@ -39,7 +39,10 @@ Return a JSON object matching the `outputs` schema verbatim.
 
 ## Decision rules
 
-1. **CSRF candidate** — name contains `csrf`, `xsrf`, or `_csr` (case-insensitive). MUST be non-`httpOnly` (the JS client reads it). Long TTL (≥ 1 hour) is typical. Header default: `X-CSRF-Token` unless `xsrf` appears in the name (then `X-XSRF-Token`).
+1. **CSRF candidate** — name contains `csrf`, `xsrf`, or `_csr` (case-insensitive). MUST be non-`httpOnly` (the JS client reads it). Long TTL (≥ 1 hour) is typical. Header default: `X-CSRF-Token` UNLESS:
+   - cookie name contains `xsrf` (case-insensitive) → header is `X-XSRF-Token` (Angular/Spring convention)
+   - cookie name is exactly `XSRF-TOKEN` → header is `X-XSRF-TOKEN` (uppercase, Angular HttpClient default)
+   - When in doubt, mention in `reason` that the user MUST verify the actual header name in the web app's DevTools.
 2. **Access candidate** — short TTL (`expiresInSeconds` between 60 and 3600 typical). MUST be `httpOnly: true`. Prefer the cookie whose domain best matches `apiHostHint` (substring or suffix match). If multiple candidates remain, pick the shortest-lived `httpOnly` cookie that is NOT clearly a CSRF or analytics cookie.
 3. **Refresh candidate** — long TTL (`expiresInSeconds` ≥ 86400). MUST be `httpOnly: true`. `path` often scoped to `/auth`, `/refresh`, or similar — use as a tie-breaker. May be absent (the API may not have a refresh flow).
 4. **Tracking / analytics cookies** to filter out (low confidence at most): names starting with `_ga`, `_gid`, `_fbp`, `__utm`, `consent`, `cookieyes`, `OptanonConsent`, `mp_` (Mixpanel), `intercom-`, `amplitude_`. Never nominate these for any role.

@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { z } from 'zod';
 import { readAuthState } from '../auth/state';
@@ -202,5 +202,7 @@ export async function httpAuthDiscoverFinalize(argv: string[]): Promise<number> 
   if (result.csrf) confidenceParts.push(`csrf: ${result.csrf.confidence}`);
   console.log(`Confidence — ${confidenceParts.join(', ')}`);
   if (result.notes) console.log(`Notes: ${result.notes}`);
+  rmSync(inputPath, { force: true });
+  rmSync(outPath, { force: true });
   return 0;
 }

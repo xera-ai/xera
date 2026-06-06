@@ -44,6 +44,12 @@ describe('xera-http-auth-discover skill contract', () => {
     expect(skill).toMatch(/confidence summary/i);
   });
 
+  test('Step 7c warns about CSRF header variants (Angular/Spring) before Edit', () => {
+    expect(skill).toMatch(/DevTools/);
+    expect(skill).toMatch(/X-XSRF-Token/);
+    expect(skill).toMatch(/Verify in the web app/);
+  });
+
   test('Step 7 falls back to paste-by-hand if Edit fails', () => {
     expect(skill).toMatch(/paste manually as a fallback/);
   });

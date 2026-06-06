@@ -36,6 +36,7 @@ import { statusCmd } from './status-cmd';
 import { typecheckCmd } from './typecheck';
 import { unlockCmd } from './unlock';
 import { validateFeatureCmd } from './validate-feature';
+import { verifyHttpAuthCmd } from './verify-http-auth';
 import { verifyPromptsCmd } from './verify-prompts';
 
 const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
@@ -78,6 +79,7 @@ const COMMANDS: Record<string, (argv: string[]) => Promise<number>> = {
   typecheck: typecheckCmd,
   unlock: unlockCmd,
   'validate-feature': validateFeatureCmd,
+  'verify-http-auth': verifyHttpAuthCmd,
   'verify-prompts': verifyPromptsCmd,
 };
 

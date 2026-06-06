@@ -1,7 +1,21 @@
 import type { APIRequestContext } from '@playwright/test';
 import { readAuthState, type XeraConfig } from '@xera-ai/core';
 import type { HttpAuthSetupResult } from './define';
-import { type CookieMatch, pickOne, serializeMatch } from './match';
+import { type CookieMatch, pickAll, serializeMatch } from './match';
+
+function pickExact<T extends { name: string }>(
+  cookies: T[],
+  m: CookieMatch,
+  category: 'access' | 'refresh' | 'csrf',
+  role: string,
+): T | undefined {
+  const matches = pickAll(cookies, m);
+  if (matches.length <= 1) return matches[0];
+  const names = matches.map((c) => c.name).join(', ');
+  throw new Error(
+    `${category}.match matched multiple cookies for role '${role}': ${names}. Tighten the matcher (e.g. { literal: '${matches[0]?.name}' }) so it picks exactly one.`,
+  );
+}
 
 export interface PresetHttpAuthInput {
   request: APIRequestContext;
@@ -115,14 +129,19 @@ export async function presetHttpAuth(input: PresetHttpAuthInput): Promise<HttpAu
           `No cookies for domainContains='${rws.domainContains}' in web auth file for role '${input.role}'. Re-run web auth-setup with XERA_HEADED=1 to complete SSO/MFA.`,
         );
       }
-      const accessCookie = pickOne(domainCookies, rws.cookies.access.match as CookieMatch);
+      const accessCookie = pickExact(
+        domainCookies,
+        rws.cookies.access.match as CookieMatch,
+        'access',
+        input.role,
+      );
       if (!accessCookie) {
         throw new Error(
           `No cookie matched access.match in web auth file for role '${input.role}'. Captured names: ${domainCookies.map((c) => c.name).join(', ')}.`,
         );
       }
       const refreshCookie = rws.cookies.refresh
-        ? pickOne(domainCookies, rws.cookies.refresh.match as CookieMatch)
+        ? pickExact(domainCookies, rws.cookies.refresh.match as CookieMatch, 'refresh', input.role)
         : undefined;
       if (refreshCookie && refreshCookie.name === accessCookie.name) {
         throw new Error(
@@ -130,7 +149,7 @@ export async function presetHttpAuth(input: PresetHttpAuthInput): Promise<HttpAu
         );
       }
       const csrfCookie = rws.cookies.csrf
-        ? pickOne(domainCookies, rws.cookies.csrf.match as CookieMatch)
+        ? pickExact(domainCookies, rws.cookies.csrf.match as CookieMatch, 'csrf', input.role)
         : undefined;
       const selected = [accessCookie, refreshCookie, csrfCookie].filter(
         Boolean,

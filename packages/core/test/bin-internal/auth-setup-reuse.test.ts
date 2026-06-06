@@ -1,7 +1,7 @@
-import { afterEach, beforeEach, describe, expect, test } from 'vitest';
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { writeAuthState } from '../../src/auth/state';
 import { authSetupCmd } from '../../src/bin-internal/auth-setup';
 
@@ -53,12 +53,22 @@ function scaffoldProject() {
   );
   mkdirSync(join(dir, '.xera/.auth'), { recursive: true });
   writeAuthState(join(dir, '.xera/.auth'), {
-    role: 'admin', strategy: 'storageState',
+    role: 'admin',
+    strategy: 'storageState',
     created_at: new Date().toISOString(),
     expires_at: new Date(Date.now() + 86400_000).toISOString(),
-    payload: { cookies: [
-      { name: 'session_at', value: 'A', domain: 'api.x.com', path: '/', expires: Math.floor(Date.now()/1000) + 900 },
-    ], origins: [] },
+    payload: {
+      cookies: [
+        {
+          name: 'session_at',
+          value: 'A',
+          domain: 'api.x.com',
+          path: '/',
+          expires: Math.floor(Date.now() / 1000) + 900,
+        },
+      ],
+      origins: [],
+    },
   });
 }
 

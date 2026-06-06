@@ -34,6 +34,7 @@ export {
   findOperation,
   loadOpenApi,
 } from './openapi';
+export { type AuthFilePayload, apiPath, newAuthedContext } from './runtime';
 export {
   type NormalizedHttpRun,
   type NormalizedHttpScenario,

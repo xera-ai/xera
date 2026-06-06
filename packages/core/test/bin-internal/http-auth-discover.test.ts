@@ -1,13 +1,11 @@
-import { afterEach, beforeEach, describe, expect, test } from 'vitest';
-import {
-  mkdtempSync, rmSync, mkdirSync, writeFileSync, readFileSync, existsSync,
-} from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { writeAuthState } from '../../src/auth/state';
 import {
-  httpAuthDiscoverPrepare,
   httpAuthDiscoverFinalize,
+  httpAuthDiscoverPrepare,
 } from '../../src/bin-internal/http-auth-discover';
 
 let dir: string;
@@ -32,14 +30,39 @@ beforeEach(() => {
   );
   mkdirSync(join(dir, '.xera/.auth'), { recursive: true });
   writeAuthState(join(dir, '.xera/.auth'), {
-    role: 'admin', strategy: 'storageState',
+    role: 'admin',
+    strategy: 'storageState',
     created_at: new Date().toISOString(),
     expires_at: new Date(Date.now() + 86400_000).toISOString(),
     payload: {
       cookies: [
-        { name: 'session_at', value: 'SECRET_VALUE_DO_NOT_LEAK',   domain: 'api.x.com', path: '/',     expires: Math.floor(Date.now()/1000) + 900,    httpOnly: true,  sameSite: 'None' },
-        { name: 'session_rt', value: 'SECRET_VALUE_DO_NOT_LEAK_2', domain: 'api.x.com', path: '/auth', expires: Math.floor(Date.now()/1000) + 86400,  httpOnly: true,  sameSite: 'None' },
-        { name: '_ga',        value: 'GA_VAL',                     domain: '.other.test', path: '/',   expires: Math.floor(Date.now()/1000) + 63072000, httpOnly: false, sameSite: 'Lax' },
+        {
+          name: 'session_at',
+          value: 'SECRET_VALUE_DO_NOT_LEAK',
+          domain: 'api.x.com',
+          path: '/',
+          expires: Math.floor(Date.now() / 1000) + 900,
+          httpOnly: true,
+          sameSite: 'None',
+        },
+        {
+          name: 'session_rt',
+          value: 'SECRET_VALUE_DO_NOT_LEAK_2',
+          domain: 'api.x.com',
+          path: '/auth',
+          expires: Math.floor(Date.now() / 1000) + 86400,
+          httpOnly: true,
+          sameSite: 'None',
+        },
+        {
+          name: '_ga',
+          value: 'GA_VAL',
+          domain: '.other.test',
+          path: '/',
+          expires: Math.floor(Date.now() / 1000) + 63072000,
+          httpOnly: false,
+          sameSite: 'Lax',
+        },
       ],
       origins: [],
     },
@@ -63,9 +86,15 @@ describe('http-auth-discover prepare', () => {
     expect(txt).not.toContain('SECRET_VALUE_DO_NOT_LEAK');
     const parsed = JSON.parse(txt);
     expect(parsed.role).toBe('admin');
-    expect(parsed.cookies.map((c: any) => c.name).sort()).toEqual(['_ga', 'session_at', 'session_rt']);
+    expect(parsed.cookies.map((c: any) => c.name).sort()).toEqual([
+      '_ga',
+      'session_at',
+      'session_rt',
+    ]);
     for (const c of parsed.cookies) expect(c).not.toHaveProperty('value');
-    expect(typeof parsed.cookies.find((c: any) => c.name === 'session_at').expiresInSeconds).toBe('number');
+    expect(typeof parsed.cookies.find((c: any) => c.name === 'session_at').expiresInSeconds).toBe(
+      'number',
+    );
   });
 
   test('exits non-zero when strategy is not reuse-web-session', async () => {
@@ -91,25 +120,58 @@ describe('http-auth-discover finalize', () => {
       join(dir, '.xera/.auth/http-auth-discover-output-admin.json'),
       JSON.stringify({
         domainContains: 'x.com',
-        access:  { cookieName: 'session_at', confidence: 0.95, reason: 'short TTL httpOnly host match' },
-        refresh: { cookieName: 'session_rt', confidence: 0.95, reason: 'long TTL httpOnly path=/auth' },
+        access: {
+          cookieName: 'session_at',
+          confidence: 0.95,
+          reason: 'short TTL httpOnly host match',
+        },
+        refresh: {
+          cookieName: 'session_rt',
+          confidence: 0.95,
+          reason: 'long TTL httpOnly path=/auth',
+        },
         csrf: null,
         notes: '',
       }),
     );
     const out: string[] = [];
     const origLog = console.log;
-    console.log = (s?: any) => { out.push(String(s)); };
+    console.log = (s?: any) => {
+      out.push(String(s));
+    };
     try {
       const code = await httpAuthDiscoverFinalize(['--role', 'admin']);
       expect(code).toBe(0);
-    } finally { console.log = origLog; }
+    } finally {
+      console.log = origLog;
+    }
     const stdout = out.join('\n');
     expect(stdout).toContain('reuseWebSession:');
     expect(stdout).toContain(`domainContains: 'x.com'`);
     expect(stdout).toContain(`access: { match: { literal: 'session_at' }`);
     expect(stdout).toContain(`refresh: { match: { literal: 'session_rt' }`);
     expect(stdout).not.toContain('csrf:');
+    // QA2: cleanup after success — no cookie metadata left on disk
+    expect(existsSync(join(dir, '.xera/.auth/http-auth-discover-input-admin.json'))).toBe(false);
+    expect(existsSync(join(dir, '.xera/.auth/http-auth-discover-output-admin.json'))).toBe(false);
+  });
+
+  test('keeps discovery files when validation fails (user may want to retry)', async () => {
+    await httpAuthDiscoverPrepare(['--role', 'admin']);
+    writeFileSync(
+      join(dir, '.xera/.auth/http-auth-discover-output-admin.json'),
+      JSON.stringify({
+        domainContains: 'x.com',
+        access: { cookieName: 'nonexistent', confidence: 0.95, reason: '' },
+        refresh: null,
+        csrf: null,
+        notes: '',
+      }),
+    );
+    const code = await httpAuthDiscoverFinalize(['--role', 'admin']);
+    expect(code).not.toBe(0);
+    expect(existsSync(join(dir, '.xera/.auth/http-auth-discover-input-admin.json'))).toBe(true);
+    expect(existsSync(join(dir, '.xera/.auth/http-auth-discover-output-admin.json'))).toBe(true);
   });
 
   test('exits non-zero when LLM nominates a cookie name not in captured set', async () => {
@@ -118,8 +180,10 @@ describe('http-auth-discover finalize', () => {
       join(dir, '.xera/.auth/http-auth-discover-output-admin.json'),
       JSON.stringify({
         domainContains: 'x.com',
-        access:  { cookieName: 'nonexistent', confidence: 0.95, reason: '' },
-        refresh: null, csrf: null, notes: '',
+        access: { cookieName: 'nonexistent', confidence: 0.95, reason: '' },
+        refresh: null,
+        csrf: null,
+        notes: '',
       }),
     );
     const code = await httpAuthDiscoverFinalize(['--role', 'admin']);
@@ -132,18 +196,23 @@ describe('http-auth-discover finalize', () => {
       join(dir, '.xera/.auth/http-auth-discover-output-admin.json'),
       JSON.stringify({
         domainContains: '',
-        access:  { cookieName: '', confidence: 0, reason: '' },
-        refresh: null, csrf: null,
+        access: { cookieName: '', confidence: 0, reason: '' },
+        refresh: null,
+        csrf: null,
         notes: 'injection-follow refused',
       }),
     );
     const out: string[] = [];
     const origLog = console.log;
-    console.log = (s?: any) => { out.push(String(s)); };
+    console.log = (s?: any) => {
+      out.push(String(s));
+    };
     let code: number;
     try {
       code = await httpAuthDiscoverFinalize(['--role', 'admin']);
-    } finally { console.log = origLog; }
+    } finally {
+      console.log = origLog;
+    }
     expect(code).not.toBe(0);
     expect(out.join('\n')).not.toContain('reuseWebSession:');
   });

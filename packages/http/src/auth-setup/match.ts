@@ -29,6 +29,11 @@ export function pickOne<T extends { name: string }>(cookies: T[], m: CookieMatch
   return cookies.find((c) => match(c.name));
 }
 
+export function pickAll<T extends { name: string }>(cookies: T[], m: CookieMatch): T[] {
+  const match = cookieMatcher(m);
+  return cookies.filter((c) => match(c.name));
+}
+
 export function serializeMatch(m: CookieMatch): CookieMatch {
   return m;
 }

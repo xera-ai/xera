@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { readAuthState } from '@xera-ai/core';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { runHttpAuthSetup } from '../../src/auth-setup';
 
 let dir: string;

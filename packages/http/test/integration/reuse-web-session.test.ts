@@ -1,10 +1,10 @@
-import { afterEach, beforeEach, describe, expect, test } from 'vitest';
-import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { readAuthState, writeAuthState } from '@xera-ai/core';
-import { runHttpAuthSetup } from '../../src/auth-setup/runner';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { presetHttpAuth } from '../../src/auth-setup/preset';
+import { runHttpAuthSetup } from '../../src/auth-setup/runner';
 
 const FIXTURE_DIR = join(__dirname, '..', '..', '..', '..', 'fixtures/reuse-web-session');
 
@@ -31,8 +31,20 @@ describe('reuse-web-session integration', () => {
       expires_at: new Date(Date.now() + 86400_000).toISOString(),
       payload: {
         cookies: [
-          { name: 'session_at', value: 'A', domain: 'api.test.local', path: '/', expires: nowSec + 900 },
-          { name: 'session_rt', value: 'R', domain: 'api.test.local', path: '/auth', expires: nowSec + 86400 },
+          {
+            name: 'session_at',
+            value: 'A',
+            domain: 'api.test.local',
+            path: '/',
+            expires: nowSec + 900,
+          },
+          {
+            name: 'session_rt',
+            value: 'R',
+            domain: 'api.test.local',
+            path: '/auth',
+            expires: nowSec + 86400,
+          },
           { name: 'xs_csrf', value: 'C', domain: 'api.test.local', path: '/' },
         ],
         origins: [],

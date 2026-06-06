@@ -68,7 +68,11 @@ Before invoking Edit, print to the user:
 
 1. The full `reuseWebSession: { ... }` block exactly as finalize emitted it.
 2. The confidence summary line (e.g. `Confidence — access: 0.95, refresh: 0.95, csrf: 0.9`).
-3. A one-line plan: `I'll Edit xera.config.ts to add this under http.auth.roles.<role> — you'll see the diff and can accept or reject.`
+3. **If `csrf:` is in the block, also print this warning verbatim:**
+
+   > ⚠ CSRF header default is `X-CSRF-Token`. Some apps use `X-XSRF-Token` (Angular/Spring), `X-Csrf`, or a custom name. **Verify in the web app's DevTools → Network tab → a POST/PUT request** before accepting. If the header name differs, edit the proposed block to match before accepting the Edit.
+
+4. A one-line plan: `I'll Edit xera.config.ts to add this under http.auth.roles.<role> — you'll see the diff and can accept or reject.`
 
 ### 7d. Invoke Edit
 

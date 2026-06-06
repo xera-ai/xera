@@ -129,7 +129,7 @@ function stripFrontmatter(raw: string): string {
 }
 
 function parseLocalSummary(ticket: string, body: string): string {
-  const m = body.match(/^#\s+[A-Z][A-Z0-9-]*-\d+[\s—:\-]+(.+)/m);
+  const m = body.match(/^#\s+[A-Z][A-Z0-9-]*-\d+[\s—:-]+(.+)/m);
   return m?.[1]?.trim() ?? ticket;
 }
 
