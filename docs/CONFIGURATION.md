@@ -514,3 +514,54 @@ npx xera-internal disputes --format json         # machine-readable
 ```bash
 npx xera-internal doctor --auto-enrich           # cron-friendly
 ```
+
+## Dashboard
+
+`xera dashboard` aggregates the latest test results across every ticket in the project into a single view. Designed for daily stand-up readouts, CI integration, and click-through investigation.
+
+### Output modes
+
+| Command | Use case |
+|---|---|
+| `npx xera dashboard` | Terminal (text with boxes + ANSI colors when TTY) |
+| `npx xera dashboard --json` | CI integration (pipe to `jq`, Slack webhooks, etc.) |
+| `npx xera dashboard --html <path>` | Write self-contained HTML file (default `.xera/dashboard.html`) |
+| `npx xera dashboard --serve` | Interactive HTML at `127.0.0.1:9323` with sort/filter + click-through to per-ticket Playwright reports |
+
+### Filters
+
+```bash
+npx xera dashboard --failing-only                       # drop PASS + NEVER_RUN
+npx xera dashboard --since=24h                          # last 24h failures only (in "Recent failures" section)
+npx xera dashboard --classification=REAL_BUG --classification=FLAKY  # repeatable
+npx xera dashboard --area=checkout --area=auth          # repeatable; matches tickets touching any of the areas
+```
+
+Filters compose: `--failing-only --classification=REAL_BUG --area=checkout` returns failing REAL_BUG tickets in the `checkout` area.
+
+### Config block (optional)
+
+```ts
+dashboard: {
+  staleAfterDays: 7,        // tickets last-run older than this are flagged as stale (default 7)
+  recentFailureLimit: 10,   // max rows in "Recent failures" section (default 10)
+},
+```
+
+Both fields have sensible defaults; the block is optional. Backwards-compatible.
+
+### What the dashboard reads
+
+- `.xera/<TICKET>/status.json` for each ticket's latest classification + scenario counts (written by `/xera-report`)
+- `.xera/graph/events/` for area-to-ticket mapping (written by `/xera-fetch` + `/xera-feature`)
+- `xera.config.ts` for `coverage.criticalAreas` (critical-alert section) and `dashboard.staleAfterDays`
+
+The dashboard is **read-only** — running it does not modify any artifact, emit any graph event, or trigger any test. Run `/xera-run <TICKET>` first to produce data.
+
+### What it does NOT cover (yet)
+
+- Historical trend (PASS rate over time) — requires per-run rollups not yet captured
+- Live reload — static snapshot per server invocation (re-run `--serve` to refresh)
+- Diff between two dashboard runs — needs persisted state
+
+These are deliberate v1 omissions; see `docs/superpowers/specs/2026-06-06-xera-dashboard-design.md` for the full design.

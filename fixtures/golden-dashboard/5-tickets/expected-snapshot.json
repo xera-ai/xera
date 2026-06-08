@@ -1,0 +1,25 @@
+{
+  "totals": {
+    "tickets": 5,
+    "last_pass": 2,
+    "last_fail": 2,
+    "never_run": 1,
+    "scenarios_pass": 15,
+    "scenarios_fail": 4
+  },
+  "classification_counts": {
+    "PASS": 2,
+    "REAL_BUG": 1,
+    "SELECTOR_DRIFT": 1
+  },
+  "critical_alert_areas": ["checkout"],
+  "recent_failure_ticket_order": ["TICKET-002", "TICKET-003"],
+  "stale_ticket_ids": ["TICKET-004"],
+  "ticket_to_areas": {
+    "TICKET-001": ["profile"],
+    "TICKET-002": ["checkout"],
+    "TICKET-003": ["auth", "login"],
+    "TICKET-004": ["reports"],
+    "TICKET-005": ["settings"]
+  }
+}

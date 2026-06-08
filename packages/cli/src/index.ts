@@ -2,6 +2,7 @@ import { createRequire } from 'node:module';
 import { ensureTsRuntime } from '@xera-ai/core';
 import { cac } from 'cac';
 import pc from 'picocolors';
+import { type DashboardOptions, dashboardCommand } from './commands/dashboard';
 import { doctorCommand } from './commands/doctor';
 import {
   type HttpAuthStrategy,
@@ -26,7 +27,7 @@ const VALID_AUTH_STRATEGIES: HttpAuthStrategy[] = [
   'none',
   'reuse-web-session',
 ];
-const KNOWN_COMMANDS = ['init', 'doctor', 'samples', 'show-report'];
+const KNOWN_COMMANDS = ['init', 'doctor', 'samples', 'show-report', 'dashboard'];
 
 function levenshtein(a: string, b: string): number {
   const m = a.length;
@@ -271,6 +272,50 @@ export default async function main(): Promise<void> {
       });
       process.exit(exit);
     });
+
+  cli
+    .command('dashboard', 'Cross-ticket dashboard of latest test results')
+    .option('--since <duration>', 'Filter recent failures (e.g. 24h, 7d)')
+    .option('--classification <class>', 'Filter by classification (repeatable)')
+    .option('--area <slug>', 'Filter to areas (repeatable)')
+    .option('--failing-only', 'Drop PASS + NEVER_RUN rows')
+    .option('--json', 'Emit JSON snapshot to stdout')
+    .option('--html [path]', 'Write HTML to <path> (default .xera/dashboard.html)')
+    .option('--serve', 'Serve HTML at 127.0.0.1:9323 and open browser')
+    .option('--port <port>', 'Serve port (default: 9323)')
+    .example('xera dashboard')
+    .example('xera dashboard --failing-only --since 24h')
+    .example('xera dashboard --serve')
+    .action(
+      async (opts: {
+        since?: string;
+        classification?: string | string[];
+        area?: string | string[];
+        failingOnly?: boolean;
+        json?: boolean;
+        html?: string | boolean;
+        serve?: boolean;
+        port?: string;
+      }) => {
+        const dashOpts: DashboardOptions = {};
+        if (opts.since !== undefined) dashOpts.since = opts.since;
+        if (opts.classification !== undefined) {
+          dashOpts.classification = Array.isArray(opts.classification)
+            ? opts.classification
+            : [opts.classification];
+        }
+        if (opts.area !== undefined) {
+          dashOpts.area = Array.isArray(opts.area) ? opts.area : [opts.area];
+        }
+        if (opts.failingOnly !== undefined) dashOpts.failingOnly = opts.failingOnly;
+        if (opts.json !== undefined) dashOpts.json = opts.json;
+        if (opts.html !== undefined) dashOpts.html = opts.html;
+        if (opts.serve !== undefined) dashOpts.serve = opts.serve;
+        if (opts.port !== undefined) dashOpts.port = opts.port;
+        const exit = await dashboardCommand(dashOpts);
+        process.exit(exit);
+      },
+    );
 
   const rawArgs = process.argv.slice(2);
 

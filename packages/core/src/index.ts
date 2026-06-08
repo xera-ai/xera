@@ -11,6 +11,7 @@ export type { OpenAPIDocument, OpenAPISchema } from './classifier/contract-drift
 export * from './config/define';
 export * from './config/load';
 export * from './config/schema';
+export * from './dashboard';
 export * from './github/client';
 export * from './jira/client';
 export * from './jira/fields';

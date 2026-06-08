@@ -24,11 +24,13 @@ You rarely run these directly. The skills do. But if you need to:
 
 | Command | When to run |
 |---|---|
-| `npx xera-internal fetch --ticket <TICKET>` | Pull ticket into `.xera/<TICKET>/` |
-| `npx xera-internal exec --ticket <TICKET>` | Run Playwright/HTTP tests |
-| `npx xera-internal report --ticket <TICKET>` | Classify failures + write report |
+| `npx xera-internal fetch <TICKET>` | Pull ticket into `.xera/<TICKET>/` |
+| `npx xera-internal exec <TICKET>` | Run Playwright/HTTP tests (add `--reporter=html` for HTML report) |
+| `npx xera-internal report <TICKET> --input=<normalized.json>` | Classify failures + write report |
 | `npx xera doctor` | Health check (config schema, prompts, auth files) |
 | `npx xera doctor --strict` | Stricter gating (used by `/xera-run` Step 0) |
+| `npx xera dashboard` | Cross-ticket dashboard (text/JSON/HTML) of latest test results |
+| `npx xera dashboard --serve` | Interactive HTML viewer at 127.0.0.1:9323 with click-through to per-ticket reports |
 {{#if wantsWeb}}| `XERA_HEADED=1 npx xera-internal auth-setup --role <role> --shape web` | Capture web SSO session (1×, headed for MFA) |
 {{/if}}{{#if wantsHttp}}| `npx xera-internal auth-setup --role <role> --shape http` | Produce HTTP auth file from config |
 {{#if isReuseWebSession}}| `npx xera-internal verify-http-auth --role <role> --path /api/health` | Smoke test: real GET against API, surface 401/403 with hints |
