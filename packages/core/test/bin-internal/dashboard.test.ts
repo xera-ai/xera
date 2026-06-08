@@ -98,4 +98,36 @@ describe('dashboard binary', () => {
     }
     expect(errs.join('\n')).toMatch(/since/i);
   });
+
+  test('flags accept --flag=value (equals) form, not just --flag value', async () => {
+    const out: string[] = [];
+    const origLog = console.log;
+    console.log = (s?: unknown) => out.push(String(s));
+    try {
+      expect(
+        await dashboardCmd([
+          '--json',
+          '--failing-only',
+          '--classification=REAL_BUG',
+          '--area=checkout',
+        ]),
+      ).toBe(0);
+    } finally {
+      console.log = origLog;
+    }
+    const json = JSON.parse(out.join(''));
+    expect(json.tickets.map((t: { ticketId: string }) => t.ticketId)).toEqual(['TICKET-002']);
+    expect(json.filters_applied).toEqual({
+      failing_only: true,
+      classifications: ['REAL_BUG'],
+      areas: ['checkout'],
+    });
+  });
+
+  test('--html=<path> equals form writes the file', async () => {
+    const target = join(dir, 'eq.html');
+    expect(await dashboardCmd([`--html=${target}`])).toBe(0);
+    const html = readFileSync(target, 'utf8');
+    expect(html).toMatch(/^<!DOCTYPE html>/);
+  });
 });

@@ -48,6 +48,7 @@ describe('DashboardSnapshotSchema', () => {
           lastRun: '2026-06-06T08:23:14.000Z',
           areas: ['checkout'],
           has_html_report: true,
+          latest_run_id: '01K0EXAMPLE0000000000000RUN',
         },
       ],
       recent_failures: [
@@ -82,6 +83,7 @@ describe('DashboardSnapshotSchema', () => {
           lastRun: null,
           areas: [],
           has_html_report: false,
+          latest_run_id: null,
         },
       ],
     };

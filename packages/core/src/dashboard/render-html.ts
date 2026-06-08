@@ -26,12 +26,21 @@ function ticketRow(t: TicketRow): string {
   const lastRunEsc = escapeHtml(t.lastRun ?? '');
   const confidenceEsc = escapeHtml(t.confidence ?? '');
 
-  const ticketCell = t.has_html_report
-    ? `<a href=".xera/${ticketIdEsc}/runs/latest/playwright-report/index.html" target="_blank" rel="noopener">${ticketIdEsc}</a>`
-    : `<span title="No Playwright report — run xera-internal exec ${ticketIdEsc} --reporter=html">${ticketIdEsc}</span>`;
+  // `runs/latest/` is NOT a real on-disk path; use the actual ULID.
+  const runIdEsc = t.latest_run_id ? escapeHtml(t.latest_run_id) : '';
+  const ticketCell =
+    t.has_html_report && runIdEsc
+      ? `<a href=".xera/${ticketIdEsc}/runs/${runIdEsc}/playwright-report/index.html" target="_blank" rel="noopener">${ticketIdEsc}</a>`
+      : `<span title="No Playwright report — run xera-internal exec ${ticketIdEsc} --reporter=html">${ticketIdEsc}</span>`;
+
+  // confRank lets the Confidence column sort by severity (high > medium > low).
+  // scenariosFailedAttr lets the Scenarios column sort by failure count, not by
+  // ticketId (the previous data-sort="ticket" was wrong).
+  const confRank = t.confidence === 'high' ? 2 : t.confidence === 'medium' ? 1 : 0;
+  const scenariosFailedAttr = t.scenarios.failed;
 
   return [
-    `<tr data-ticket="${ticketIdEsc}" data-result="${resultEsc}" data-class="${classEsc}" data-areas="${areasAttrEsc}" data-lastrun="${lastRunEsc}">`,
+    `<tr data-ticket="${ticketIdEsc}" data-result="${resultEsc}" data-class="${classEsc}" data-confidence="${confRank}" data-scenarios="${scenariosFailedAttr}" data-areas="${areasAttrEsc}" data-lastrun="${lastRunEsc}">`,
     `  <td>${ticketCell}</td>`,
     `  <td class="result-${resultEsc.toLowerCase()}">${resultEsc}</td>`,
     `  <td>${classEsc || '<span class="muted">—</span>'}</td>`,
@@ -287,10 +296,14 @@ const CLIENT_JS = `
 
     function applySort() {
       if (!state.sortKey) return;
+      const numericKeys = { confidence: 1, scenarios: 1 };
+      const isNum = !!numericKeys[state.sortKey];
       const rows = Array.from(tbody.querySelectorAll('tr'));
       rows.sort(function (a, b) {
-        const av = a.dataset[state.sortKey] || '';
-        const bv = b.dataset[state.sortKey] || '';
+        const rawA = a.dataset[state.sortKey] || '';
+        const rawB = b.dataset[state.sortKey] || '';
+        const av = isNum ? Number(rawA) : rawA;
+        const bv = isNum ? Number(rawB) : rawB;
         if (av < bv) return -state.sortDir;
         if (av > bv) return state.sortDir;
         return 0;
@@ -396,8 +409,8 @@ ${criticalAlertsSection(snap)}
             <th data-sort="ticket">Ticket</th>
             <th data-sort="result">Result</th>
             <th data-sort="class">Classification</th>
-            <th data-sort="class">Confidence</th>
-            <th data-sort="ticket">Scenarios</th>
+            <th data-sort="confidence">Confidence</th>
+            <th data-sort="scenarios">Scenarios (failed)</th>
             <th data-sort="lastrun">Last run</th>
             <th data-sort="areas">Areas</th>
           </tr>

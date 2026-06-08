@@ -24,13 +24,20 @@ function parseDurationMs(s: string): number {
   return n * (unit === 's' ? 1000 : unit === 'm' ? 60_000 : unit === 'h' ? 3_600_000 : DAY_MS);
 }
 
-function hasPlaywrightReport(xeraDir: string, ticketId: string): boolean {
+// Returns the latest run id that has a playwright-report/, or null.
+// Caller writes both `has_html_report` (boolean for backwards-compat) and
+// `latest_run_id` (the real ULID, used by renderHtml for the link target —
+// `runs/latest/` is NOT a real on-disk path; runs live at `runs/<ULID>/`).
+function findLatestPlaywrightRun(xeraDir: string, ticketId: string): string | null {
   const runsDir = join(xeraDir, ticketId, 'runs');
-  if (!existsSync(runsDir)) return false;
-  const runs = readdirSync(runsDir).sort();
-  const latest = runs[runs.length - 1];
-  if (!latest) return false;
-  return existsSync(join(runsDir, latest, 'playwright-report', 'index.html'));
+  if (!existsSync(runsDir)) return null;
+  const runs = readdirSync(runsDir).sort().reverse();
+  for (const runId of runs) {
+    if (existsSync(join(runsDir, runId, 'playwright-report', 'index.html'))) {
+      return runId;
+    }
+  }
+  return null;
 }
 
 export async function collectDashboard(cwd: string, opts: CollectOpts): Promise<DashboardSnapshot> {
@@ -54,7 +61,8 @@ export async function collectDashboard(cwd: string, opts: CollectOpts): Promise<
       const ticketId = entry.name;
       const statusPath = join(xeraDir, ticketId, 'status.json');
       const areas = snap.tickets[ticketId]?.modifiesAreas ?? [];
-      const hasHtml = hasPlaywrightReport(xeraDir, ticketId);
+      const latestRunId = findLatestPlaywrightRun(xeraDir, ticketId);
+      const hasHtml = latestRunId !== null;
 
       if (!existsSync(statusPath)) {
         allTickets.push({
@@ -66,6 +74,7 @@ export async function collectDashboard(cwd: string, opts: CollectOpts): Promise<
           lastRun: null,
           areas,
           has_html_report: hasHtml,
+          latest_run_id: latestRunId,
         });
         continue;
       }
@@ -86,6 +95,7 @@ export async function collectDashboard(cwd: string, opts: CollectOpts): Promise<
           lastRun: status.lastRun,
           areas,
           has_html_report: hasHtml,
+          latest_run_id: latestRunId,
         });
       } catch {
         allTickets.push({
@@ -97,6 +107,7 @@ export async function collectDashboard(cwd: string, opts: CollectOpts): Promise<
           lastRun: null,
           areas,
           has_html_report: hasHtml,
+          latest_run_id: latestRunId,
         });
       }
     }

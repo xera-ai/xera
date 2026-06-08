@@ -39,6 +39,7 @@ const snap: DashboardSnapshot = {
       lastRun: '2026-05-27T12:00:00.000Z',
       areas: ['reports'],
       has_html_report: false,
+      latest_run_id: null,
     },
   ],
   critical_alerts: [{ area: 'checkout', failing_tickets: ['TICKET-002'], is_critical: true }],

@@ -15,6 +15,7 @@ export const TicketRowSchema = z.object({
   lastRun: z.string().nullable(),
   areas: z.array(z.string()),
   has_html_report: z.boolean(),
+  latest_run_id: z.string().nullable(),
 });
 
 export const RecentFailureSchema = z.object({

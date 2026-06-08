@@ -23,6 +23,7 @@ const snap: DashboardSnapshot = {
       lastRun: '2026-06-06T08:23:14.000Z',
       areas: ['checkout'],
       has_html_report: true,
+      latest_run_id: '01K0EXAMPLE0000000000000RUN',
     },
   ],
   recent_failures: [],
@@ -52,15 +53,30 @@ describe('renderHtml', () => {
     expect(() => JSON.parse(match![1]!)).not.toThrow();
   });
 
-  test('links to Playwright report when has_html_report=true', () => {
+  test('links to Playwright report using the actual run ULID, not "latest"', () => {
     const html = renderHtml(snap);
-    expect(html).toContain('.xera/TICKET-001/runs/latest/playwright-report/index.html');
+    // The link must use the real run ID — `runs/latest/` is not on disk.
+    expect(html).toContain(
+      '.xera/TICKET-001/runs/01K0EXAMPLE0000000000000RUN/playwright-report/index.html',
+    );
+    expect(html).not.toContain('runs/latest/playwright-report');
   });
 
   test('does NOT link when has_html_report=false', () => {
-    const noReport = { ...snap, tickets: [{ ...snap.tickets[0]!, has_html_report: false }] };
+    const noReport = {
+      ...snap,
+      tickets: [{ ...snap.tickets[0]!, has_html_report: false, latest_run_id: null }],
+    };
     const html = renderHtml(noReport);
-    expect(html).not.toContain('href=".xera/TICKET-001/runs/latest/playwright-report');
+    expect(html).not.toContain('playwright-report/index.html');
+  });
+
+  test('Confidence + Scenarios columns use their own sort keys (not classification/ticket)', () => {
+    const html = renderHtml(snap);
+    expect(html).toContain('data-sort="confidence"');
+    expect(html).toContain('data-sort="scenarios"');
+    expect(html).toContain('data-confidence=');
+    expect(html).toContain('data-scenarios=');
   });
 
   test('inlines CSS (no external stylesheets)', () => {

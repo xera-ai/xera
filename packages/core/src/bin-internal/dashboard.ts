@@ -6,28 +6,64 @@ interface DashboardOpts extends CollectOpts {
   htmlPath?: string;
 }
 
+// Accept BOTH `--flag value` (space) and `--flag=value` (equals) forms to match
+// Playwright's CLI convention (and `xera-internal exec --reporter=...` since #224).
+function takeValue(
+  argv: string[],
+  i: number,
+  flag: string,
+): { value: string; consumed: number } | null {
+  const a = argv[i]!;
+  if (a === flag) {
+    const next = argv[i + 1];
+    if (next === undefined) throw new Error(`${flag} requires a value`);
+    return { value: next, consumed: 2 };
+  }
+  if (a.startsWith(`${flag}=`)) {
+    return { value: a.slice(flag.length + 1), consumed: 1 };
+  }
+  return null;
+}
+
 function parseOpts(argv: string[]): DashboardOpts {
   const opts: DashboardOpts = {};
   const classifications: string[] = [];
   const areas: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
-    const next = argv[i + 1];
-    if (a === '--json') opts.json = true;
-    else if (a === '--failing-only') opts.failingOnly = true;
-    else if (a === '--since' && next) {
-      opts.since = next;
-      i++;
-    } else if (a === '--classification' && next) {
-      classifications.push(next);
-      i++;
-    } else if (a === '--area' && next) {
-      areas.push(next);
-      i++;
-    } else if (a === '--html' && next) {
-      opts.htmlPath = next;
-      i++;
-    } else if (a.startsWith('--')) {
+    if (a === '--json') {
+      opts.json = true;
+      continue;
+    }
+    if (a === '--failing-only') {
+      opts.failingOnly = true;
+      continue;
+    }
+    const sinceTake = takeValue(argv, i, '--since');
+    if (sinceTake) {
+      opts.since = sinceTake.value;
+      i += sinceTake.consumed - 1;
+      continue;
+    }
+    const classTake = takeValue(argv, i, '--classification');
+    if (classTake) {
+      classifications.push(classTake.value);
+      i += classTake.consumed - 1;
+      continue;
+    }
+    const areaTake = takeValue(argv, i, '--area');
+    if (areaTake) {
+      areas.push(areaTake.value);
+      i += areaTake.consumed - 1;
+      continue;
+    }
+    const htmlTake = takeValue(argv, i, '--html');
+    if (htmlTake) {
+      opts.htmlPath = htmlTake.value;
+      i += htmlTake.consumed - 1;
+      continue;
+    }
+    if (a.startsWith('--')) {
       throw new Error(`unknown flag: ${a}`);
     }
   }
