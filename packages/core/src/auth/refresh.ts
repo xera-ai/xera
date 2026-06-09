@@ -1,3 +1,5 @@
+import { join } from 'node:path';
+import type { XeraConfig } from '../config/schema';
 import type { AuthStateEntry } from './state';
 
 export type { AuthStateEntry } from './state';
@@ -32,4 +34,21 @@ export function needsRefresh(
   const expiresAt = new Date(entry.expires_at).getTime();
   if (expiresAt - now.getTime() < bufMs) return true;
   return false;
+}
+
+export async function refreshHttpFromWeb(
+  cwd: string,
+  roleName: string,
+  httpConfig: NonNullable<XeraConfig['http']>,
+): Promise<void> {
+  const { runHttpAuthSetup, presetHttpAuth } = await import('@xera-ai/http');
+  const webAuthDir = join(cwd, '.xera', '.auth');
+  await runHttpAuthSetup({
+    authDir: webAuthDir,
+    role: roleName,
+    config: httpConfig,
+    setupFn: async (request, role) =>
+      presetHttpAuth({ request, role, config: httpConfig, webAuthDir }),
+    creds: { email: '', password: '' },
+  });
 }
