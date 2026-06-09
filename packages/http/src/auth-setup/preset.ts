@@ -173,6 +173,16 @@ export async function presetHttpAuth(input: PresetHttpAuthInput): Promise<HttpAu
       if (csrfCookie && rws.cookies.csrf) {
         meta.csrf = { cookieName: csrfCookie.name, header: rws.cookies.csrf.header };
       }
+      if (rws.refresh) {
+        const refreshMeta: Record<string, unknown> = {
+          endpoint: rws.refresh.endpoint,
+          method: rws.refresh.method,
+        };
+        const fallback = rws.cookies.csrf?.header;
+        const headerName = rws.refresh.csrfHeader ?? fallback;
+        if (headerName) refreshMeta.csrfHeader = headerName;
+        meta.refresh = refreshMeta;
+      }
       return {
         type: 'cookie',
         token: '',
