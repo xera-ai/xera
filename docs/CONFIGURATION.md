@@ -349,6 +349,71 @@ http: {
 
 **Don't know which cookies to nominate?** Run `/xera-http-auth-discover <role>` once for an AI-proposed `reuseWebSession` block. Cookie *values* never leave the local disk — discovery sends names + metadata (`domain`, `path`, `expiresInSeconds`, `httpOnly`, `sameSite`) only.
 
+### Auto-refresh (v0.24+)
+
+Microsoft Entra `orch_at` cookies default to 15-minute TTL. A 30-minute Playwright suite will fail mid-run unless the auth file refreshes. xera ships two complementary refresh mechanisms — both are zero-config for the common case.
+
+#### Pre-flight refresh (automatic, always on)
+
+`xera-internal exec` and `xera-internal stage-auth` check the http auth file at Step 0. If it's within `http.auth.refreshBuffer` (default `30m`) of expiring AND the web auth file is still fresh, they auto-re-derive the http file by re-running the existing preset. No IDP calls, no new endpoints — just a fresh AES-encrypted file from the still-valid web `storageState`. Logged as `[xera:exec] http auth pre-flight refreshed for role 'X'`.
+
+This covers most projects: typical xera runs are under 15 minutes (single ticket) and a fresh derive at Step 0 means the cookies are valid for the entire run.
+
+If BOTH http and web files are expired: the existing "expired" error surfaces with the standard hint to re-run `auth-setup --shape web`.
+
+#### Mid-suite refresh (opt-in, configurable)
+
+For longer suites or projects that hit the access-cookie TTL mid-run, add a `refresh` block to your role config:
+
+```ts
+reuseWebSession: {
+  domainContains: '...',
+  cookies: { access: { match: ... }, refresh: { match: ... }, csrf: { match: ..., header: 'X-CSRF-Token' } },
+  refresh: {
+    endpoint: 'https://api.your-domain.test/auth/refresh',
+    method: 'POST',
+    // csrfHeader: 'X-CSRF-Token',   // optional; defaults to cookies.csrf.header
+  },
+},
+```
+
+When configured, `newAuthedContext` returns a `Proxy<APIRequestContext>` that wraps every `fetch`/`get`/`post`/`put`/`patch`/`delete`/`head` call:
+
+1. Before sending: check if access cookie is within `XERA_REFRESH_BUFFER_MS` (default 60s).
+2. If so: acquire mutex, POST/GET to `refresh.endpoint` with current cookies + (optional) CSRF header.
+3. Parse all `Set-Cookie` headers from the 2xx response, update matching cookies in `payload.cookies`, persist encrypted via `writeAuthState`.
+4. Re-lift CSRF header from current cookies (backend may have rotated `xs_csrf`) before sending the user's request.
+
+Single concurrent refresh per role guarded by a process-local mutex (extending to cross-process file lock is on the roadmap). Failures throw a typed `RefreshFailedError` with response status + endpoint.
+
+#### IDP recipes
+
+**Microsoft Entra ID (orch_at = 15 min)**:
+```ts
+refresh: {
+  endpoint: 'https://api.one.shared.test/auth/refresh',
+  method: 'POST',
+}
+```
+Entra returns new `orch_at` (and rotates `orch_csrf`) via `Set-Cookie` on the response. Default `csrfHeader` (= `cookies.csrf.header`) works.
+
+**Okta sessions** (rolling refresh):
+```ts
+refresh: {
+  endpoint: 'https://your-org.okta.com/api/v1/sessions/me/lifecycle/refresh',
+  method: 'POST',
+}
+```
+
+**Auth0 silent auth via cookies**: not supported in v1 — Auth0 returns access tokens in the response BODY, not as `Set-Cookie`. Auth0 users should fall back to pre-flight refresh only (which still works for runs under 1 hour).
+
+#### Refresh-related env vars
+
+- `XERA_REFRESH_BUFFER_MS` — how close to expiry to trigger refresh (default 60_000 = 1 minute)
+- `XERA_REFRESH_TTL_MS` — fallback TTL when refresh endpoint doesn't return a parseable expires (default 900_000 = 15 minutes)
+
+Override via shell when needed; defaults work for Entra/Okta.
+
 ## HTTP auth strategy `'none'` (v0.20.6)
 
 When `http.auth.strategy: 'none'` (the HTTP adapter applies no per-role auth), two surfaces honor it automatically:

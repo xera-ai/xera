@@ -316,3 +316,25 @@ The http preset reads the *web* file as its input. Run `npx xera-internal auth-s
 ### `/xera-http-auth-discover` proposes the wrong cookies
 
 The discovery skill only sees cookies that the web `auth-setup` captured. If the API session cookies are only set after a post-login navigation (some apps set them on the first dashboard load, not on the SSO landing page), the captured `storageState` may be missing them. Edit `shared/auth-setup.ts` to add a `page.goto(<a page that exercises the API>)` after the login, re-run `auth-setup --shape web`, then re-run `/xera-http-auth-discover <role>`. You can inspect the captured cookies via `npx xera-internal stage-auth --role <role>` (v0.21).
+
+### `Refresh failed for role 'X' (401)` mid-suite
+
+The refresh endpoint rejected the request. Common causes:
+
+- **CSRF header missing**: your endpoint requires a CSRF header but xera didn't send one. Either configure `refresh.csrfHeader` explicitly or ensure `cookies.csrf.header` is set so the runtime falls back to it.
+- **CSRF header NAME mismatch**: endpoint expects `X-XSRF-Token` but config uses `X-CSRF-Token` (or vice versa). Inspect a real POST in the web app's DevTools Network tab to find the actual header name, then set `csrf.header` in `cookies.csrf` accordingly.
+- **Endpoint URL wrong**: check by `curl -i -X POST <endpoint> -H 'Cookie: <copied from DevTools>'` — should return 2xx with `Set-Cookie`.
+
+Recovery: `XERA_HEADED=1 npx xera-internal auth-setup --role <role> --shape web` then continue.
+
+### Refresh returned 200 but next request still 401
+
+The endpoint returned success but did NOT include a new access cookie in `Set-Cookie`. xera persisted whatever cookies came back, but the access cookie is still the stale value.
+
+Common causes:
+
+- **Wrong endpoint**: you configured an introspection endpoint instead of a refresh endpoint
+- **Endpoint returns access token in BODY** (e.g. Auth0's `/oauth/token`) — not supported in v1 (`Set-Cookie` only); fall back to pre-flight refresh
+- **`access.match` regex misses the new cookie name** — verify by inspecting the response in DevTools
+
+Recovery: same as above (re-login web + re-derive http).
