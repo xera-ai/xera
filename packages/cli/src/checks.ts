@@ -295,6 +295,7 @@ export async function runChecks(cwd: string, opts: RunChecksOptions = {}): Promi
               const payloadObj = entry.payload as {
                 cookies?: Array<{ name: string }>;
                 csrf?: { cookieName: string; header: string };
+                refresh?: { endpoint: string; method: string };
               };
               const cookies = Array.isArray(payloadObj.cookies) ? payloadObj.cookies : [];
               const cookieCheck: Check = {
@@ -317,6 +318,13 @@ export async function runChecks(cwd: string, opts: RunChecksOptions = {}): Promi
                   csrfCheck.message = `POST/PUT/PATCH/DELETE will 403. The CSRF cookie wasn't captured — re-login web (--shape web with XERA_HEADED=1) and visit a page that exercises the API before closing the browser.`;
                 }
                 checks.push(csrfCheck);
+              }
+              if (payloadObj.refresh) {
+                checks.push({
+                  name: `reuse-web-session: mid-suite refresh configured for role '${role}'`,
+                  ok: payloadObj.refresh.endpoint.length > 0,
+                  message: `${payloadObj.refresh.method} ${payloadObj.refresh.endpoint} — runtime will auto-refresh near expiry`,
+                });
               }
             } catch (e) {
               checks.push({
