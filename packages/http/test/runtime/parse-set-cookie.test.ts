@@ -6,7 +6,9 @@ describe('parseSetCookie', () => {
     expect(parseSetCookie('foo=bar')).toEqual({ name: 'foo', value: 'bar' });
   });
   test('with Domain + Path + Expires', () => {
-    const c = parseSetCookie('foo=bar; Domain=.x.com; Path=/; Expires=Sat, 06 Jun 2026 10:00:00 GMT');
+    const c = parseSetCookie(
+      'foo=bar; Domain=.x.com; Path=/; Expires=Sat, 06 Jun 2026 10:00:00 GMT',
+    );
     expect(c?.name).toBe('foo');
     expect(c?.domain).toBe('.x.com');
     expect(c?.path).toBe('/');

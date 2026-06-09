@@ -12,8 +12,7 @@ const origKey = process.env.XERA_AUTH_KEY;
 
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), 'xera-refresh-idp-'));
-  process.env.XERA_AUTH_KEY =
-    '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
+  process.env.XERA_AUTH_KEY = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 });
 afterEach(() => {
   rmSync(dir, { recursive: true, force: true });

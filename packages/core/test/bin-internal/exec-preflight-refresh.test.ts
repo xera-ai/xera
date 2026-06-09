@@ -95,8 +95,7 @@ function seedFreshHttp(): void {
 
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), 'xera-preflight-'));
-  process.env.XERA_AUTH_KEY =
-    '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
+  process.env.XERA_AUTH_KEY = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
   process.chdir(dir);
 });
 
@@ -176,7 +175,11 @@ describe('preflightRefreshReuseWebSession', () => {
     const cfg: XeraConfig = {
       github: { repo: 'owner/repo' },
       adapters: ['web'],
-      web: { baseUrl: { dev: 'http://x' }, defaultEnv: 'dev', auth: { strategy: 'storageState', ttl: '8h', refreshBuffer: '30m', roles: {} } },
+      web: {
+        baseUrl: { dev: 'http://x' },
+        defaultEnv: 'dev',
+        auth: { strategy: 'storageState', ttl: '8h', refreshBuffer: '30m', roles: {} },
+      },
     } as unknown as XeraConfig;
     const logger = { log: vi.fn(), warn: vi.fn() };
     await expect(preflightRefreshReuseWebSession(cfg, dir, logger)).resolves.toBeUndefined();

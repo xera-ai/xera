@@ -353,7 +353,6 @@ describe('ensureFreshAccess', () => {
     expect(post).toHaveBeenCalledTimes(1);
     expect(payload.cookies?.[0]?.value).toBe('NEW');
   });
-
 });
 
 describe('attachRefreshProxy', () => {
