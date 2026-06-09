@@ -27,6 +27,18 @@ export interface AuthFilePayload {
   scheme: string;
   cookies?: Array<{ name: string; value: string; domain: string; path: string; expires?: number }>;
   csrf?: { cookieName: string; header: string };
+  // Refresh-related fields (v0.24+). Populated by the reuse-web-session preset
+  // when `cfg.http.auth.reuseWebSession.refresh` is configured.
+  accessMatch?: { literal: string } | { glob: string } | { regex: string };
+  refreshable?: {
+    match: { literal: string } | { glob: string } | { regex: string };
+    path?: string;
+  };
+  refresh?: {
+    endpoint: string;
+    method: 'GET' | 'POST';
+    csrfHeader?: string;
+  };
 }
 
 interface PlaywrightLike {
@@ -90,12 +102,31 @@ export async function newAuthedContext(
       );
     }
   }
-  const ctx = await playwright.request.newContext(opts);
+  let ctx = await playwright.request.newContext(opts);
   const traceFile = process.env.XERA_HTTP_TRACE;
   if (traceFile) {
-    return attachTraceRecorder(ctx, {
+    ctx = attachTraceRecorder(ctx, {
       traceFile,
       scenario: process.env.XERA_CURRENT_SCENARIO ?? 'unknown',
+    });
+  }
+  if (payload.refresh) {
+    const { attachRefreshProxy } = await import('./refresh-context');
+    // Runtime has no access to xera.config.ts. Refresh buffer + TTL are read
+    // from env vars set by `exec` (or other callers); fall back to sensible
+    // defaults so direct `npx playwright test` invocations still work.
+    const refreshBufferMs = process.env.XERA_REFRESH_BUFFER_MS
+      ? Number(process.env.XERA_REFRESH_BUFFER_MS)
+      : 60_000;
+    const ttlMs = process.env.XERA_REFRESH_TTL_MS
+      ? Number(process.env.XERA_REFRESH_TTL_MS)
+      : 15 * 60_000;
+    return attachRefreshProxy(ctx, {
+      payload,
+      authDir: join(authDir, 'http'),
+      role,
+      refreshBufferMs,
+      ttlMs,
     });
   }
   return ctx;

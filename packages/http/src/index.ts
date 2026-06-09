@@ -35,6 +35,7 @@ export {
   loadOpenApi,
 } from './openapi';
 export { type AuthFilePayload, apiPath, newAuthedContext } from './runtime';
+export { attachRefreshProxy, RefreshFailedError } from './runtime/refresh-context';
 export {
   type NormalizedHttpRun,
   type NormalizedHttpScenario,

@@ -3,12 +3,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { readAuthState } from '@xera-ai/core';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import type { AuthFilePayload } from '../../src/runtime';
 import {
+  attachRefreshProxy,
   cookieMatcherFromMatch,
   doRefresh,
   ensureFreshAccess,
   findAccessCookie,
-  type RefreshAwarePayload,
   RefreshFailedError,
 } from '../../src/runtime/refresh-context';
 
@@ -25,7 +26,7 @@ afterEach(() => {
   else process.env.XERA_AUTH_KEY = ORIG_KEY;
 });
 
-function basePayload(): RefreshAwarePayload {
+function basePayload(): AuthFilePayload {
   return {
     type: 'cookie',
     token: '',
@@ -128,7 +129,7 @@ describe('doRefresh', () => {
     expect(entry).not.toBeNull();
     expect(entry?.role).toBe('admin');
     expect(entry?.strategy).toBe('apiToken');
-    const persistedPayload = entry?.payload as unknown as RefreshAwarePayload;
+    const persistedPayload = entry?.payload as unknown as AuthFilePayload;
     expect(persistedPayload.cookies?.find((c) => c.name === 'session_at')?.value).toBe('NEW_VAL');
   });
 
@@ -353,7 +354,196 @@ describe('ensureFreshAccess', () => {
     expect(payload.cookies?.[0]?.value).toBe('NEW');
   });
 
-  test('concurrent ensureFreshAccess calls trigger ONE refresh (mutex)', async () => {
+});
+
+describe('attachRefreshProxy', () => {
+  function mkCtx() {
+    const calls: Array<{ method: string; args: unknown[] }> = [];
+    const make = (method: string) =>
+      vi.fn(async (...args: unknown[]) => {
+        calls.push({ method, args });
+        return {
+          status: () => 200,
+          statusText: () => 'OK',
+          headersArray: () => [],
+        };
+      });
+    const ctx = {
+      fetch: make('fetch'),
+      get: make('get'),
+      post: make('post'),
+      put: make('put'),
+      patch: make('patch'),
+      delete: make('delete'),
+      head: make('head'),
+      dispose: vi.fn(async () => undefined),
+      storageState: vi.fn(async () => ({ cookies: [], origins: [] })),
+    };
+    return { ctx, calls };
+  }
+
+  test('returns the original ctx when payload.refresh is undefined', () => {
+    const { ctx } = mkCtx();
+    const payload = basePayload();
+    delete payload.refresh;
+    const wrapped = attachRefreshProxy(ctx as never, {
+      payload,
+      authDir: tmpDir,
+      role: 'admin',
+      refreshBufferMs: 60_000,
+      ttlMs: 900_000,
+    });
+    expect(wrapped).toBe(ctx);
+  });
+
+  test('proxies all HTTP verbs and calls ensureFreshAccess before delegating', async () => {
+    const { ctx, calls } = mkCtx();
+    const payload = basePayload();
+    // Keep the cookie far in the future so no actual refresh fires; we only
+    // care that the proxy delegates through to the underlying method.
+    if (payload.cookies?.[0]) {
+      payload.cookies[0].expires = Math.floor(Date.now() / 1000) + 60 * 60;
+    }
+    const wrapped = attachRefreshProxy(ctx as never, {
+      payload,
+      authDir: tmpDir,
+      role: 'admin',
+      refreshBufferMs: 60_000,
+      ttlMs: 900_000,
+    });
+    for (const m of ['fetch', 'get', 'post', 'put', 'patch', 'delete', 'head'] as const) {
+      await (wrapped as unknown as Record<string, (u: string) => Promise<unknown>>)[m]?.(
+        'http://api.x.com/x',
+      );
+    }
+    expect(calls.map((c) => c.method).sort()).toEqual(
+      ['delete', 'fetch', 'get', 'head', 'patch', 'post', 'put'].sort(),
+    );
+  });
+
+  test('re-lifts the latest CSRF cookie value into the configured header per request', async () => {
+    const { ctx, calls } = mkCtx();
+    const payload = basePayload();
+    payload.csrf = { cookieName: 'csrf_t', header: 'X-CSRF-Token' };
+    payload.cookies?.push({
+      name: 'csrf_t',
+      value: 'TOK_1',
+      domain: 'api.x.com',
+      path: '/',
+    });
+    if (payload.cookies?.[0]) {
+      payload.cookies[0].expires = Math.floor(Date.now() / 1000) + 60 * 60;
+    }
+    const wrapped = attachRefreshProxy(ctx as never, {
+      payload,
+      authDir: tmpDir,
+      role: 'admin',
+      refreshBufferMs: 60_000,
+      ttlMs: 900_000,
+    });
+
+    await (wrapped as unknown as { get: (u: string) => Promise<unknown> }).get(
+      'http://api.x.com/me',
+    );
+
+    // Now rotate the CSRF cookie value to simulate a refresh that updated it.
+    const csrfCookie = payload.cookies?.find((c) => c.name === 'csrf_t');
+    if (csrfCookie) csrfCookie.value = 'TOK_2';
+
+    await (wrapped as unknown as { post: (u: string) => Promise<unknown> }).post(
+      'http://api.x.com/items',
+    );
+
+    expect(calls).toHaveLength(2);
+    const getCall = calls[0];
+    const postCall = calls[1];
+    expect(getCall?.method).toBe('get');
+    expect((getCall?.args[1] as { headers: Record<string, string> }).headers['X-CSRF-Token']).toBe(
+      'TOK_1',
+    );
+    expect(postCall?.method).toBe('post');
+    expect((postCall?.args[1] as { headers: Record<string, string> }).headers['X-CSRF-Token']).toBe(
+      'TOK_2',
+    );
+  });
+
+  test('preserves caller-supplied headers and merges CSRF on top', async () => {
+    const { ctx, calls } = mkCtx();
+    const payload = basePayload();
+    payload.csrf = { cookieName: 'csrf_t', header: 'X-CSRF-Token' };
+    payload.cookies?.push({
+      name: 'csrf_t',
+      value: 'TOK',
+      domain: 'api.x.com',
+      path: '/',
+    });
+    if (payload.cookies?.[0]) {
+      payload.cookies[0].expires = Math.floor(Date.now() / 1000) + 60 * 60;
+    }
+    const wrapped = attachRefreshProxy(ctx as never, {
+      payload,
+      authDir: tmpDir,
+      role: 'admin',
+      refreshBufferMs: 60_000,
+      ttlMs: 900_000,
+    });
+    await (
+      wrapped as unknown as {
+        post: (u: string, opts: { headers: Record<string, string> }) => Promise<unknown>;
+      }
+    ).post('http://api.x.com/x', { headers: { 'X-Trace': 'abc' } });
+
+    const headers = (calls[0]?.args[1] as { headers: Record<string, string> }).headers;
+    expect(headers['X-Trace']).toBe('abc');
+    expect(headers['X-CSRF-Token']).toBe('TOK');
+  });
+
+  test('does not touch CSRF when payload.csrf is unset', async () => {
+    const { ctx, calls } = mkCtx();
+    const payload = basePayload();
+    delete payload.csrf;
+    if (payload.cookies?.[0]) {
+      payload.cookies[0].expires = Math.floor(Date.now() / 1000) + 60 * 60;
+    }
+    const wrapped = attachRefreshProxy(ctx as never, {
+      payload,
+      authDir: tmpDir,
+      role: 'admin',
+      refreshBufferMs: 60_000,
+      ttlMs: 900_000,
+    });
+    await (wrapped as unknown as { get: (u: string) => Promise<unknown> }).get(
+      'http://api.x.com/x',
+    );
+    const headers = (calls[0]?.args[1] as { headers?: Record<string, string> } | undefined)
+      ?.headers;
+    // No CSRF should have been injected — options is either undefined or
+    // has no headers map at all.
+    expect(headers?.['X-CSRF-Token']).toBeUndefined();
+  });
+
+  test('passes non-HTTP methods through unchanged (dispose, storageState)', async () => {
+    const { ctx } = mkCtx();
+    const payload = basePayload();
+    if (payload.cookies?.[0]) {
+      payload.cookies[0].expires = Math.floor(Date.now() / 1000) + 60 * 60;
+    }
+    const wrapped = attachRefreshProxy(ctx as never, {
+      payload,
+      authDir: tmpDir,
+      role: 'admin',
+      refreshBufferMs: 60_000,
+      ttlMs: 900_000,
+    });
+    // dispose + storageState should be the original function references, not
+    // wrapped async closures.
+    expect((wrapped as unknown as { dispose: unknown }).dispose).toBe(ctx.dispose);
+    expect((wrapped as unknown as { storageState: unknown }).storageState).toBe(ctx.storageState);
+  });
+});
+
+describe('ensureFreshAccess (mutex)', () => {
+  test('concurrent ensureFreshAccess calls trigger ONE refresh', async () => {
     let postCount = 0;
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
     const mockResponse = {

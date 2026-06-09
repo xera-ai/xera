@@ -5,22 +5,9 @@ import { type ParsedCookie, parseSetCookie } from './parse-set-cookie';
 
 /**
  * Cookie matcher payload — identical shape to `auth-setup/match.ts` but inlined
- * here to avoid a runtime->auth-setup cross-package import. Task R11 will fold
- * these fields into `AuthFilePayload` proper; for now we narrow via intersection
- * at the call sites.
+ * here to avoid a runtime->auth-setup cross-package import.
  */
 export type AccessMatch = { literal: string } | { glob: string } | { regex: string };
-
-/**
- * Local view of the payload that includes the refresh-related fields that R2
- * (preset) writes into `meta` but that the published `AuthFilePayload` type
- * does not yet expose. Task R11 hoists these onto `AuthFilePayload` itself.
- */
-export type RefreshAwarePayload = AuthFilePayload & {
-  accessMatch?: AccessMatch;
-  refreshable?: { match: AccessMatch; path?: string };
-  refresh?: { endpoint: string; method: 'GET' | 'POST'; csrfHeader?: string };
-};
 
 export class RefreshFailedError extends Error {
   public readonly role: string;
@@ -37,7 +24,7 @@ export class RefreshFailedError extends Error {
 }
 
 export interface RefreshOpts {
-  payload: RefreshAwarePayload;
+  payload: AuthFilePayload;
   authDir: string;
   role: string;
   refreshBufferMs: number;
@@ -175,7 +162,7 @@ export async function doRefresh(opts: RefreshOpts): Promise<void> {
  * Returns undefined when no `accessMatch` is configured or no cookie matches.
  */
 export function findAccessCookie(
-  payload: RefreshAwarePayload,
+  payload: AuthFilePayload,
 ): { name: string; value: string; domain: string; path: string; expires?: number } | undefined {
   const am = payload.accessMatch;
   if (!am) return undefined;
@@ -205,4 +192,55 @@ export function cookieMatcherFromMatch(m: AccessMatch): (name: string) => boolea
   }
   const re = new RegExp(m.regex, 'i');
   return (n) => re.test(n);
+}
+
+/**
+ * HTTP-verb methods on `APIRequestContext` that should trigger a pre-call
+ * refresh check + CSRF header re-lift. Lifecycle methods (`dispose`,
+ * `storageState`) and other accessors pass through unchanged.
+ */
+const HTTP_METHODS = new Set(['fetch', 'get', 'post', 'put', 'patch', 'delete', 'head']);
+
+/**
+ * Wrap an `APIRequestContext` so that every HTTP verb call first invokes
+ * `ensureFreshAccess` (mutex-protected refresh check) and then re-lifts the
+ * current CSRF cookie value into the configured header. Non-HTTP properties
+ * (e.g. `dispose`, `storageState`) pass through unchanged.
+ *
+ * No-op when `payload.refresh` is undefined — returns the original ctx.
+ */
+export function attachRefreshProxy(
+  ctx: APIRequestContext,
+  opts: Omit<RefreshOpts, 'ctx'>,
+): APIRequestContext {
+  if (!opts.payload.refresh) return ctx;
+  return new Proxy(ctx, {
+    get(target, prop, receiver) {
+      const orig = Reflect.get(target, prop, receiver);
+      if (typeof orig !== 'function' || typeof prop !== 'string' || !HTTP_METHODS.has(prop)) {
+        return orig;
+      }
+      return async (...args: unknown[]) => {
+        await ensureFreshAccess({ ...opts, ctx: target });
+        const newArgs = injectFreshCsrfHeader(args, opts.payload);
+        return Reflect.apply(orig, target, newArgs);
+      };
+    },
+  }) as APIRequestContext;
+}
+
+/**
+ * Inject the latest CSRF cookie value into the configured header for an
+ * outgoing request. Mutates a new args tuple — never the caller's options.
+ * No-op when payload.csrf is unset or the cookie can't be found.
+ */
+function injectFreshCsrfHeader(args: unknown[], payload: AuthFilePayload): unknown[] {
+  if (!payload.csrf) return args;
+  const csrfCfg = payload.csrf;
+  const cookie = (payload.cookies ?? []).find((c) => c.name === csrfCfg.cookieName);
+  if (!cookie) return args;
+  const [url, options = {}] = args as [unknown, Record<string, unknown>?];
+  const headers = { ...((options.headers as Record<string, string>) ?? {}) };
+  headers[csrfCfg.header] = cookie.value;
+  return [url, { ...options, headers }];
 }
