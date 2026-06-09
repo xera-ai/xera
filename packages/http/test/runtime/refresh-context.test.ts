@@ -352,4 +352,49 @@ describe('ensureFreshAccess', () => {
     expect(post).toHaveBeenCalledTimes(1);
     expect(payload.cookies?.[0]?.value).toBe('NEW');
   });
+
+  test('concurrent ensureFreshAccess calls trigger ONE refresh (mutex)', async () => {
+    let postCount = 0;
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    const mockResponse = {
+      status: () => 200,
+      statusText: () => 'OK',
+      headersArray: () => [
+        {
+          name: 'set-cookie',
+          value: `session_at=NEW_${Date.now()}; Domain=api.x.com; Path=/; Max-Age=1000`,
+        },
+      ],
+    };
+    const post = vi.fn(async () => {
+      postCount++;
+      await sleep(50);
+      return mockResponse;
+    });
+    const ctx = { post, get: vi.fn() } as unknown as Parameters<typeof doRefresh>[0]['ctx'];
+
+    const payload = basePayload();
+    // Mark access cookie as already expired so refresh always triggers.
+    if (payload.cookies?.[0]) {
+      payload.cookies[0].expires = Math.floor(Date.now() / 1000) - 10;
+    }
+    const opts = {
+      payload,
+      ctx,
+      authDir: tmpDir,
+      role: 'admin',
+      refreshBufferMs: 60_000,
+      ttlMs: 900_000,
+    };
+
+    await Promise.all([
+      ensureFreshAccess(opts),
+      ensureFreshAccess(opts),
+      ensureFreshAccess(opts),
+      ensureFreshAccess(opts),
+      ensureFreshAccess(opts),
+    ]);
+    expect(postCount).toBe(1);
+    expect(post).toHaveBeenCalledTimes(1);
+  });
 });
