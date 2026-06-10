@@ -1,5 +1,15 @@
 # @xera-ai/core
 
+## 0.24.1
+
+### Patch Changes
+
+- [#241](https://github.com/xera-ai/xera/pull/241) [`4b06d68`](https://github.com/xera-ai/xera/commit/4b06d68e0847237b9a642668f765d0d03cba438a) Thanks [@thanhtrinity](https://github.com/thanhtrinity)! - make config `reporting` optional in input type (auto-generated from [#241](https://github.com/xera-ai/xera/issues/241))
+
+- Updated dependencies []:
+  - @xera-ai/web@0.24.1
+  - @xera-ai/http@0.24.1
+
 ## 0.24.0
 
 ### Minor Changes
