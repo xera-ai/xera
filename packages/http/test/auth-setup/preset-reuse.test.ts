@@ -165,4 +165,57 @@ describe('presetHttpAuth reuse-web-session', () => {
     });
     expect(res.expiresAt!).toBeGreaterThan(before + 7 * 3600 * 1000);
   });
+
+  test('persists refresh meta when config has refresh block', async () => {
+    const cfg = JSON.parse(JSON.stringify(baseConfig));
+    cfg.auth.roles.admin.reuseWebSession.refresh = {
+      endpoint: '/auth/refresh',
+      method: 'POST',
+    };
+    // Remove csrf cookie config so csrfHeader has no fallback
+    delete cfg.auth.roles.admin.reuseWebSession.cookies.csrf;
+    seedWebState([
+      {
+        name: 'session_at',
+        value: 'A',
+        domain: 'api.x.com',
+        path: '/',
+        expires: Math.floor(Date.now() / 1000) + 900,
+      },
+    ]);
+    const res = await presetHttpAuth({
+      request: fakeRequest,
+      role: 'admin',
+      config: cfg,
+      webAuthDir: dir,
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((res as any).meta?.refresh).toEqual({
+      endpoint: '/auth/refresh',
+      method: 'POST',
+    });
+  });
+
+  test('csrfHeader defaults to cookies.csrf.header if absent in refresh block', async () => {
+    const cfg = JSON.parse(JSON.stringify(baseConfig));
+    cfg.auth.roles.admin.reuseWebSession.refresh = { endpoint: '/x', method: 'POST' };
+    seedWebState([
+      {
+        name: 'session_at',
+        value: 'A',
+        domain: 'api.x.com',
+        path: '/',
+        expires: Math.floor(Date.now() / 1000) + 900,
+      },
+      { name: 'xs_csrf', value: 'C', domain: 'api.x.com', path: '/' },
+    ]);
+    const res = await presetHttpAuth({
+      request: fakeRequest,
+      role: 'admin',
+      config: cfg,
+      webAuthDir: dir,
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((res as any).meta?.refresh?.csrfHeader).toBe('X-CSRF-Token');
+  });
 });

@@ -61,6 +61,13 @@ const ReuseWebSessionSchema = z.object({
       })
       .optional(),
   }),
+  refresh: z
+    .object({
+      endpoint: z.string().min(1),
+      method: z.enum(['GET', 'POST']).default('POST'),
+      csrfHeader: z.string().min(1).optional(),
+    })
+    .optional(),
 });
 
 const HttpAuthRoleSchema = z.object({

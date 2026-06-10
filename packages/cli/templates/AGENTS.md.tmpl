@@ -47,7 +47,9 @@ This project's HTTP API rides the web app's SSO session (shared parent-domain co
    - `npx xera-internal auth-setup --role <role> --shape http` — derive the HTTP auth file from the web one.
 
 2. **Refresh cycle** (recurring):
-   - **Every ~15 minutes** (access cookie TTL): `npx xera-internal auth-setup --role <role> --shape http`. No web re-login needed.
+   - **Pre-flight (automatic, v0.24+)**: `npx xera-internal exec <TICKET>` and `npx xera-internal stage-auth` auto re-derive the http auth file when it's within `refreshBuffer` of expiring AND the web file is still fresh. No user action needed.
+   - **Mid-suite (opt-in, v0.24+)**: configure `reuseWebSession.refresh: { endpoint, method }` to enable runtime refresh — the HTTP context auto-refreshes mid-request when access cookie is about to expire, mutates the encrypted auth file in place, and re-lifts CSRF header per request. See `docs/CONFIGURATION.md` for IDP-specific endpoints (Entra/Okta/Auth0).
+   - **Manual fallback (always works)**: `npx xera-internal auth-setup --role <role> --shape http`. Use when pre-flight detection fails or you've disabled mid-suite refresh.
    - **Every ~8 hours** (SSO session TTL): `XERA_HEADED=1 npx xera-internal auth-setup --role <role> --shape web`, THEN re-derive http. `xera.config.ts` is unchanged.
    - Doctor warns 30 minutes before web expiry.
 

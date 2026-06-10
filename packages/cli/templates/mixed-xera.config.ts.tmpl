@@ -57,6 +57,14 @@ export default defineConfig({
               // refresh: { match: { regex: '_rt$' }, path: '/auth' },
               // csrf:    { match: { regex: 'csrf' }, header: 'X-CSRF-Token' },
             },
+            // Mid-suite auto-refresh (v0.24+) — uncomment to enable runtime
+            // refresh when access cookie nears expiry. Endpoint must return
+            // Set-Cookie with a new value for the access cookie. See
+            // docs/CONFIGURATION.md for Entra/Okta/Auth0 recipes.
+            // refresh: {
+            //   endpoint: 'https://api.your-domain.test/auth/refresh',
+            //   method: 'POST',
+            // },
           },
         },
         {{/each}}{{/if}}{{#if isNotReuseWebSession}}{{#each httpRoles}}{{this}}: { tokenEnv: '{{upper this}}_BEARER_TOKEN' },

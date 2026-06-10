@@ -106,6 +106,17 @@ export async function stageAuthCmd(argv: string[]): Promise<number> {
     }
   }
 
+  // Pre-flight refresh of http auth file when reuse-web-session is configured
+  // and the web file is fresh — keeps `npx playwright test` (direct, not via
+  // xera-internal exec) working without manually re-running auth-setup.
+  if (config.http?.auth.strategy === 'reuse-web-session') {
+    const { preflightRefreshReuseWebSession } = await import('./preflight-refresh');
+    await preflightRefreshReuseWebSession(config, cwd, {
+      log: (s: string) => console.log(s),
+      warn: (s: string) => console.warn(s),
+    });
+  }
+
   // Stage every role that has a (now-fresh) auth file.
   let staged = 0;
   let exit = 0;
