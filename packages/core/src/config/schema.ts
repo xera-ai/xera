@@ -146,33 +146,35 @@ const AISchema = z
   })
   .prefault({});
 
-const ReportingSchema = z.preprocess(
-  (val) => {
-    // Backwards-compat: map legacy `postToJira` → `postComment` when only the
-    // legacy name is provided. Both keys live in user configs from <=v0.15.x.
-    if (val && typeof val === 'object' && !Array.isArray(val)) {
-      const obj = val as Record<string, unknown>;
-      if ('postToJira' in obj && !('postComment' in obj)) {
-        obj.postComment = obj.postToJira;
+const ReportingSchema = z
+  .preprocess(
+    (val) => {
+      // Backwards-compat: map legacy `postToJira` → `postComment` when only the
+      // legacy name is provided. Both keys live in user configs from <=v0.15.x.
+      if (val && typeof val === 'object' && !Array.isArray(val)) {
+        const obj = val as Record<string, unknown>;
+        if ('postToJira' in obj && !('postComment' in obj)) {
+          obj.postComment = obj.postToJira;
+        }
+        delete obj.postToJira;
       }
-      delete obj.postToJira;
-    }
-    return val ?? {};
-  },
-  z.object({
-    language: z.enum(['en', 'vi']).default('en'),
-    // Canonical name — gates posting a comment to whichever tracker is configured
-    // (jira or github). Legacy alias `postToJira` is accepted and mapped above.
-    postComment: z.boolean().default(true),
-    transition: z
-      .object({
-        onPass: z.string().nullable().default(null),
-        onFail: z.string().nullable().default(null),
-      })
-      .prefault({}),
-    artifactLinks: z.enum(['git', 'local']).default('git'),
-  }),
-);
+      return val ?? {};
+    },
+    z.object({
+      language: z.enum(['en', 'vi']).default('en'),
+      // Canonical name — gates posting a comment to whichever tracker is configured
+      // (jira or github). Legacy alias `postToJira` is accepted and mapped above.
+      postComment: z.boolean().default(true),
+      transition: z
+        .object({
+          onPass: z.string().nullable().default(null),
+          onFail: z.string().nullable().default(null),
+        })
+        .prefault({}),
+      artifactLinks: z.enum(['git', 'local']).default('git'),
+    }),
+  )
+  .prefault({});
 
 const RunSchema = z
   .object({
