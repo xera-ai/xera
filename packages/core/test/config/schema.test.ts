@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+import { defineConfig } from '../../src/config/define';
 import { resolveOpenApiSpec, XeraConfigSchema } from '../../src/config/schema';
 
 function validBase() {
@@ -401,5 +402,21 @@ describe('XeraConfigSchema.reporting (legacy postToJira alias)', () => {
       reporting: { postToJira: true, postComment: false },
     });
     expect(parsed.reporting.postComment).toBe(false);
+  });
+
+  // Regression: `xera init` templates omit `reporting`, so the input type
+  // must not require it. If this stops typechecking, the generated
+  // xera.config.ts in consumer projects will fail tsc.
+  test('defineConfig accepts a config that omits reporting', () => {
+    const cfg = defineConfig({
+      jira: {
+        baseUrl: 'https://example.atlassian.net',
+        projectKeys: ['PROJ'],
+        fields: { story: 'description' },
+      },
+      web: { baseUrl: { local: 'http://localhost:3000' }, defaultEnv: 'local' },
+      adapters: ['web'],
+    });
+    expect(XeraConfigSchema.parse(cfg).reporting.postComment).toBe(true);
   });
 });
